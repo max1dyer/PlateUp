@@ -1,6 +1,7 @@
 ## PlateUp
 
 Npm workspaces monorepo.
+
 - clone: `git clone <url>`
 - install: `npm install`
 - run from root directory:
@@ -21,6 +22,7 @@ NestJS backend and Angular frontend: TypeScript classes, decorators, dependency 
 Basic setup: https://docs.nestjs.com/first-steps
 
 **Backend (`backend/src`)**
+
 - Built with NestJS.
 - Each feature will consist of a Module, Controller, and Service.
 - Files:
@@ -32,7 +34,9 @@ Basic setup: https://docs.nestjs.com/first-steps
   - `*.spec.ts`: Jest unit testing for the file next to it.
 
 Adding new features:
+
 - Makes a new `backend/src/recipes/` folder.
+
 ```
 # NestJS will modify the AppModule and generate boilerplate code
 npx nest generate module recipes
@@ -41,6 +45,7 @@ npx nest generate service recipes
 ```
 
 **Frontend (`frontend/src`)**
+
 - `app/`
   - `*.ts`: component classes to define variables, state, and functions for the UI.
   - `*.html`: html layout for the component, reading variables from the `.ts` class.
@@ -52,4 +57,5 @@ npx nest generate service recipes
 - `styles.css`: global stylesheet.
 
 New encapsulated components for UI pieces can be made with: `npx ng generate component recipes`
+
 - Makes a new `src/app/recipes/` folder.

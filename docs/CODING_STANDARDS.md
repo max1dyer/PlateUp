@@ -1,21 +1,27 @@
 ## 1. Git & GitHub Workflow
+
 We use a feature-branch workflow. No feature commit are made directly to the `main` branch.
 
 ### Branch Naming Conventions
+
 Use a descriptive prefix followed by a kebab-case description of the task.
-* `feat/` - For new additions (e.g., `feature/recipe-service`)
-* `fix/` - For fixing issues (e.g., `bugfix/login-crash`)
-* `docs/` - For README or documentation updates (e.g., `docs/api-endpoints`)
-* `misc/` - Other changes.
+
+- `feat/` - For new additions (e.g., `feature/recipe-service`)
+- `fix/` - For fixing issues (e.g., `bugfix/login-crash`)
+- `docs/` - For README or documentation updates (e.g., `docs/api-endpoints`)
+- `misc/` - Other changes.
 
 ### Commit Messages
+
 We use Conventional Commits.
-* `feat: added user authentication module`
-* `fix: resolved null pointer on profile page`
-* `test: added unit tests for recipe controller`
-* `style: ran prettier on frontend components`
+
+- `feat: added user authentication module`
+- `fix: resolved null pointer on profile page`
+- `test: added unit tests for recipe controller`
+- `style: ran prettier on frontend components`
 
 ### Pull Request (PR) Rules
+
 1. A PR should be linked to a specific sprint task or issue.
 2. The GitHub Actions CI pipeline (`format`, `lint`, `test`, `build`) must pass before merging.
 3. At least one team member must review and approve the PR before it is merged.
@@ -23,9 +29,11 @@ We use Conventional Commits.
 ---
 
 ## 2. Code Formatting & Linting
+
 We rely on automation to enforce style.
+
 - **Formatting:** Managed by Prettier. Run `npm run format` before every commit.
-- **Linting:** Managed by ESLint. Run `npm run lint` before every commit. 
+- **Linting:** Managed by ESLint. Run `npm run lint` before every commit.
 - Code should compile without warnings or errors.
 
 ---
@@ -33,6 +41,7 @@ We rely on automation to enforce style.
 ## 3. TypeScript & Object-Oriented Design (OOD)
 
 Write strictly typed, Object-Oriented code.
+
 - **No `any` Types:** Do not use `any`. Define an `interface`, `type`, or `class` for all data structures.
 - **Encapsulation:** Use access modifiers (`private`, `protected`, `public`, `readonly`) appropriately on all class properties and methods.
 - **Dependency Injection:** Don't instantiate services with `new Service()`, favor injecting them through the class constructor.
