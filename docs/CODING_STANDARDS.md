@@ -9,6 +9,7 @@ Use a descriptive prefix followed by a kebab-case description of the task.
 - `feat/` - For new additions (e.g., `feature/recipe-service`)
 - `fix/` - For fixing issues (e.g., `bugfix/login-crash`)
 - `docs/` - For README or documentation updates (e.g., `docs/api-endpoints`)
+- `config/` - For configuration changes.
 - `misc/` - Other changes.
 
 ### Commit Messages
