@@ -19,8 +19,6 @@ Npm workspaces monorepo.
 
 NestJS backend and Angular frontend: TypeScript classes, decorators, dependency injection.
 
-Basic setup: https://docs.nestjs.com/first-steps
-
 **Backend (`backend/src`)**
 
 - Built with NestJS.
