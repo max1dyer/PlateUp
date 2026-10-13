@@ -32,6 +32,20 @@ Basic setup: https://docs.nestjs.com/first-steps
     - Calls the service code.
   - `*.service.ts`: Business logic, where the actual Object-Oriented work happens (database calls, math, data manipulation).
   - `*.spec.ts`: Jest unit testing for the file next to it.
+  - `entities/`: domain classes that own their data and rules (e.g. `Recipe`, `GroceryList`).
+  - `dto/`: request body classes (e.g. `CreateRecipeDto`).
+  - `repositories/`: an abstract repository (the DI token services depend on) plus its in-memory implementation.
+
+Current feature modules: `users`, `recipes`, `pantry`, `grocery-lists`. Shared building blocks live in `common/`.
+
+Design:
+
+- Request flow: Controller → Service → Repository, with entities carrying the business rules.
+- Every entity extends `BaseEntity` (id, timestamps, `toJSON()`); user-owned ones extend `OwnedEntity` (`ownerId`, `isOwnedBy()`).
+- `Quantity` is an immutable value object shared by recipes, the pantry, and grocery lists (`scale()` handles serving sizes).
+- Entities throw `DomainValidationError` for invalid input, which `DomainErrorFilter` returns as HTTP 400.
+- Storage is **in-memory** for now (data resets on restart). To add a database, write a new class that extends the feature's abstract repository and change `useClass` in that feature's module. No service code changes.
+- Authentication is not implemented yet. Requests identify the user with an `x-user-id` header, read by the `@CurrentUserId()` decorator. Only that decorator needs to change when auth is added.
 
 Adding new features:
 
