@@ -38,9 +38,14 @@ export class PantryItem extends OwnedEntity<PantryItemSnapshot> {
     this.touch();
   }
 
-  /** True if `name` is the same ingredient and `quantity` can be added to this item's. */
-  public canCombineWith(name: string, quantity: Quantity): boolean {
-    return isSameIngredient(this.itemName, name) && this.itemQuantity.isCompatibleWith(quantity);
+  /** True if `name` refers to the same ingredient as this item. */
+  public isNamed(name: string): boolean {
+    return isSameIngredient(this.itemName, name);
+  }
+
+  /** True if `quantity` is in a unit that can be added to this item's. */
+  public canAddQuantity(quantity: Quantity): boolean {
+    return this.itemQuantity.isCompatibleWith(quantity);
   }
 
   /** Adds more of this ingredient; the total keeps the unit already held (UC5). */
