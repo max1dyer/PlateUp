@@ -24,9 +24,43 @@ describe('GroceryList', () => {
   it('marks items purchased and reports unknown items', () => {
     const item = list.addItem('Milk');
 
-    expect(list.setItemPurchased(item.id, true)).toBe(true);
+    expect(list.updateItem(item.id, { purchased: true })).toBe(true);
     expect(list.items[0].purchased).toBe(true);
-    expect(list.setItemPurchased('missing', true)).toBe(false);
+    expect(list.updateItem('missing', { purchased: true })).toBe(false);
+  });
+
+  it('updateItem changes only the given fields', () => {
+    const item = list.addItem('Milk', new Quantity(1, Unit.Liter));
+
+    list.updateItem(item.id, { quantity: new Quantity(2, Unit.Liter) });
+    expect(item.quantity?.equals(new Quantity(2, Unit.Liter))).toBe(true);
+    expect(item.name).toBe('Milk');
+
+    list.updateItem(item.id, { name: 'Oat milk' });
+    expect(item.name).toBe('Oat milk');
+    expect(item.quantity?.equals(new Quantity(2, Unit.Liter))).toBe(true);
+    expect(item.purchased).toBe(false);
+  });
+
+  it('updateItem removes the quantity when given null', () => {
+    const item = list.addItem('Eggs', new Quantity(12, Unit.Piece));
+
+    list.updateItem(item.id, { quantity: null });
+
+    expect(item.quantity).toBeNull();
+  });
+
+  it('updateItem rejects invalid changes without applying any of them', () => {
+    const item = list.addItem('Milk');
+
+    expect(() => list.updateItem(item.id, { name: ' ', purchased: true })).toThrow(
+      DomainValidationError,
+    );
+    expect(() => list.updateItem(item.id, { purchased: 'yes' as unknown as boolean })).toThrow(
+      DomainValidationError,
+    );
+    expect(item.name).toBe('Milk');
+    expect(item.purchased).toBe(false);
   });
 
   it('removes a single item', () => {
@@ -40,7 +74,7 @@ describe('GroceryList', () => {
   it('removePurchasedItems keeps unpurchased items', () => {
     const milk = list.addItem('Milk');
     list.addItem('Bread');
-    list.setItemPurchased(milk.id, true);
+    list.updateItem(milk.id, { purchased: true });
 
     expect(list.removePurchasedItems()).toBe(1);
     expect(list.items.map((item) => item.name)).toEqual(['Bread']);

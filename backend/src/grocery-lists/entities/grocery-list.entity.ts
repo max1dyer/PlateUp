@@ -1,7 +1,7 @@
 import { requireText } from '../../common/domain/guards';
 import { OwnedEntity } from '../../common/domain/owned.entity';
 import { Quantity } from '../../common/domain/quantity';
-import { GroceryListItem } from './grocery-list-item.entity';
+import { GroceryListItem, GroceryListItemChanges } from './grocery-list-item.entity';
 
 export interface GroceryListSnapshot {
   ownerId: string;
@@ -39,13 +39,13 @@ export class GroceryList extends OwnedEntity<GroceryListSnapshot> {
     return item;
   }
 
-  /** Returns false if the item is not on this list. */
-  public setItemPurchased(itemId: string, purchased: boolean): boolean {
+  /** Edits an item's name, quantity, or purchased flag. Returns false if the item is not on this list. */
+  public updateItem(itemId: string, changes: GroceryListItemChanges): boolean {
     const item = this.itemsById.get(itemId);
     if (!item) {
       return false;
     }
-    item.setPurchased(purchased);
+    item.update(changes);
     this.touch();
     return true;
   }
