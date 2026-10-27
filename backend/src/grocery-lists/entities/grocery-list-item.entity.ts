@@ -1,10 +1,12 @@
 import { BaseEntity } from '../../common/domain/base.entity';
-import { requireBoolean, requireText } from '../../common/domain/guards';
+import { requireBoolean, requireOneOf, requireText } from '../../common/domain/guards';
+import { IngredientCategory } from '../../common/domain/ingredient-category';
 import { Quantity } from '../../common/domain/quantity';
 
 export interface GroceryListItemSnapshot {
   name: string;
   quantity: Quantity | null;
+  category: IngredientCategory;
   purchased: boolean;
 }
 
@@ -18,12 +20,18 @@ export type GroceryListItemChanges = Partial<GroceryListItemSnapshot>;
 export class GroceryListItem extends BaseEntity<GroceryListItemSnapshot> {
   private itemName: string;
   private itemQuantity: Quantity | null;
+  private itemCategory: IngredientCategory;
   private isPurchased = false;
 
-  constructor(name: string, quantity: Quantity | null = null) {
+  constructor(
+    name: string,
+    quantity: Quantity | null = null,
+    category: IngredientCategory = IngredientCategory.Other,
+  ) {
     super();
     this.itemName = requireText(name, 'Grocery item name');
     this.itemQuantity = quantity;
+    this.itemCategory = requireOneOf(category, IngredientCategory, 'category');
   }
 
   public get name(): string {
@@ -34,6 +42,10 @@ export class GroceryListItem extends BaseEntity<GroceryListItemSnapshot> {
     return this.itemQuantity;
   }
 
+  public get category(): IngredientCategory {
+    return this.itemCategory;
+  }
+
   public get purchased(): boolean {
     return this.isPurchased;
   }
@@ -42,12 +54,17 @@ export class GroceryListItem extends BaseEntity<GroceryListItemSnapshot> {
   public update(changes: GroceryListItemChanges): void {
     const name =
       changes.name === undefined ? this.itemName : requireText(changes.name, 'Grocery item name');
+    const category =
+      changes.category === undefined
+        ? this.itemCategory
+        : requireOneOf(changes.category, IngredientCategory, 'category');
     const purchased =
       changes.purchased === undefined
         ? this.isPurchased
         : requireBoolean(changes.purchased, 'Purchased');
 
     this.itemName = name;
+    this.itemCategory = category;
     this.isPurchased = purchased;
     if (changes.quantity !== undefined) {
       this.itemQuantity = changes.quantity;
@@ -56,6 +73,11 @@ export class GroceryListItem extends BaseEntity<GroceryListItemSnapshot> {
   }
 
   protected snapshot(): GroceryListItemSnapshot {
-    return { name: this.itemName, quantity: this.itemQuantity, purchased: this.isPurchased };
+    return {
+      name: this.itemName,
+      quantity: this.itemQuantity,
+      category: this.itemCategory,
+      purchased: this.isPurchased,
+    };
   }
 }

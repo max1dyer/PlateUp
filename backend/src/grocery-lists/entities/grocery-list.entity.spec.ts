@@ -1,4 +1,5 @@
 import { DomainValidationError } from '../../common/errors/domain-validation.error';
+import { IngredientCategory } from '../../common/domain/ingredient-category';
 import { Quantity, Unit } from '../../common/domain/quantity';
 import { GroceryList } from './grocery-list.entity';
 
@@ -61,6 +62,35 @@ describe('GroceryList', () => {
     );
     expect(item.name).toBe('Milk');
     expect(item.purchased).toBe(false);
+  });
+
+  it('adds items to the Other category unless one is given', () => {
+    const chips = list.addItem('Chips');
+    const eggs = list.addItem('Eggs', new Quantity(1, Unit.Carton), IngredientCategory.Protein);
+
+    expect(chips.category).toBe(IngredientCategory.Other);
+    expect(eggs.category).toBe(IngredientCategory.Protein);
+  });
+
+  it('rejects an unknown category', () => {
+    const item = list.addItem('Milk', null, IngredientCategory.Dairy);
+
+    expect(() => list.addItem('Chips', null, 'junk-food' as IngredientCategory)).toThrow(
+      DomainValidationError,
+    );
+    expect(() =>
+      list.updateItem(item.id, { category: 'junk-food' as IngredientCategory, name: 'Oat milk' }),
+    ).toThrow(DomainValidationError);
+    expect(item.category).toBe(IngredientCategory.Dairy);
+    expect(item.name).toBe('Milk');
+  });
+
+  it('updateItem changes the category', () => {
+    const item = list.addItem('Lemongrass');
+
+    list.updateItem(item.id, { category: IngredientCategory.Produce });
+
+    expect(item.category).toBe(IngredientCategory.Produce);
   });
 
   it('removes a single item', () => {

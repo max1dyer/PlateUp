@@ -50,7 +50,7 @@ export class GroceryListsService {
     dto: AddGroceryItemDto,
   ): Promise<GroceryList> {
     const list = await this.findOne(ownerId, listId);
-    list.addItem(dto.name, this.toQuantity(dto.quantity));
+    list.addItem(dto.name, this.toQuantity(dto.quantity), dto.category);
     return this.groceryLists.save(list);
   }
 

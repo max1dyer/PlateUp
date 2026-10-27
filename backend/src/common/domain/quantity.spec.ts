@@ -102,4 +102,33 @@ describe('Quantity', () => {
       );
     });
   });
+
+  describe('package units', () => {
+    it('combine only with the same package unit', () => {
+      const total = new Quantity(1, Unit.Bag).plus(new Quantity(2, Unit.Bag));
+
+      expect(total.equals(new Quantity(3, Unit.Bag))).toBe(true);
+      expect(new Quantity(1, Unit.Bag).isCompatibleWith(new Quantity(1, Unit.Bottle))).toBe(false);
+    });
+
+    it('are not compatible with measured or counted units', () => {
+      expect(new Quantity(1, Unit.Carton).isCompatibleWith(new Quantity(12, Unit.Piece))).toBe(
+        false,
+      );
+      expect(new Quantity(1, Unit.Jar).isCompatibleWith(new Quantity(500, Unit.Gram))).toBe(false);
+    });
+
+    it('cannot be converted or added across package types', () => {
+      expect(() => new Quantity(1, Unit.Bag).convertTo(Unit.Box)).toThrow(DomainValidationError);
+      expect(() => new Quantity(1, Unit.Can).plus(new Quantity(1, Unit.Jar))).toThrow(
+        DomainValidationError,
+      );
+    });
+
+    it('convert to themselves unchanged', () => {
+      expect(
+        new Quantity(2, Unit.Tube).convertTo(Unit.Tube).equals(new Quantity(2, Unit.Tube)),
+      ).toBe(true);
+    });
+  });
 });

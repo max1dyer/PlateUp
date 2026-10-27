@@ -1,5 +1,6 @@
 import { NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
+import { IngredientCategory } from '../common/domain/ingredient-category';
 import { Quantity, Unit } from '../common/domain/quantity';
 import { GroceryListsService } from './grocery-lists.service';
 import { GroceryListRepository } from './repositories/grocery-list.repository';
@@ -95,6 +96,25 @@ describe('GroceryListsService', () => {
     await service.updateItem('alice', list.id, eggs.id, { quantity: null });
     expect(eggs.quantity).toBeNull();
     expect(eggs.purchased).toBe(true);
+  });
+
+  it('addItem and updateItem store the category', async () => {
+    const list = await service.create('alice', { name: 'Weekly' });
+    await service.addItem('alice', list.id, {
+      name: 'Fish sauce',
+      quantity: { amount: 1, unit: Unit.Bottle },
+      category: IngredientCategory.OilSauce,
+    });
+    await service.addItem('alice', list.id, { name: 'Lemongrass' });
+    const [fishSauce, lemongrass] = list.items;
+
+    expect(fishSauce.category).toBe(IngredientCategory.OilSauce);
+    expect(lemongrass.category).toBe(IngredientCategory.Other);
+
+    await service.updateItem('alice', list.id, lemongrass.id, {
+      category: IngredientCategory.Produce,
+    });
+    expect(lemongrass.category).toBe(IngredientCategory.Produce);
   });
 
   it('item operations 404 for unknown items', async () => {

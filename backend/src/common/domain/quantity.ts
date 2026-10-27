@@ -12,6 +12,13 @@ export enum Unit {
   Ounce = 'oz',
   Pound = 'lb',
   Piece = 'piece',
+  Carton = 'carton',
+  Bag = 'bag',
+  Bottle = 'bottle',
+  Tube = 'tube',
+  Can = 'can',
+  Jar = 'jar',
+  Box = 'box',
 }
 
 /** What a unit measures. Amounts convert only between units of the same dimension. */
@@ -19,6 +26,8 @@ export enum Dimension {
   Mass = 'mass',
   Volume = 'volume',
   Count = 'count',
+  /** Store packaging (bag, bottle, ...). Sizes vary, so each unit only combines with itself. */
+  Package = 'package',
 }
 
 interface UnitDefinition {
@@ -39,6 +48,13 @@ const UNIT_DEFINITIONS: Record<Unit, UnitDefinition> = {
   [Unit.Tablespoon]: { dimension: Dimension.Volume, toBase: 14.7868 },
   [Unit.Cup]: { dimension: Dimension.Volume, toBase: 236.588 },
   [Unit.Piece]: { dimension: Dimension.Count, toBase: 1 },
+  [Unit.Carton]: { dimension: Dimension.Package, toBase: 1 },
+  [Unit.Bag]: { dimension: Dimension.Package, toBase: 1 },
+  [Unit.Bottle]: { dimension: Dimension.Package, toBase: 1 },
+  [Unit.Tube]: { dimension: Dimension.Package, toBase: 1 },
+  [Unit.Can]: { dimension: Dimension.Package, toBase: 1 },
+  [Unit.Jar]: { dimension: Dimension.Package, toBase: 1 },
+  [Unit.Box]: { dimension: Dimension.Package, toBase: 1 },
 };
 
 /**
@@ -66,18 +82,20 @@ export class Quantity {
     return new Quantity(this.amount * requireNonNegative(factor, 'Scale factor'), this.unit);
   }
 
-  /** True if both units measure the same dimension, e.g. kg and oz. */
+  /** True if the amounts can be converted and combined, e.g. kg and oz, or bag and bag. */
   public isCompatibleWith(other: Quantity): boolean {
-    return this.definition.dimension === UNIT_DEFINITIONS[other.unit].dimension;
+    return Quantity.unitsAreCompatible(this.unit, other.unit);
   }
 
-  /** Returns this amount expressed in `unit`, which must measure the same dimension. */
+  /** Returns this amount expressed in `unit`, which must be compatible with this one. */
   public convertTo(unit: Unit): Quantity {
-    const target = UNIT_DEFINITIONS[unit];
-    if (!target || target.dimension !== this.definition.dimension) {
+    if (!Quantity.unitsAreCompatible(this.unit, unit)) {
       throw new DomainValidationError(`Cannot convert ${this.unit} to ${String(unit)}.`);
     }
-    return new Quantity((this.amount * this.definition.toBase) / target.toBase, unit);
+    return new Quantity(
+      (this.amount * this.definition.toBase) / UNIT_DEFINITIONS[unit].toBase,
+      unit,
+    );
   }
 
   /** Returns the sum of both amounts, expressed in this quantity's unit. */
@@ -96,6 +114,16 @@ export class Quantity {
 
   private get definition(): UnitDefinition {
     return UNIT_DEFINITIONS[this.unit];
+  }
+
+  /** Same dimension, except package units, which only match themselves (a bag is not a bottle). */
+  private static unitsAreCompatible(a: Unit, b: Unit): boolean {
+    const first = UNIT_DEFINITIONS[a];
+    const second = UNIT_DEFINITIONS[b];
+    if (!first || !second || first.dimension !== second.dimension) {
+      return false;
+    }
+    return first.dimension !== Dimension.Package || a === b;
   }
 
   private static round(amount: number): number {

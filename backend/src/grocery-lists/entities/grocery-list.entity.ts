@@ -1,4 +1,5 @@
 import { requireText } from '../../common/domain/guards';
+import { IngredientCategory } from '../../common/domain/ingredient-category';
 import { OwnedEntity } from '../../common/domain/owned.entity';
 import { Quantity } from '../../common/domain/quantity';
 import { GroceryListItem, GroceryListItemChanges } from './grocery-list-item.entity';
@@ -32,8 +33,12 @@ export class GroceryList extends OwnedEntity<GroceryListSnapshot> {
     this.touch();
   }
 
-  public addItem(name: string, quantity: Quantity | null = null): GroceryListItem {
-    const item = new GroceryListItem(name, quantity);
+  public addItem(
+    name: string,
+    quantity: Quantity | null = null,
+    category: IngredientCategory = IngredientCategory.Other,
+  ): GroceryListItem {
+    const item = new GroceryListItem(name, quantity, category);
     this.itemsById.set(item.id, item);
     this.touch();
     return item;
