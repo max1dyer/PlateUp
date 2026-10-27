@@ -1,10 +1,4 @@
-# **PlateUp**
-
-_Plan less, cook more._
-
-**Sprint 4 Deliverable: Product Interface Mockup, User Stories, Supplemental Specification, Deployment Diagram, Use Cases, Work Breakdown Structure, Updated Project Schedule, Project Status Report, and Contribution Summary.**
-
-Team: Max Dyer (Product Owner), Matt Durcan (Scrum Master), Will Shockey, Kartik Prabhu.
+# Interface Mockup, User Stories, Supplemental Specification, Use Cases, Work Breakdown Structure, Project Schedule
 
 ---
 
@@ -12,7 +6,7 @@ Team: Max Dyer (Product Owner), Matt Durcan (Scrum Master), Will Shockey, Kartik
 
 The interface mockup is our baseline demonstration of the intended functionality and UI usage of the web application. Built in [Figma](https://www.figma.com/design/MOfkyQsZ9ogNebupsJJjle/PlateUp?node-id=0-1&t=vt8Lhi5wpXGyyGss-1), the prototype view supports a clickable model to walk through a sample use-case of the application, showing various screens with their specific controls, and how a user is able to navigate between screens.
 
-Our [walkthrough](https://drive.google.com/file/d/196Lpt8ET73OFoLhLWsNPQrr3zOCm8H_x/view?usp=sharing) explores the site's main pages including homepage, about, contact, recipe feed (prior to logging in), user homepage, user profile, recipe feed (with logged-in functionality), a sample recipe, grocery list, pantry inventory, saved recipes, and planner. Our user pages are the most detailed and include essential information reflected in our user stories.
+Our walkthrough explores the site's main pages including homepage, about, contact, recipe feed (prior to logging in), user homepage, user profile, recipe feed (with logged-in functionality), a sample recipe, grocery list, pantry inventory, saved recipes, and planner. Our user pages are the most detailed and include essential information reflected in our user stories.
 
 The recipe page features a search bar with sorting/filtering; we have a sample functionality walkthrough for sorting a recipe by rating. The recipe page has a default trending section and new recipe section. We created a sample recipe: Thai Red Curry. Our recipe includes basic information of the recipe including a thumbnail, a description, an option to save the recipe, the user who created it, date created, rating, time to complete, number of ingredients, macro information, dietary tags, and cuisine tags. The recipe also includes a detailed ingredients list which shows which ingredients the user is missing, and gives an option to add those ingredients to their grocery list. Additionally, the recipe includes the steps to complete it, option to add the recipe to the planner, user reviews, and the ability to add a new review. These select features address user stories 2.2, 2.6, 2.7, 2.12, 2.18, and 2.21.
 
@@ -658,39 +652,6 @@ Every sequence begins with an action by the primary actor and then alternates be
 - Identity Service (Supabase), Nutrition Service (USDA FoodData Central), and Pricing Service (Kroger API) are all external systems with which the System communicates.
 - Scheduler: the time event that starts UC15.
 
-### 5.1 Use Case List
-
-| ID   | Use Case                               | Primary Actor | Priority | Stories                          |
-| :--- | :------------------------------------- | :------------ | :------- | :------------------------------- |
-| UC1  | Plan Weekly Meals                      | User          | Should   | 1.3                              |
-| UC2  | Browse Recipe Feed                     | User          | Must     | 1.13                             |
-| UC3  | Upload Recipe                          | User (Author) | Must     | 1.2                              |
-| UC4  | Track Daily Macros                     | User          | Could    | 1.9                              |
-| UC5  | Add Ingredient to Pantry               | User          | Should   | 1.1                              |
-| UC6  | Generate Grocery List                  | User          | Must     | 1.6                              |
-| UC7  | Analyse Recipe Nutrition and Cost      | User          | Should   | 1.5, 1.8                         |
-| UC8  | Add Recipe Ingredients to Pantry       | User          | Could    | 1.1                              |
-| UC9  | Authenticate User (Log In and Log Out) | User          | Must     | 1.16                             |
-| UC10 | Set Preferences                        | User          | Must     | 1.4, 1.21                        |
-| UC11 | Manage Pantry Items                    | User          | Should   | 1.1                              |
-| UC12 | Manage Grocery List                    | User          | Must     | 1.6                              |
-| UC13 | Share Recipe                           | User          | Should   | 1.2                              |
-| UC14 | Cook Recipe                            | User          | Could    | none yet                         |
-| UC15 | Receive Expiration Alert               | Scheduler     | Could    | none yet                         |
-| UC16 | Register Account                       | Visitor       | Must     | 1.16                             |
-| UC17 | Search, Filter, and Sort Recipes       | User          | Must     | 1.7, 1.8, 1.10, 1.11, 1.13, 1.21 |
-| UC18 | View Recipe and Adjust Servings        | User          | Must     | 1.4                              |
-| UC19 | Import Recipe from Social Media        | User (Author) | Must     | 1.14                             |
-| UC20 | Edit Recipe                            | User (Author) | Must     | 1.19                             |
-| UC21 | Delete Recipe                          | User (Author) | Must     | 1.19                             |
-| UC22 | Create Personal Version of Recipe      | User          | Must     | 1.20                             |
-| UC23 | Save Recipe                            | User          | Must     | 1.12                             |
-| UC24 | Review Recipe                          | User          | Must     | 1.18                             |
-| UC25 | Manage Profile                         | User          | Must     | 1.17                             |
-| UC26 | Set Ingredient Price                   | User          | Should   | 1.5                              |
-
-##
-
 ### UC1: Plan Weekly Meals
 
 | Use Case: MealPlanner |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
@@ -1262,9 +1223,7 @@ Each area is broken into work packages sized such that one team member can finis
 - Prepare the final project presentation.
 - Record a backup demo video of the working application.
 
-# **Part 7\. Updated Project Schedule**
-
-Our projected schedule and plans for the interim and beta release remain largely unchanged from the last report, however we did push the expected goals from sprint 5 down to sprint 6, with the hope that we can put more effort into the project's implementation after we have completed the required documentation, that we've been focusing on thus far.
+# **Part 7\. Project Schedule**
 
 Our small meeting is every Wednesday at 2:00pm. Each sprint has been designed to end at this meeting time so that we can discuss the assigned tasks for the next sprint/week.
 
@@ -1334,27 +1293,3 @@ Our small meeting is every Wednesday at 2:00pm. Each sprint has been designed to
   - Dietary preferences on means searched recipes will fit your dietary restrictions.
 
 - Beta release presentation and demonstration.
-
-# **Part 8\. Project Status Report**
-
-## **8.1 Summary of Progress**
-
-Over the past few weeks, our team finalized the Sprint 1 deliverables and submitted them to Submitty. We each set up our coding environments and established the initial backend structure in our Github repository, including basic functions, unit tests, code formatting, and linting. We continued designing our application in Figma, creating initial layouts for core pages such as the Home, About, Planner, Profile, Recipe, Contact, Grocery List, Saved Recipes, and Pantry pages.
-
-We also refined our user stories and updated our UML diagrams with feedback from class. We began integrating the APIs needed for recipe, nutrition, and grocery pricing features. We completed the Figma mockup and walkthrough, documenting our object-oriented backend design, and finalizing our use cases and supplemental specifications. We are currently focused on continuing development and transferring out figma design to real code. The next few weeks will be focused on delivering features for our Interim release.
-
-## **8.2 Issues Encountered**
-
-| Issue                                   | Summary                                                                                                                                                                                                                                                                               | Responsible | Measures being taken                                                                                                                                                                                                         |
-| :-------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | :---------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Designing the application workflow      | Determining how users would navigate between pages and access different features in the mockup required discussion. In particular, we needed to decide how users would add missing ingredients from a recipe to their grocery list and where this functionality should be accessible. | Max & Matt  | Discussed user workflows and revised the Figma mockup to better represent how users would interact with recipes, grocery lists, and other application features.                                                              |
-| Establishing backend skeleton           | Creating the initial backend skeleton required coordinating the application's object-oriented design with the planned functionality and determining how common operations, such as handling buttons and forms, would be structured                                                    | Will        | Set up the initial backend structure in the GitHub repository, including basic functions, unit tests, code formatting, and linting. Updated UML diagrams and documented the backend design to support future implementation. |
-| Defining requirements and documentation | We initially needed clarification on how to organize and present our user stories and supplemental specifications, including how to communicate feature priorities and ensure that the planned functionality was adequately represented in our design.                                | Entire Team | Refined our user stories and supplemental specifications, incorporated feedback from class, and completed our use cases and mockup walkthrough to clarify the application's intended functionality.                          |
-
-## **8.3 Outstanding Risks**
-
-We have found that it is more challenging than expected to keep up with our projected project schedule as we go from design and planning to implementation. Although we have completed our initial design and established the backend skeleton, there is a risk that translating the Figma mockup into functional code will take longer than anticipated. Implementing the interactions between features, such as connecting recipes with the grocery list and pantry inventory, may also introduce additional complexity.
-
-Another risk is that our initial implementation may require adjustments as we test the application and discover differences between our planned design and the actual functionality. This could result in additional development time and affect our ability to complete the planned features within the remaining schedule.
-
-To mitigate these risks, we are prioritizing core application functionality, breaking implementation into smaller tasks, and coordinating frontend and backend development. We will continue to test features as they are developed and adjust our priorities and schedule as needed to ensure that we make consistent progress toward the Interim release.

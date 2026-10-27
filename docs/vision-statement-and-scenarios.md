@@ -1,8 +1,4 @@
-# **PlateUp**
-
-_Plan less, cook more._
-
-**Sprint 1 Deliverable: Vision Statement, Personas and User Scenarios, Project Schedule, Project Status Report, and Contribution Summary.**
+# Vision Statement, Personas and User Scenarios.
 
 Team: Max Dyer (Product Owner), Matt Durcan (Scrum Master), Will Shockey, Kartik Prabhu.
 
@@ -62,58 +58,6 @@ These products we've analyzed show that the market has a strong tool for individ
 
 Two primary risks arise from moving PlateUp into this existing market. The first is a high switching cost. Users who already have routines built around competing apps or physical notes may hesitate to migrate, particularly if the marketing does not make PlateUp's advantages clear. The team's mitigation is to ensure that the benefits are demonstrated quickly, through features like social media recipe import and pantry-based Meal Suggestions, and to ensure that each part of the app (such as the grocery list) is useful on its own, so that users can adopt PlateUp gradually. The second risk is data entry. Entering personal recipes or logging an entire pantry could demand so much effort that users abandon the app before experiencing its benefits. Importing recipes from social media is the main mitigation, along with manual upload and an inventory that users can build up over time rather than all at once. Additionally, our team will use an API to import common existing recipes for any user to use.
 
-## **1.4 Stakeholders**
-
-- Max Dyer (Product Owner & Developer)
-
-  - _Qualifications:_ Computer Science and Communications dual major at RPI interested in UI design.
-
-  - _Role_: Responsible for being the spokesperson and advocate of the product and user stories. Contributes to design, implementation, testing, and documentation of PlateUp.
-
-  - _Stake:_ Building a usable app to keep recipes, grocery lists, pantry inventory, and a meal planner in one place to easily meal plan with roommates.
-
-- Matt Durcan (Scrum Master & Developer)
-
-  - _Qualifications:_ Computer Science major at RPI with leadership experience in a fraternity.
-
-  - _Role:_ Responsible for leading standups and managing tasks, while contributing to the implementation and progress of the application.
-
-  - _Stake:_ Building an app that can be used for our fraternity meal plan and our members who volunteer to prepare meals.
-
-- Will Shockey (Developer)
-
-  - _Qualifications:_ Computer Science major at RPI interested in backend development.
-
-  - _Role:_ Responsible for challenging/proposing new ideas that may or may not fit into the scope of the project. Contributes to the implementation of various features in order to complete the project in a timely manner.
-
-  - _Stake:_ Building a web app that can be used for finding and meal planning recipes with good macros (calories, protein, carbs, fats).
-
-- Kartik Prabhu (Developer)
-
-  - _Qualifications:_ Computer science student with a dual in Economics.
-
-  - _Role:_ Part of the implementation and making sure every goal or checkpoint is reached in a timely manner.
-
-  - _Stake:_ Building an app that helps record recipes while staying on a budget so no one has to kill their hunger.
-
-- Team Instructors (John Sturman, Saikat Islam Khan Bappy, Srihari Sridharan, Rafiuzzaman Khan, Jamie Alfaro):
-
-  - _Role_: Responsible for evaluating and mentoring the project, and ensuring requirements are met.
-
-  - _Stake:_ Wanting team members to succeed in creating robust software; "Our success is your success."
-
-## **1.5 Project Risks**
-
-We have identified four major project risks. Each one is discussed below, mentions the impact if it is not mitigated, and the strategy we will use to reduce it.
-
-**Complex data interaction.** The continuous background interaction between pantry inventory and automated grocery list generation may involve complex logic, particularly when additional features are added that impact both sets of data. If this is not mitigated, database inconsistencies could lead to inaccurate grocery lists and general data loss, which would likely go unnoticed by the user, leading to frustration over the core functionality of the application. Comprehensive unit tests and automated integration testing will be a critical component to try and minimize the possibility for data loss related bugs. One immediate mitigation we have made is to set up automated checks running on every pull request through Github Actions to verify code quality and functionality.
-
-**Household synchronization conflicts.** Sharing grocery lists across households introduces the risk regarding concurrent updates. This prompts the decision regarding how frequent we choose to synchronize between a household, or if we need to include other protective measures. If we don't explicitly consider these possible concurrency bugs, when two users add or check off items simultaneously, it could result in duplicated entries, data loss, or over-purchasing at the store.
-
-**Scope creep.** The volume of planned features (social networking, pantry tracking, nutritional calculation) is ambitious for the timeframe to deliver. If not properly managed, the team may fail to deliver an MVP by the final deadline. This is a common risk that most projects identify, but it is nothing that cannot be easily handled by well-designed project management and methodologies. By adhering to the Agile methodology and splitting responsibility amongst the team members, we increase our chances of reaching our MVP goal. Part of the mitigation of this involves assigning the correct priority to each feature, to accurately predict the difficulty and time required for each feature. This was already partially completed by ranking each feature and requirement on a scale from "won't", "could", "should", or "must", include in the project.
-
-**Recipe sorting performance.** Developing ranking rules to sort recipes by popularity, trends, and dynamically calculated nutritional data may be computationally heavy depending on the amount of data and users we can support. Without falling for the trap of excessive pre-optimizations, we need to be considerate of the choices that we make that may impact performance when the application scales, although this isn't a priority when delivering the MVP with a small scale of users. While this isn't an inherent risk to the project itself, it still impacts the user. Also, if we choose to neglect an extensible design, it won't just affect how we are able to optimize later on, but it will make the implementation of smaller new features and additions to the codebase more difficult in general.
-
 # **Part 2\. Personas and User Scenarios**
 
 **Persona 1: Peter Jones**
@@ -147,87 +91,3 @@ Tiana clicks on the recipe and is taken to a screen with a detailed description 
 Tiana decides she also wants to have snacks for her mukbang. She clicks the “Update Grocery List” button at the bottom of the Grocery List page and selects the plus next to the first empty line in the grocery list. She manually adds a few items by typing the name of the item and clicking the “Add To Grocery List” button at the bottom of the screen between each new entry. When she’s done, she clicks the “Finish Updating” button at the bottom of the screen. She now has a grocery list containing all of the items she will need to create her own successful mukbang video.
 
 At the grocery store, Tiana taps the check-off toggle next to each item on the screen as she works her way through the grocery list. When she’s done grocery shopping, she taps the “Remove Checked Items” button at the top of the screen, clearing her list and heading home to follow the recipe she found earlier.
-
-# **Part 3\. Project Schedule**
-
-Our small meeting is every Wednesday at 2:00pm. Each sprint has been designed to end at this meeting time so that we can discuss the assigned tasks for the next sprint/week.
-
-| Sprint | Start      | End             | Target                                                                                                                                                                                                                                                                                                         |
-| ------ | :--------- | :-------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0      | Sun 9/13   | Wed 9/16        | Developing the project idea. Coming up with feature ideas, user scenarios, personas, and selecting the Product Owner.                                                                                                                                                                                          |
-| 1      | Thur 9/17  | Wed 9/23        | Start sprint 1 deliverables: vision statement, schedule, user scenarios and personas. Organize a shared drive for documents that we will work on.                                                                                                                                                              |
-| 2      | Thur 9/24  | Wed 9/30        | Finalize sprint 1 deliverables, decide on a tech stack to work on. Utilize Jira for task management.                                                                                                                                                                                                           |
-| 3      | Thur 10/1  | Wed 10/7        | Setup initial boilerplate and code repository using the decided tech stack. High-level organization of the program structure and describing how we will implement it.                                                                                                                                          |
-| 4      | Thur 10/8  | Wed 10/14       | Implement basic single-user features as described by our feature list (must/should). E.g., basic grocery list, pantry inventory, user profile, single-user create/view/remove items.                                                                                                                           |
-| 5      | Thur 10/15 | Wed 10/21       | Verify our test suite for the implemented features: pantry and recipe modules; recipe browsing; reviews and ratings. Begin household/multi-user data model.                                                                                                                                                    |
-| 6      | Thur 10/22 | Wed 10/28       | Deliver a shared household grocery list in which multiple users can see the same list, and let users import recipes from social media platforms (TikTok, Instagram, and YouTube Shorts) in addition to manual upload.                                                                                          |
-| 7      | Thur 10/29 | Wed 11/4        | Add missing recipe ingredients to the grocery list automatically (Businessman story), finalize class and sequence diagrams for the design documents, and polish the Interim Release.                                                                                                                           |
-| 8      | Thur 11/5  | Wed 11/11       | Fix bugs identified in the Interim demo feedback, deliver the first version of the weekly planner (adding a recipe to a day of the week with a number of servings), add dietary and budget preference settings, and lay the groundwork for filtering and sorting by macros, price, time, difficulty, and tags. |
-| 9      | Thur 11/12 | Wed 11/18       | Finish filtering and sorting, including sorting by rating and popularity and a trending recipes view, add the saved/favorite recipes tab (Student story), and deliver recipe sharing with notifications and a private-mode toggle (Chef story).                                                                |
-| 10     | Thur 11/19 | Wed 11/25       | Handle concurrency in the shared grocery list, with duplicate-item merging and a live-update notice (Roommate story), extend the planner with the quantity/multi-serving option so that planned meals scale the generated grocery list (Athlete story), and polish the Beta Release.                           |
-| 11     | Thur 11/26 | Wed 12/2 \- end | Complete final bug fixes, the Best Practices document, a final UML and documentation pass, and presentation preparation.                                                                                                                                                                                       |
-
-## **3.1 Interim Release (Friday 11/6)**
-
-- Pantry inventory: add, remove, view ingredients.
-
-- Manual recipe upload (user enters ingredients \+ steps).
-
-- Recipe browsing/viewing.
-
-- Saving a recipe to a list for a single user.
-
-- User profiles with username, display name, bio, profile picture, and their own saved recipes, grocery lists, and pantry inventory.
-
-- Grocery list: create, view, add, remove items for a single user.
-
-- Core navigation tying the above together.
-
-- Automated test coverage for pantry \+ recipe CRUD paths.
-
-- Generating grocery list for a given recipe (adjusting quantity/serving size of recipe reflects in grocery list).
-
-## **3.2 Beta Release (Friday 12/4)**
-
-- Recipe to Grocery List by prompting the user for missing ingredients (Businessman story).
-
-  - Add a setting for auto-add all ingredients from recipe to grocery list/prompt user for potential missing ingredients by cross referencing Inventory and Recipe.
-
-- Weekly meal planner, with a quantity/multi-serving option (Chef \+ Athlete stories).
-
-- Filtering/sorting: macros (protein, fat, carbs, calories), ingredient cost, difficulty (step count), time, tags (Athlete/Student/Businessman stories).
-
-- Saved/favorite recipes tab.
-
-- Recipe sharing between users, with notification when a recipe is received.
-
-  - A setting for private/"don't send me recipes" mode.
-
-- Shared household grocery list: duplicate-item merge or notification, live-update indicator when someone marks an item purchased.
-
-  - Grocery list sharing between users (sending a grocery list to a user)/exporting grocery list to notes app.
-
-- Recipe upload from social media platforms (tiktok, instagram, yt shorts).
-
-- Users can manage dietary and budget preferences through their settings.
-
-  - Budget preferences can be turned on or off. If on, budget preferences are taken into account when searching for recipes. Generated grocery lists from these searched recipes will be within budget.
-
-  - Dietary preferences on means searched recipes will fit your dietary restrictions.
-
-# **Part 4\. Project Status Report**
-
-## **4.1 Summary of Progress**
-
-Over the first two weeks of the project, our team created projects in collaboration applications, such as Github for product management, Jira for goals, and Figma for design testing. We finalized team roles (Product Owner: Max & Scrum Master: Matt). We defined the initial technology stack with TypeScript with Angular for the frontend, NestJS for the backend, Jest for testing, and ESLint/Prettier for formatting. These decisions were made by everyone in discussion.
-
-We completed Sprint 1 drafts and final deliverables, including the Vision Statement (Max & Matt), Project Schedule (Kartik & Matt), and User Scenarios & Personas (Will), Project Status Report (Kartik & Max), with revisions done by everyone. We mapped out our essential UI features, drafted initial screen layouts, and outlined core navigation across key pages (Home, Logged-in Home, About, Contact, Recipes, Saved, Planner, Profile, Grocery List, and Pantry). We are currently focused on creating a frontend-to-backend endpoint mapping diagram, defining API requirements, and setting up the backend skeleton.
-
-## **4.2 Issues Encountered**
-
-| Issue                          | Summary                                                                                                                                                                  | Responsible                    | Measures being taken                                                                                                                                                                               |
-| :----------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Feature complexity             | Writing the user stories revealed more operational complexity than initially anticipated, but also fleshed out a lot of great ideas that the application should include. | Max (Product Owner), with Will | Structuring a fixed page layout and detailed UI feature mapping to establish project boundaries. Fleshing out exactly what features are a part of the core application and what are supplementary. |
-| Selecting tech stack and tools | Need to align team skills with optimal development, build, and testing tools.                                                                                            | Matt, with the full team.      | Selected a unified TypeScript stack (NestJS/Angular) with Jest, ESLint, Prettier, Vite, and Nest CLI.                                                                                              |
-| Unclear release features       | Interim and Beta release milestones initially lacked explicit feature lists.                                                                                             | Kartik and Will                | Finalizing specific lists of included features within the Project Schedule during Sprint 1\.                                                                                                       |
-| Development environment setup  | Every team member must be able to build and run the code and all required tools on their own machine                                                                     | Each team member               | Each member will clone the repository and confirm that they can build and use all required tools. Not expected to be a large-scale obstacle.                                                       |
