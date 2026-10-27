@@ -93,6 +93,102 @@ describe('GroceryList', () => {
     expect(item.category).toBe(IngredientCategory.Produce);
   });
 
+  describe('adding an item that is already on the list', () => {
+    it('combines it into one line, ignoring case and extra spaces', () => {
+      const eggs = list.addItem('Eggs', new Quantity(1, Unit.Carton));
+
+      const combined = list.addItem(' eggs ', new Quantity(1, Unit.Carton));
+
+      expect(combined).toBe(eggs);
+      expect(list.items).toHaveLength(1);
+      expect(eggs.quantity?.equals(new Quantity(2, Unit.Carton))).toBe(true);
+    });
+
+    it('keeps the existing unit when units are compatible', () => {
+      const rice = list.addItem('Rice', new Quantity(1, Unit.Kilogram));
+
+      list.addItem('Rice', new Quantity(500, Unit.Gram));
+
+      expect(rice.quantity?.equals(new Quantity(1.5, Unit.Kilogram))).toBe(true);
+    });
+
+    it('refuses an amount in an incompatible unit and leaves the list unchanged', () => {
+      const flour = list.addItem('Flour', new Quantity(2, Unit.Cup));
+
+      expect(() => list.addItem('flour', new Quantity(500, Unit.Gram))).toThrow(
+        'Flour is already on your list in cup. Add it in a compatible unit, or edit the existing item.',
+      );
+      expect(list.items).toHaveLength(1);
+      expect(flour.quantity?.equals(new Quantity(2, Unit.Cup))).toBe(true);
+    });
+
+    it('refuses a different package unit', () => {
+      list.addItem('Eggs', new Quantity(1, Unit.Carton));
+
+      expect(() => list.addItem('Eggs', new Quantity(1, Unit.Box))).toThrow(DomainValidationError);
+    });
+
+    it('keeps whichever quantity is given when the other is missing', () => {
+      const chips = list.addItem('Chips');
+      list.addItem('Chips', new Quantity(2, Unit.Bag));
+      expect(chips.quantity?.equals(new Quantity(2, Unit.Bag))).toBe(true);
+
+      list.addItem('Chips');
+      expect(chips.quantity?.equals(new Quantity(2, Unit.Bag))).toBe(true);
+      expect(list.items).toHaveLength(1);
+    });
+
+    it('takes the item out of the cart because more is needed', () => {
+      const eggs = list.addItem('Eggs', new Quantity(1, Unit.Carton));
+      list.updateItem(eggs.id, { purchased: true });
+
+      list.addItem('Eggs', new Quantity(1, Unit.Carton));
+
+      expect(eggs.purchased).toBe(false);
+    });
+
+    it('keeps the existing name spelling and category', () => {
+      const eggs = list.addItem('Eggs', new Quantity(1, Unit.Carton), IngredientCategory.Protein);
+
+      list.addItem('EGGS', new Quantity(1, Unit.Carton), IngredientCategory.Dairy);
+
+      expect(eggs.name).toBe('Eggs');
+      expect(eggs.category).toBe(IngredientCategory.Protein);
+    });
+
+    it('still rejects an unknown category', () => {
+      list.addItem('Eggs');
+
+      expect(() => list.addItem('Eggs', null, 'junk-food' as IngredientCategory)).toThrow(
+        DomainValidationError,
+      );
+    });
+  });
+
+  describe('renaming an item', () => {
+    it("refuses another line's ingredient and leaves the item unchanged", () => {
+      list.addItem('Milk', new Quantity(1, Unit.Liter));
+      const oatMilk = list.addItem('Oat milk', new Quantity(1, Unit.Liter));
+
+      expect(() => list.updateItem(oatMilk.id, { name: ' MILK', purchased: true })).toThrow(
+        'Milk is already on your list. Edit that item instead.',
+      );
+      expect(oatMilk.name).toBe('Oat milk');
+      expect(oatMilk.purchased).toBe(false);
+    });
+
+    it('allows a new name, or a different spelling of its own name', () => {
+      const oatMilk = list.addItem('Oat milk');
+      list.addItem('Milk');
+
+      list.updateItem(oatMilk.id, { name: 'Almond milk' });
+      expect(oatMilk.name).toBe('Almond milk');
+
+      list.updateItem(oatMilk.id, { name: 'ALMOND MILK' });
+      expect(oatMilk.name).toBe('ALMOND MILK');
+    });
+  });
+
   it('removes a single item', () => {
     const item = list.addItem('Milk');
 

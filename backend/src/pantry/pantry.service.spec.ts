@@ -27,6 +27,38 @@ describe('PantryService', () => {
     expect(await service.findAll('bob')).toHaveLength(0);
   });
 
+  it('add combines a matching ingredient in the unit already held', async () => {
+    const rice = await service.add('alice', {
+      name: 'Rice',
+      quantity: { amount: 1, unit: Unit.Kilogram },
+    });
+
+    const combined = await service.add('alice', {
+      name: ' rice',
+      quantity: { amount: 500, unit: Unit.Gram },
+    });
+
+    expect(combined.id).toBe(rice.id);
+    expect(combined.name).toBe('Rice');
+    expect(combined.quantity.equals(new Quantity(1.5, Unit.Kilogram))).toBe(true);
+    expect(await service.findAll('alice')).toHaveLength(1);
+  });
+
+  it('add keeps a separate entry when units are incompatible', async () => {
+    await service.add('alice', { name: 'Flour', quantity: { amount: 2, unit: Unit.Cup } });
+    await service.add('alice', { name: 'Flour', quantity: { amount: 500, unit: Unit.Gram } });
+
+    expect(await service.findAll('alice')).toHaveLength(2);
+  });
+
+  it('add only combines with the same owner’s items', async () => {
+    await service.add('alice', eggs);
+    await service.add('bob', eggs);
+
+    const [alicesEggs] = await service.findAll('alice');
+    expect(alicesEggs.quantity.equals(new Quantity(12, Unit.Piece))).toBe(true);
+  });
+
   it('add rejects invalid quantities', async () => {
     await expect(
       service.add('alice', { name: 'Eggs', quantity: { amount: -1, unit: Unit.Piece } }),

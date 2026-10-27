@@ -13,8 +13,18 @@ export class PantryService {
     return this.pantryItems.findByOwner(ownerId);
   }
 
+  /**
+   * Adds an ingredient, or adds the amount to a matching item the owner already
+   * has (same ingredient, compatible units) and returns that item instead.
+   */
   public async add(ownerId: string, dto: CreatePantryItemDto): Promise<PantryItem> {
     const quantity = new Quantity(dto.quantity.amount, dto.quantity.unit);
+    const owned = await this.pantryItems.findByOwner(ownerId);
+    const existing = owned.find((item) => item.canCombineWith(dto.name, quantity));
+    if (existing) {
+      existing.addQuantity(quantity);
+      return this.pantryItems.save(existing);
+    }
     return this.pantryItems.save(new PantryItem(ownerId, dto.name, quantity));
   }
 

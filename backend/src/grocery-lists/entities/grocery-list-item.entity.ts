@@ -1,6 +1,7 @@
 import { BaseEntity } from '../../common/domain/base.entity';
 import { requireBoolean, requireOneOf, requireText } from '../../common/domain/guards';
 import { IngredientCategory } from '../../common/domain/ingredient-category';
+import { isSameIngredient } from '../../common/domain/ingredient-name';
 import { Quantity } from '../../common/domain/quantity';
 
 export interface GroceryListItemSnapshot {
@@ -48,6 +49,32 @@ export class GroceryListItem extends BaseEntity<GroceryListItemSnapshot> {
 
   public get purchased(): boolean {
     return this.isPurchased;
+  }
+
+  /** True if `name` refers to the same ingredient as this item. */
+  public isNamed(name: string): boolean {
+    return isSameIngredient(this.itemName, name);
+  }
+
+  /** True if `quantity` can be added to this item's: compatible units, or either one is missing. */
+  public canAddQuantity(quantity: Quantity | null): boolean {
+    return (
+      quantity === null ||
+      this.itemQuantity === null ||
+      this.itemQuantity.isCompatibleWith(quantity)
+    );
+  }
+
+  /**
+   * Adds more of this item. The total keeps this item's unit, and the item
+   * leaves the cart because more is now needed. Name and category are kept.
+   */
+  public addQuantity(quantity: Quantity | null): void {
+    if (quantity !== null) {
+      this.itemQuantity = this.itemQuantity === null ? quantity : this.itemQuantity.plus(quantity);
+    }
+    this.isPurchased = false;
+    this.touch();
   }
 
   /** Applies a partial edit; every change is validated before any is applied. */
