@@ -1,6 +1,6 @@
 ## 1. Git & GitHub Workflow
 
-We use a feature-branch workflow. No feature commit are made directly to the `main` branch.
+We use a feature-branch workflow. No significant feature commits are made directly to the `main` branch.
 
 ### Branch Naming Conventions
 
