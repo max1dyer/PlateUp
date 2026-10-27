@@ -3,8 +3,8 @@
  * Declaration order is the display order; `Other` is the default.
  */
 export enum IngredientCategory {
-  Produce = 'produce',
   Protein = 'protein',
+  Produce = 'produce',
   Dairy = 'dairy',
   Carbs = 'carbs',
   Baking = 'baking',

@@ -1,0 +1,63 @@
+@if (!editing()) {
+  <div class="row" [class.in-cart]="item().purchased">
+    <button
+      type="button"
+      class="checkbox"
+      role="checkbox"
+      [attr.aria-checked]="item().purchased"
+      [attr.aria-label]="'In cart: ' + item().name"
+      [disabled]="saving()"
+      (click)="togglePurchased()"
+    >
+      @if (item().purchased) {
+        <svg viewBox="0 0 18 18" aria-hidden="true">
+          <path d="M4.5 9.5l3 3 6-7" fill="none" stroke="currentColor" stroke-width="2" />
+        </svg>
+      }
+    </button>
+    <button
+      type="button"
+      class="details"
+      [attr.aria-label]="'Edit ' + item().name"
+      (click)="startEditing()"
+    >
+      <span class="name">{{ item().name }}</span>
+      <span class="quantity">{{ formatQuantity(item().quantity) }}</span>
+    </button>
+  </div>
+} @else {
+  <form class="edit" [formGroup]="form" (ngSubmit)="save()">
+    <input class="field name-field" formControlName="name" aria-label="Item name" />
+    <div class="field-row">
+      <input
+        class="field amount-field"
+        type="number"
+        min="0"
+        step="any"
+        formControlName="amount"
+        placeholder="Amount"
+        aria-label="Amount"
+      />
+      <select class="field" formControlName="unit" aria-label="Unit">
+        @for (unit of units; track unit) {
+          <option [value]="unit">{{ unit }}</option>
+        }
+      </select>
+      <select class="field" formControlName="category" aria-label="Category">
+        @for (category of categories; track category.value) {
+          <option [value]="category.value">{{ category.label }}</option>
+        }
+      </select>
+    </div>
+    <div class="actions">
+      <button type="submit" class="button primary" [disabled]="saving()">Save</button>
+      <button type="button" class="button plain" (click)="cancelEditing()">Cancel</button>
+      <button type="button" class="button danger" [disabled]="saving()" (click)="remove()">
+        🗑️ Delete
+      </button>
+    </div>
+  </form>
+}
+@if (error(); as message) {
+  <p class="error" role="alert">{{ message }}</p>
+}

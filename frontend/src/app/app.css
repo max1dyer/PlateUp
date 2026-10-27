@@ -1,4 +1,10 @@
-.logo {
-  max-width: 150px;
-  height: auto;
+/* Footer sits at the bottom of the screen when the page is short, as in the Figma frame. */
+:host {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+main {
+  flex: 1;
 }
