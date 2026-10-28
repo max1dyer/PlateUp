@@ -1,0 +1,85 @@
+<div class="page">
+  <section class="intro">
+    <h1 class="title">Your Grocery List</h1>
+    <p class="description">Easy management for the whole household.</p>
+    <!-- Static placeholder until households exist. -->
+    <div class="household">
+      <svg
+        class="household-icon"
+        viewBox="0 0 24 24"
+        aria-hidden="true"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2.27"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+        <circle cx="9" cy="7" r="4" />
+        <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+      </svg>
+      <span class="household-name">PlateUp Devs household</span>
+      <button type="button" class="manage">Manage</button>
+    </div>
+  </section>
+
+  @if (loading()) {
+    <p class="status">Loading your grocery list…</p>
+  } @else if (loadError()) {
+    <div class="status">
+      <p>We couldn't load your grocery list. Make sure the backend is running, then try again.</p>
+      <button type="button" class="action" (click)="load()">Try again</button>
+    </div>
+  } @else if (list(); as list) {
+    @if (adding()) {
+      <app-add-items-form
+        [listId]="list.id"
+        (listChanged)="onListChanged($event)"
+        (closed)="adding.set(false)"
+      />
+    } @else {
+      <button type="button" class="action" (click)="adding.set(true)">+ Add items</button>
+    }
+
+    <section class="items">
+      <h2 class="heading">All items ({{ itemCount() }})</h2>
+      <div class="summary">
+        <p class="summary-text">
+          {{ inCartCount() }} of {{ itemCount() }} in cart<br />
+          <!-- Placeholder until ingredient pricing exists. -->
+          est. $—
+        </p>
+        <button
+          type="button"
+          class="remove-selected"
+          [disabled]="inCartCount() === 0"
+          (click)="removeSelected()"
+        >
+          🗑️ Remove Selected
+        </button>
+      </div>
+      @if (actionError(); as message) {
+        <p class="error" role="alert">{{ message }}</p>
+      }
+
+      @for (group of groups(); track group.category; let groupIndex = $index) {
+        <h3 class="group-label">{{ group.label }}</h3>
+        <div class="card" [class.green]="groupIndex % 2 === 1">
+          @for (item of group.items; track item.id; let last = $last) {
+            <app-grocery-item-row
+              [listId]="list.id"
+              [item]="item"
+              (listChanged)="onListChanged($event)"
+            />
+            @if (!last) {
+              <div class="divider"></div>
+            }
+          }
+        </div>
+      } @empty {
+        <p class="status">Your Grocery List is empty. Use “+ Add items” to start your list.</p>
+      }
+    </section>
+  }
+</div>

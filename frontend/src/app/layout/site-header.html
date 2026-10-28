@@ -1,0 +1,27 @@
+<header class="site-header">
+  <nav class="inner" aria-label="Main">
+    <a routerLink="/home" class="logo-link" [style.left]="leftPercent(14)">
+      <img src="logo.png" alt="PlateUp home" class="logo" />
+    </a>
+    @for (link of links; track link.path) {
+      <a
+        class="nav-link"
+        [routerLink]="link.path"
+        routerLinkActive="active"
+        ariaCurrentWhenActive="page"
+        [style.left]="leftPercent(link.left)"
+        [style.top.px]="link.top"
+        >{{ link.label }}</a
+      >
+    }
+    <!-- Placeholder until login exists. -->
+    <button
+      type="button"
+      class="nav-link"
+      [style.left]="leftPercent(logOut.left)"
+      [style.top.px]="logOut.top"
+    >
+      {{ logOut.label }}
+    </button>
+  </nav>
+</header>

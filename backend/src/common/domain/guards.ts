@@ -17,6 +17,26 @@ export function requirePositiveInteger(value: number, field: string): number {
   return value;
 }
 
+/** Returns `value`, or throws if it is not one of the values of the string enum `allowed`. */
+export function requireOneOf<T extends string>(
+  value: T,
+  allowed: Record<string, T>,
+  field: string,
+): T {
+  if (!Object.values(allowed).includes(value)) {
+    throw new DomainValidationError(`Unknown ${field} "${String(value)}".`);
+  }
+  return value;
+}
+
+/** Returns `value`, or throws if it is not exactly true or false. */
+export function requireBoolean(value: boolean, field: string): boolean {
+  if (typeof value !== 'boolean') {
+    throw new DomainValidationError(`${field} must be true or false.`);
+  }
+  return value;
+}
+
 /** Returns `value`, or throws if it is not a finite number of at least zero. */
 export function requireNonNegative(value: number, field: string): number {
   if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {

@@ -1,0 +1,168 @@
+/* Measurements from the Figma "Grocery" frame. */
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: var(--page-width);
+  margin: 0 auto;
+  padding: 24px 20px 28px;
+}
+
+.intro {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.title {
+  margin: 0;
+  font-size: 40px;
+  line-height: 110%;
+  font-weight: 400;
+  color: var(--color-text);
+}
+
+.description {
+  margin: 0;
+  font-size: 20px;
+  line-height: 110%;
+  color: var(--color-text-muted);
+}
+
+.household {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.household-icon {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  color: var(--color-icon-green);
+}
+
+.household-name {
+  flex: 1;
+  font-size: 18px;
+  line-height: 110%;
+  color: var(--color-text);
+}
+
+.manage {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 18px;
+  line-height: 17px;
+  color: var(--color-primary);
+  cursor: pointer;
+}
+
+.action {
+  width: 100%;
+  height: 44px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--color-primary);
+  font-size: 22px;
+  line-height: 21px;
+  color: var(--color-on-color);
+  cursor: pointer;
+}
+
+.items {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.heading {
+  margin: 0;
+  font-size: 28px;
+  line-height: 110%;
+  font-weight: 400;
+  color: var(--color-text);
+}
+
+.summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-right: 11px;
+}
+
+.summary-text {
+  margin: 0;
+  font-size: 16px;
+  line-height: 110%;
+  color: var(--color-text-muted);
+}
+
+.remove-selected {
+  width: 148px;
+  height: 37px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--color-danger-tint);
+  font-size: 16px;
+  line-height: 110%;
+  color: var(--color-text-strong);
+  cursor: pointer;
+}
+
+.remove-selected:disabled {
+  cursor: default;
+}
+
+.group-label {
+  margin: 0;
+  font-size: 20px;
+  line-height: 110%;
+  font-weight: 400;
+  color: var(--color-text-strong);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 12px;
+  border-radius: var(--radius);
+  background: var(--color-card-cream);
+}
+
+.card.green {
+  background: var(--color-card-green);
+}
+
+.divider {
+  height: 3px;
+  border-radius: var(--radius);
+  background: var(--color-primary);
+}
+
+.card.green .divider {
+  background: var(--color-secondary);
+}
+
+.status {
+  margin: 0;
+  font-size: 18px;
+  line-height: 110%;
+  color: var(--color-text-muted);
+}
+
+.status p {
+  margin: 0 0 12px;
+}
+
+.error {
+  margin: 0;
+  font-size: 16px;
+  line-height: 110%;
+  color: var(--color-error);
+}

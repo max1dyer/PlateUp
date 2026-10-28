@@ -1,9 +1,11 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Quantity } from '../common/domain/quantity';
+import { QuantityDto } from '../common/dto/quantity.dto';
 import { AddGroceryItemDto } from './dto/add-grocery-item.dto';
 import { CreateGroceryListDto } from './dto/create-grocery-list.dto';
 import { UpdateGroceryItemDto } from './dto/update-grocery-item.dto';
 import { UpdateGroceryListDto } from './dto/update-grocery-list.dto';
+import { GroceryListItemChanges } from './entities/grocery-list-item.entity';
 import { GroceryList } from './entities/grocery-list.entity';
 import { GroceryListRepository } from './repositories/grocery-list.repository';
 
@@ -48,8 +50,7 @@ export class GroceryListsService {
     dto: AddGroceryItemDto,
   ): Promise<GroceryList> {
     const list = await this.findOne(ownerId, listId);
-    const quantity = dto.quantity ? new Quantity(dto.quantity.amount, dto.quantity.unit) : null;
-    list.addItem(dto.name, quantity);
+    list.addItem(dto.name, this.toQuantity(dto.quantity), dto.category);
     return this.groceryLists.save(list);
   }
 
@@ -60,7 +61,12 @@ export class GroceryListsService {
     dto: UpdateGroceryItemDto,
   ): Promise<GroceryList> {
     const list = await this.findOne(ownerId, listId);
-    if (!list.setItemPurchased(itemId, dto.purchased === true)) {
+    const { quantity, ...rest } = dto;
+    const changes: GroceryListItemChanges = { ...rest };
+    if (quantity !== undefined) {
+      changes.quantity = this.toQuantity(quantity);
+    }
+    if (!list.updateItem(itemId, changes)) {
       throw this.itemNotFound(itemId);
     }
     return this.groceryLists.save(list);
@@ -78,6 +84,10 @@ export class GroceryListsService {
     const list = await this.findOne(ownerId, listId);
     list.removePurchasedItems();
     return this.groceryLists.save(list);
+  }
+
+  private toQuantity(dto: QuantityDto | null | undefined): Quantity | null {
+    return dto ? new Quantity(dto.amount, dto.unit) : null;
   }
 
   private itemNotFound(itemId: string): NotFoundException {

@@ -1,12 +1,13 @@
-import { Component, signal } from '@angular/core';
-import { DatePipe } from '@angular/common';
+import { Component } from '@angular/core';
+import { RouterOutlet } from '@angular/router';
+import { SiteFooter } from './layout/site-footer';
+import { SiteHeader } from './layout/site-header';
 
+/** App shell: shared nav bar and footer around the current page. */
 @Component({
-  imports: [DatePipe],
+  imports: [RouterOutlet, SiteHeader, SiteFooter],
   selector: 'app-root',
   styleUrl: './app.css',
   templateUrl: './app.html',
 })
-export class App {
-  protected readonly title = signal('frontend');
-}
+export class App {}

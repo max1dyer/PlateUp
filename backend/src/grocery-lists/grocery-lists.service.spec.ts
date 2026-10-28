@@ -1,6 +1,7 @@
 import { NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import { Unit } from '../common/domain/quantity';
+import { IngredientCategory } from '../common/domain/ingredient-category';
+import { Quantity, Unit } from '../common/domain/quantity';
 import { GroceryListsService } from './grocery-lists.service';
 import { GroceryListRepository } from './repositories/grocery-list.repository';
 import { InMemoryGroceryListRepository } from './repositories/in-memory-grocery-list.repository';
@@ -60,6 +61,60 @@ describe('GroceryListsService', () => {
 
     await service.removeItem('alice', list.id, bread.id);
     expect(list.items).toHaveLength(0);
+  });
+
+  it('updateItem edits the quantity and name of an item', async () => {
+    const list = await service.create('alice', { name: 'Weekly' });
+    await service.addItem('alice', list.id, {
+      name: 'Milk',
+      quantity: { amount: 1, unit: Unit.Liter },
+    });
+    const [milk] = list.items;
+
+    const updated = await service.updateItem('alice', list.id, milk.id, {
+      name: 'Oat milk',
+      quantity: { amount: 500, unit: Unit.Milliliter },
+    });
+
+    expect(updated.items[0].name).toBe('Oat milk');
+    expect(updated.items[0].quantity?.equals(new Quantity(500, Unit.Milliliter))).toBe(true);
+    expect(updated.items[0].purchased).toBe(false);
+  });
+
+  it('updateItem leaves omitted fields unchanged and clears a null quantity', async () => {
+    const list = await service.create('alice', { name: 'Weekly' });
+    await service.addItem('alice', list.id, {
+      name: 'Eggs',
+      quantity: { amount: 12, unit: Unit.Piece },
+    });
+    const [eggs] = list.items;
+
+    await service.updateItem('alice', list.id, eggs.id, { purchased: true });
+    expect(eggs.name).toBe('Eggs');
+    expect(eggs.quantity?.equals(new Quantity(12, Unit.Piece))).toBe(true);
+
+    await service.updateItem('alice', list.id, eggs.id, { quantity: null });
+    expect(eggs.quantity).toBeNull();
+    expect(eggs.purchased).toBe(true);
+  });
+
+  it('addItem and updateItem store the category', async () => {
+    const list = await service.create('alice', { name: 'Weekly' });
+    await service.addItem('alice', list.id, {
+      name: 'Fish sauce',
+      quantity: { amount: 1, unit: Unit.Bottle },
+      category: IngredientCategory.OilSauce,
+    });
+    await service.addItem('alice', list.id, { name: 'Lemongrass' });
+    const [fishSauce, lemongrass] = list.items;
+
+    expect(fishSauce.category).toBe(IngredientCategory.OilSauce);
+    expect(lemongrass.category).toBe(IngredientCategory.Other);
+
+    await service.updateItem('alice', list.id, lemongrass.id, {
+      category: IngredientCategory.Produce,
+    });
+    expect(lemongrass.category).toBe(IngredientCategory.Produce);
   });
 
   it('item operations 404 for unknown items', async () => {
