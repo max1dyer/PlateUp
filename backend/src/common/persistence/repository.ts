@@ -5,6 +5,9 @@ import { BaseEntity } from '../domain/base.entity';
  * (through a feature-specific subclass used as the DI token), never on a
  * concrete store, so the in-memory implementation can later be replaced by a
  * database-backed one without touching any service code.
+ *
+ * @pattern Dependency Injection — feature subclasses of this class are the
+ *   injection tokens; each module binds a concrete implementation.
  */
 export abstract class Repository<T extends BaseEntity<object>> {
   public abstract findAll(): Promise<T[]>;

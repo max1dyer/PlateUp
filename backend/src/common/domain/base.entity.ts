@@ -14,6 +14,9 @@ export interface EntityJson {
  * serialization uses the Template Method pattern: `toJSON()` (called by
  * Nest via JSON.stringify) adds the shared fields and asks the subclass for
  * the rest through `snapshot()`.
+ *
+ * @pattern Template Method — `toJSON()` is the template method; `snapshot()`
+ *   is the primitive operation each entity implements.
  */
 export abstract class BaseEntity<TSnapshot extends object> {
   public readonly id: string;

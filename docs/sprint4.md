@@ -4,7 +4,7 @@
 
 # **Part 1\. Product Interface Mockup**
 
-The interface mockup is our baseline demonstration of the intended functionality and UI usage of the web application. Built in [Figma](https://www.figma.com/design/MOfkyQsZ9ogNebupsJJjle/PlateUp?node-id=0-1&t=vt8Lhi5wpXGyyGss-1), the prototype view supports a clickable model to walk through a sample use-case of the application, showing various screens with their specific controls, and how a user is able to navigate between screens.
+The interface mockup is our baseline demonstration of the intended functionality and UI usage of the web application. Built in Figma, the prototype view supports a clickable model to walk through a sample use-case of the application, showing various screens with their specific controls, and how a user is able to navigate between screens.
 
 Our walkthrough explores the site's main pages including homepage, about, contact, recipe feed (prior to logging in), user homepage, user profile, recipe feed (with logged-in functionality), a sample recipe, grocery list, pantry inventory, saved recipes, and planner. Our user pages are the most detailed and include essential information reflected in our user stories.
 

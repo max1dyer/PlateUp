@@ -5,6 +5,8 @@ import { DomainValidationError } from '../errors/domain-validation.error';
 /**
  * Keeps the domain layer free of HTTP concerns: entities throw
  * DomainValidationError and this filter turns it into a 400 response.
+ *
+ * @pattern Adapter — adapts the domain's error type to Nest's HTTP response.
  */
 @Catch(DomainValidationError)
 export class DomainErrorFilter implements ExceptionFilter<DomainValidationError> {

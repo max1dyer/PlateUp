@@ -62,7 +62,7 @@ npx nest generate service recipes
   - `*.ts`: component classes to define variables, state, and functions for the UI.
   - `*.html`: html layout for the component, reading variables from the `.ts` class.
   - `*.css`: local css file that applies only to the specific component.
-  - `*.spec.ts`: Jasmine/Karma unit test for this component.
+  - `*.spec.ts`: Vitest unit test for this component (run through `ng test`).
 - `index.html`: single page, raw html file the server sends to the browser.
   - Angular injects the application into this.
 - `main.ts`: frontend entry point, loads the Angular code into `index.html`.
