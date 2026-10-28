@@ -1,24 +1,23 @@
 # Best Practices
 
-
 Covers all five mandatory practices and **eight** of the optional practices: automated testing, build tools, unit test tools, mock objects, dependency injection with unit tests, a linting system, third-party components, and design patterns.
 
 > **Maintaining this file:** sections marked **TODO (evidence)** need screenshots, links, or counts gathered near the Final Release. Keep file paths current as the code changes, because graders will follow them.
 
-| #   | Practice                             | Status | Primary evidence                                          |
-| --- | ------------------------------------ | ------ | --------------------------------------------------------- |
-| 1a  | Project management web site (GitHub) | In use | GitHub Issues, Pull Requests                              |
-| 1b  | Task tracking web site (Jira)        | In use | Jira board and sprint reports                             |
-| 1c  | Code repository (GitHub)             | In use | `github.com/max1dyer/PlateUp`                             |
-| 1d  | Documented coding standards          | In use | [`CODING_STANDARDS.md`](CODING_STANDARDS.md)              |
-| 1e  | Object-oriented design concepts      | In use | Defined below, [`DESIGN.md`](DESIGN.md)                   |
-| 2a  | Automated testing                    | In use | `.github/workflows/ci.yml`, `*.spec.ts`                   |
-| 2b  | Build tools                          | In use | npm workspaces, Nest CLI, Angular CLI                     |
-| 2c  | Unit test tools                      | In use | Jest (backend), Vitest (frontend)                         |
-| 2d  | Mock objects in unit tests           | In use | Controller specs, frontend component specs                |
-| 2e  | Dependency injection with unit tests | In use | Repository DI tokens, `Test.createTestingModule`          |
-| 2f  | Linting system                       | In use | ESLint + Prettier, enforced in CI                         |
-| 2g  | Third-party components               | In use | [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)        |
+| #   | Practice                             | Status | Primary evidence                                         |
+| --- | ------------------------------------ | ------ | -------------------------------------------------------- |
+| 1a  | Project management web site (GitHub) | In use | GitHub Issues, Pull Requests                             |
+| 1b  | Task tracking web site (Jira)        | In use | Jira board and sprint reports                            |
+| 1c  | Code repository (GitHub)             | In use | `github.com/max1dyer/PlateUp`                            |
+| 1d  | Documented coding standards          | In use | [`CODING_STANDARDS.md`](CODING_STANDARDS.md)             |
+| 1e  | Object-oriented design concepts      | In use | Defined below, [`DESIGN.md`](DESIGN.md)                  |
+| 2a  | Automated testing                    | In use | `.github/workflows/ci.yml`, `*.spec.ts`                  |
+| 2b  | Build tools                          | In use | npm workspaces, Nest CLI, Angular CLI                    |
+| 2c  | Unit test tools                      | In use | Jest (backend), Vitest (frontend)                        |
+| 2d  | Mock objects in unit tests           | In use | Controller specs, frontend component specs               |
+| 2e  | Dependency injection with unit tests | In use | Repository DI tokens, `Test.createTestingModule`         |
+| 2f  | Linting system                       | In use | ESLint + Prettier, enforced in CI                        |
+| 2g  | Third-party components               | In use | [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)       |
 | 2h  | Design patterns                      | In use | [`DESIGN.md` Design patterns](DESIGN.md#design-patterns) |
 
 ---
@@ -174,15 +173,15 @@ PlateUp is built on open-source frameworks and libraries, including NestJS, Angu
 
 The patterns we use are catalogued in [`DESIGN.md`](DESIGN.md#design-patterns), with where each one appears and why we chose it. Each use is also annotated in the source with a `@pattern` TSDoc tag ([`CODING_STANDARDS.md` 4](CODING_STANDARDS.md)). Summary of patterns from the course list:
 
-| Pattern                                | Where                                                                           | Why                                                                                       |
-| -------------------------------------- | ------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| Dependency Injection                   | Every service/controller constructor, module `providers`                        | Swap storage and mock collaborators without changing consumers.                           |
-| Template Method                        | `BaseEntity.toJSON()` → abstract `snapshot()`                                   | One serialization algorithm. Subclasses supply only their own fields.                     |
-| Mock Objects                           | Controller and component specs                                                  | Test one class in isolation.                                                              |
-| Singleton                              | Nest providers (default singleton scope), Angular `providedIn: 'root'` services | One shared repository/service instance per application.                                   |
-| Chain of Responsibility                | Angular HTTP interceptors (`userIdInterceptor`), Nest exception filters         | Cross-cutting request handling, with each handler choosing to act or pass the request on. |
-| Adapter                                | `DomainErrorFilter` (domain error → HTTP response)                              | Keeps the domain layer free of HTTP concerns.                                             |
+| Pattern                                     | Where                                                                           | Why                                                                                       |
+| ------------------------------------------- | ------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| Dependency Injection                        | Every service/controller constructor, module `providers`                        | Swap storage and mock collaborators without changing consumers.                           |
+| Template Method                             | `BaseEntity.toJSON()` → abstract `snapshot()`                                   | One serialization algorithm. Subclasses supply only their own fields.                     |
+| Mock Objects                                | Controller and component specs                                                  | Test one class in isolation.                                                              |
+| Singleton                                   | Nest providers (default singleton scope), Angular `providedIn: 'root'` services | One shared repository/service instance per application.                                   |
+| Chain of Responsibility                     | Angular HTTP interceptors (`userIdInterceptor`), Nest exception filters         | Cross-cutting request handling, with each handler choosing to act or pass the request on. |
+| Adapter                                     | `DomainErrorFilter` (domain error → HTTP response)                              | Keeps the domain layer free of HTTP concerns.                                             |
 | **TODO/Planned:** Strategy                  | Grocery-list generation (all vs. missing-only); recipe sort/filter              | User setting chooses the algorithm at run time.                                           |
-| **TODO/Planned:** Factory Method / Strategy | Social-media import parsers                                                     | Spec 3.5: a new platform should require one new parser module only.                      |
+| **TODO/Planned:** Factory Method / Strategy | Social-media import parsers                                                     | Spec 3.5: a new platform should require one new parser module only.                       |
 | **TODO/Planned:** Observer                  | Household grocery-list live updates (WebSocket + RxJS)                          | Push changes to all members within 2 seconds.                                             |
 | **TODO/Planned:** Facade + Proxy            | External API clients (shared timeout wrapper, response cache)                   | One simple interface. Caching and the 15-second timeout in one place.                     |
