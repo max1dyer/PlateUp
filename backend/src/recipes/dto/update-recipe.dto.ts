@@ -11,4 +11,5 @@ export class UpdateRecipeDto {
   public readonly steps?: string[];
   public readonly nutrition?: NutritionInfo;
   public readonly visibility?: RecipeVisibility;
+  public readonly tags?: string[];
 }

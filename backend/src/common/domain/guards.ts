@@ -17,6 +17,19 @@ export function requirePositiveInteger(value: number, field: string): number {
   return value;
 }
 
+/** Returns `value`, or throws if it is not a whole number from `min` to `max` inclusive. */
+export function requireIntegerInRange(
+  value: number,
+  min: number,
+  max: number,
+  field: string,
+): number {
+  if (!Number.isInteger(value) || value < min || value > max) {
+    throw new DomainValidationError(`${field} must be a whole number from ${min} to ${max}.`);
+  }
+  return value;
+}
+
 /** Returns `value`, or throws if it is not one of the values of the string enum `allowed`. */
 export function requireOneOf<T extends string>(
   value: T,
