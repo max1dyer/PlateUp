@@ -59,9 +59,9 @@ Every pattern listed here is annotated in the source with a `@pattern` TSDoc tag
 | **Mock Objects**            | Controller specs (`jest.fn()` services), frontend component specs (`vi.fn()` services), `HttpTestingController`.             | Tests one class in isolation, without HTTP, storage, or other features.                                                                   |
 | **Adapter**                 | `DomainErrorFilter` adapts `DomainValidationError` (domain) to an HTTP 400 response (Nest/Express).                          | Keeps the domain layer framework-free.                                                                                                    |
 | **Singleton**               | Nest providers (default singleton scope); Angular services with `providedIn: 'root'`.                                        | One shared repository instance per app, so all services see the same data.                                                                |
-| **Chain of Responsibility** | Angular HTTP interceptors (`userIdInterceptor`, on the `mxbwilly` branch); Nest's exception-filter chain.                    | Cross-cutting request handling without modifying each service.                                                                            |
+| **Chain of Responsibility** | Angular HTTP interceptors (`userIdInterceptor` in `app/core/`); Nest's exception-filter chain.                               | Cross-cutting request handling without modifying each service.                                                                            |
 
-Other techniques (not on the course list): **Repository**, **Value Object** (`Quantity`, `RecipeIngredient`), and **Aggregate Root** (`GroceryList` owns its `GroceryListItem`s).
+Other techniques (not on the course list): **Repository**, **Value Object** (`Quantity`, `RecipeIngredient`, `RecipeReview`), and **Aggregate Root** (`GroceryList` owns its `GroceryListItem`s).
 
 ### Planned (Beta)
 
@@ -88,9 +88,10 @@ These are the major classes for CRC cards and the class diagram. Paths are relat
 | `DomainErrorFilter`                                                                                        | exception filter      | `common/filters/domain-error.filter.ts`    |
 | `Repository<T>` / `InMemoryRepository<T>`                                                                  | persistence           | `common/persistence/`                      |
 | `User`, `UsersService`, `UsersController`, `UserRepository`                                                | users feature         | `users/`                                   |
-| `Recipe`, `RecipeIngredient`, `RecipesService`, `RecipesController`, `RecipeRepository`                    | recipes feature       | `recipes/`                                 |
+| `Recipe`, `RecipeIngredient`, `RecipeReview`, `RecipesService`, `RecipesController`, `RecipeRepository`    | recipes feature       | `recipes/`                                 |
 | `PantryItem`, `PantryService`, `PantryController`, `PantryItemRepository`                                  | pantry feature        | `pantry/`                                  |
 | `GroceryList`, `GroceryListItem`, `GroceryListsService`, `GroceryListsController`, `GroceryListRepository` | grocery-lists feature | `grocery-lists/`                           |
+| `DemoDataSeeder`, `SeedModule` (TEMPORARY: sample data loaded at startup)                                  | seed data             | `seed/`                                    |
 
 ### Domain class diagram (draft)
 
@@ -124,7 +125,11 @@ classDiagram
   }
   class Recipe {
     -details: RecipeDetails
+    -reviewsByUser: Map~string, RecipeReview~
+    +averageRating: number | null
+    +numRatings: number
     +update(changes) void
+    +review(reviewerId, rating, comment) RecipeReview
     +isVisibleTo(userId) boolean
     +ingredientsFor(servings) RecipeIngredient[]
   }
@@ -132,6 +137,13 @@ classDiagram
     +name: string
     +quantity: Quantity
     +scale(factor) RecipeIngredient
+  }
+  class RecipeReview {
+    <<value object>>
+    +reviewerId: string
+    +rating: number
+    +comment: string
+    +reviewedAt: Date
   }
   class PantryItem {
     -itemName: string
@@ -168,6 +180,7 @@ classDiagram
   OwnedEntity <|-- PantryItem
   OwnedEntity <|-- GroceryList
   Recipe "1" *-- "1..*" RecipeIngredient : ingredients
+  Recipe "1" *-- "0..*" RecipeReview : reviews
   GroceryList "1" *-- "0..*" GroceryListItem : items
   RecipeIngredient --> "1" Quantity
   PantryItem --> "1" Quantity
@@ -181,7 +194,7 @@ classDiagram
 Candidates from the source code:
 
 1. **UC6 Generate Grocery List** (Interim scope: one recipe at a chosen serving size). The flow is `GroceryListsController` → `GroceryListsService` → `RecipesService.findOne()` → `Recipe.ingredientsFor(servings)` → `RecipeIngredient.scale()` → `Quantity.scale()` → `GroceryList.addItem()` → `GroceryListRepository.save()`. **TODO:** the service endpoint that ties these together is not implemented yet. `Recipe.ingredientsFor()` exists.
-2. **UC5 Add Ingredient to Pantry**, including merging an existing ingredient in a compatible unit (`PantryService.add` → `PantryItemRepository.findByOwner` → `PantryItem.canAddQuantity` → `Quantity.plus`; on the `mxbwilly` branch).
+2. **UC5 Add Ingredient to Pantry**, including merging an existing ingredient in a compatible unit (`PantryService.add` → `PantryItemRepository.findByOwner` → `PantryItem.canAddQuantity` → `Quantity.plus`).
 3. **UC3 Upload Recipe**, including the validation failure path (`Recipe` constructor → `requireText` throws `DomainValidationError` → `DomainErrorFilter` → 400).
 
 ---
