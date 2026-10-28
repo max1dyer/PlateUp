@@ -1,7 +1,8 @@
 import { Component, signal } from '@angular/core';
+import { DatePipe } from '@angular/common';
 
 @Component({
-  imports: [],
+  imports: [DatePipe],
   selector: 'app-root',
   styleUrl: './app.css',
   templateUrl: './app.html',
