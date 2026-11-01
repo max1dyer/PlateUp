@@ -1,0 +1,39 @@
+.site-header {
+  background: var(--color-primary);
+}
+
+.inner {
+  position: relative;
+  max-width: var(--page-width);
+  height: 94px;
+  margin: 0 auto;
+}
+
+.logo-link {
+  position: absolute;
+  top: 21px;
+}
+
+.logo {
+  display: block;
+  width: 48px;
+  height: 56px;
+  object-fit: contain;
+}
+
+.nav-link {
+  position: absolute;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 20px;
+  line-height: 19px;
+  color: var(--color-on-color);
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.nav-link.active {
+  color: var(--color-text-strong);
+}

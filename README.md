@@ -7,6 +7,8 @@ Npm workspaces monorepo.
 - run from root directory:
   1. [frontend](http://localhost:4200): `npm run start --workspace=frontend`
   2. [backend](http://localhost:3000): `npm run dev --workspace=backend`
+  - The frontend calls the backend through `/api/...`, which the Angular dev server proxies to port 3000 (`frontend/proxy.conf.json`), so run both.
+  - Data is in memory and resets on restart. On startup the backend adds a demo recipe, so <http://localhost:4200/recipes> has something to show.
 - test:
   - local formatting command: `npm run format`
   - Each of us will work on different branches and github actions CI will run these commands when creating a pull request.

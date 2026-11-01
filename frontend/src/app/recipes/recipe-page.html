@@ -1,0 +1,109 @@
+<div class="recipe-container">
+  @if (recipe(); as recipe) {
+    <!-- Recipe image and top navigation -->
+    <section class="recipe-header">
+      <div class="top-nav">
+        <a class="nav-button" routerLink="/recipes" aria-label="Back to recipes">‹</a>
+        <button type="button" class="nav-button" aria-label="Like recipe">♡</button>
+      </div>
+
+      @if (recipe.thumbnailUrl) {
+        <img class="recipe-image" [src]="recipe.thumbnailUrl" [alt]="recipe.title" />
+      }
+    </section>
+
+    <!-- Recipe information -->
+    <section class="recipe-card">
+      <header class="recipe-heading">
+        <h1>{{ recipe.title }}</h1>
+
+        <p class="recipe-author">Uploaded by {{ nameOf(recipe.authorId) }}</p>
+
+        <p class="recipe-date">{{ recipe.createdAt | date: 'MMMM d, y' }}</p>
+
+        <p class="recipe-stats">
+          {{ recipe.prepTimeMinutes }} Minutes | {{ recipe.steps.length }} Steps |
+          <span class="rating-stars">★★★★★</span>
+          {{ recipe.rating ?? '—' }}
+          ({{ recipe.numRatings }})
+        </p>
+      </header>
+
+      <!-- Recipe tags -->
+      <div class="recipe-tags">
+        @for (tag of recipe.tags; track tag) {
+          <span class="recipe-tag">{{ tag }}</span>
+        }
+      </div>
+
+      <!-- Description and servings -->
+      <div class="recipe-description">
+        <p>{{ recipe.description }}</p>
+
+        <p class="serving-size">Serving size: {{ recipe.servings }}</p>
+      </div>
+
+      <!-- Ingredients checklist -->
+      <section class="ingredients-section">
+        <div class="section-heading">
+          <h2>Ingredients</h2>
+          <span>{{ recipe.ingredients.length }} ingredients</span>
+        </div>
+
+        <ul class="ingredient-list">
+          @for (ingredient of recipe.ingredients; track $index) {
+            <li class="ingredient-row">
+              <label class="ingredient-label">
+                <input type="checkbox" />
+
+                <span class="ingredient-name">
+                  {{ ingredient.name }}
+                </span>
+              </label>
+
+              <span class="ingredient-quantity">
+                {{ formatQuantity(ingredient.quantity) }}
+              </span>
+            </li>
+          }
+        </ul>
+      </section>
+
+      <!-- Add to grocery list -->
+      <button class="action-button grocery-button" type="button">Add all to Grocery</button>
+
+      <!-- Cooking instructions -->
+      <section class="steps-section">
+        <h2>Steps</h2>
+
+        <ol class="recipe-steps">
+          @for (step of recipe.steps; track $index) {
+            <li>{{ step }}</li>
+          }
+        </ol>
+      </section>
+
+      <!-- Add to meal planner -->
+      <button class="action-button planner-button" type="button">Add meal to Planner</button>
+    </section>
+
+    <!-- Reviews -->
+    <section class="reviews-section">
+      <h2>Reviews ({{ recipe.numRatings }})</h2>
+
+      @for (review of recipe.reviews; track review.reviewerId) {
+        <article class="recipe-review">
+          <p class="review-user">{{ nameOf(review.reviewerId) }}</p>
+          <p class="review-rating">{{ review.rating }} / 5</p>
+          <p class="review-comment">{{ review.comment }}</p>
+        </article>
+      } @empty {
+        <p>No reviews yet</p>
+      }
+    </section>
+  } @else if (loadError()) {
+    <p class="error-message">We couldn't load this recipe.</p>
+  } @else {
+    <p class="loading-message">Loading recipe...</p>
+  }
+</div>

@@ -1,6 +1,7 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { Quantity } from '../common/domain/quantity';
 import { CreateRecipeDto, RecipeIngredientDto } from './dto/create-recipe.dto';
+import { ReviewRecipeDto } from './dto/review-recipe.dto';
 import { UpdateRecipeDto } from './dto/update-recipe.dto';
 import { RecipeIngredient } from './entities/recipe-ingredient';
 import { Recipe, RecipeDetails, RecipeVisibility } from './entities/recipe.entity';
@@ -40,6 +41,7 @@ export class RecipesService {
       steps: dto.steps,
       nutrition: dto.nutrition,
       visibility: dto.visibility ?? RecipeVisibility.Public,
+      tags: dto.tags ?? [],
     });
     return this.recipes.save(recipe);
   }
@@ -52,6 +54,13 @@ export class RecipesService {
       changes.ingredients = this.toIngredients(ingredients);
     }
     recipe.update(changes);
+    return this.recipes.save(recipe);
+  }
+
+  /** Adds or replaces the user's review of a recipe they can see. */
+  public async review(recipeId: string, userId: string, dto: ReviewRecipeDto): Promise<Recipe> {
+    const recipe = await this.findOne(recipeId, userId);
+    recipe.review(userId, dto.rating, dto.comment ?? '');
     return this.recipes.save(recipe);
   }
 

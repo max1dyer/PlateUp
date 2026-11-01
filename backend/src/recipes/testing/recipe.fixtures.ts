@@ -16,6 +16,7 @@ export function buildCreateRecipeDto(overrides: Partial<CreateRecipeDto> = {}): 
     steps: ['Cook the rice.', 'Grill the chicken.'],
     nutrition: { calories: 550, protein: 45, fat: 10, carbohydrates: 60 },
     visibility: RecipeVisibility.Public,
+    tags: ['High Protein'],
     ...overrides,
   };
 }

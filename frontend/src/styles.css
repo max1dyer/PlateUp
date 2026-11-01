@@ -1,0 +1,40 @@
+/* Design tokens from the Figma mockup (see the grocery list page design). */
+:root {
+  --color-primary: #d17a0f;
+  --color-secondary: #70b26c;
+  --color-card-cream: #f6e5cf;
+  --color-card-green: rgba(112, 178, 108, 0.2);
+  --color-text: #171a16;
+  --color-text-muted: #53604f;
+  --color-text-strong: #000000;
+  --color-on-color: #ffffff;
+  --color-icon-green: #33772f;
+  --color-danger-tint: rgba(255, 0, 0, 0.3);
+  --color-checkbox-border: #9c9c9c;
+  /* Not in Figma: used for error messages only. */
+  --color-error: #a61b1b;
+
+  --radius: 10px;
+  /* Width of the Figma frames; content stays this wide on large screens. */
+  --page-width: 402px;
+
+  font-family: 'Hubballi', sans-serif;
+  font-weight: 400;
+  color: var(--color-text);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #ffffff;
+}
+
+button,
+input,
+select {
+  font: inherit;
+  color: inherit;
+}

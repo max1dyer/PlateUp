@@ -10,6 +10,7 @@ describe('RecipesController', () => {
     findOne: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
+    review: jest.fn(),
     remove: jest.fn(),
   };
 
@@ -42,6 +43,11 @@ describe('RecipesController', () => {
   it('update delegates the changes', async () => {
     await controller.update('alice', 'r1', { title: 'New' });
     expect(service.update).toHaveBeenCalledWith('r1', 'alice', { title: 'New' });
+  });
+
+  it('review delegates the rating with the reviewer', async () => {
+    await controller.review('bob', 'r1', { rating: 5, comment: 'Great' });
+    expect(service.review).toHaveBeenCalledWith('r1', 'bob', { rating: 5, comment: 'Great' });
   });
 
   it('remove delegates the deletion', async () => {

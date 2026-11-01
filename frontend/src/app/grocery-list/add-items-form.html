@@ -1,0 +1,38 @@
+<form class="panel" [formGroup]="form" (ngSubmit)="add()">
+  <input
+    #nameInput
+    class="field name-field"
+    formControlName="name"
+    placeholder="Item name"
+    aria-label="Item name"
+    autofocus
+  />
+  <div class="field-row">
+    <input
+      class="field amount-field"
+      type="number"
+      min="0"
+      step="any"
+      formControlName="amount"
+      placeholder="Amount"
+      aria-label="Amount"
+    />
+    <select class="field" formControlName="unit" aria-label="Unit">
+      @for (unit of units; track unit) {
+        <option [value]="unit">{{ unit }}</option>
+      }
+    </select>
+    <select class="field" formControlName="category" aria-label="Category">
+      @for (category of categories; track category.value) {
+        <option [value]="category.value">{{ category.label }}</option>
+      }
+    </select>
+  </div>
+  @if (error(); as message) {
+    <p class="error" role="alert">{{ message }}</p>
+  }
+  <div class="actions">
+    <button type="submit" class="button primary" [disabled]="saving()">Add To Grocery List</button>
+    <button type="button" class="button plain" (click)="closed.emit()">Done</button>
+  </div>
+</form>

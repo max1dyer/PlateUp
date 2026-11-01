@@ -87,6 +87,26 @@ describe('RecipesService', () => {
     await expect(service.remove(recipe.id, 'bob')).rejects.toThrow(ForbiddenException);
   });
 
+  it('review stores the reviewer’s rating on the recipe', async () => {
+    const recipe = await service.create('alice', buildCreateRecipeDto());
+
+    const reviewed = await service.review(recipe.id, 'bob', { rating: 4, comment: 'Solid' });
+
+    expect(reviewed.averageRating).toBe(4);
+    expect(reviewed.reviews[0]).toMatchObject({ reviewerId: 'bob', comment: 'Solid' });
+  });
+
+  it('review treats another user’s private recipe as not found', async () => {
+    const recipe = await service.create(
+      'alice',
+      buildCreateRecipeDto({ visibility: RecipeVisibility.Private }),
+    );
+
+    await expect(service.review(recipe.id, 'bob', { rating: 5 })).rejects.toThrow(
+      NotFoundException,
+    );
+  });
+
   it('remove deletes the recipe', async () => {
     const recipe = await service.create('alice', buildCreateRecipeDto());
 

@@ -1,4 +1,5 @@
 import { requireText } from '../../common/domain/guards';
+import { isSameIngredient } from '../../common/domain/ingredient-name';
 import { OwnedEntity } from '../../common/domain/owned.entity';
 import { Quantity } from '../../common/domain/quantity';
 
@@ -34,6 +35,22 @@ export class PantryItem extends OwnedEntity<PantryItemSnapshot> {
 
   public setQuantity(quantity: Quantity): void {
     this.itemQuantity = quantity;
+    this.touch();
+  }
+
+  /** True if `name` refers to the same ingredient as this item. */
+  public isNamed(name: string): boolean {
+    return isSameIngredient(this.itemName, name);
+  }
+
+  /** True if `quantity` is in a unit that can be added to this item's. */
+  public canAddQuantity(quantity: Quantity): boolean {
+    return this.itemQuantity.isCompatibleWith(quantity);
+  }
+
+  /** Adds more of this ingredient; the total keeps the unit already held (UC5). */
+  public addQuantity(quantity: Quantity): void {
+    this.itemQuantity = this.itemQuantity.plus(quantity);
     this.touch();
   }
 

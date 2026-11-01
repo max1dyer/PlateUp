@@ -1,0 +1,32 @@
+.site-footer {
+  background: var(--color-secondary);
+}
+
+.inner {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  max-width: var(--page-width);
+  min-height: 80px;
+  margin: 0 auto;
+  padding: 10px 15px;
+}
+
+.footer-link {
+  width: 130px;
+  font-size: 15px;
+  line-height: 14px;
+  text-align: center;
+  color: var(--color-on-color);
+  text-decoration: none;
+}
+
+.credits {
+  width: 100%;
+  margin: 0;
+  font-size: 13px;
+  line-height: 105%;
+  text-align: center;
+  color: var(--color-on-color);
+}

@@ -1,0 +1,26 @@
+<div class="recipe-list">
+  <h1>Recipes</h1>
+
+  @if (loading()) {
+    <p class="status">Loading recipes...</p>
+  } @else if (loadError()) {
+    <p class="status">We couldn't load recipes.</p>
+  } @else {
+    <ul class="cards">
+      @for (recipe of recipes(); track recipe.id) {
+        <li>
+          <a class="card" [routerLink]="['/recipes', recipe.id]">
+            <span class="title">{{ recipe.title }}</span>
+            <span class="meta">
+              {{ recipe.prepTimeMinutes }} min | ★ {{ recipe.rating ?? '—' }} ({{
+                recipe.numRatings
+              }})
+            </span>
+          </a>
+        </li>
+      } @empty {
+        <li class="status">No recipes yet.</li>
+      }
+    </ul>
+  }
+</div>
