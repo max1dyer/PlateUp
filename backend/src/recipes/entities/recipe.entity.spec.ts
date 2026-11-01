@@ -110,4 +110,15 @@ describe('Recipe', () => {
     expect(() => recipe.review('alice', 3.5, '')).toThrow(DomainValidationError);
     expect(recipe.numRatings).toBe(0);
   });
+
+  it('accepts a photo as a web address or uploaded image, and rejects anything else', () => {
+    expect(new Recipe('author', details({ thumbnailUrl: ' ' })).toJSON().thumbnailUrl).toBeNull();
+    expect(
+      new Recipe('author', details({ thumbnailUrl: 'https://example.com/oats.jpg' })).toJSON()
+        .thumbnailUrl,
+    ).toBe('https://example.com/oats.jpg');
+    expect(() => new Recipe('author', details({ thumbnailUrl: 'not a url' }))).toThrow(
+      DomainValidationError,
+    );
+  });
 });

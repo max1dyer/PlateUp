@@ -1,0 +1,26 @@
+<form class="ui-card review-form" [formGroup]="form" (ngSubmit)="submit()">
+  <h3 class="heading">{{ existing() ? 'Update your review' : 'Write a review' }}</h3>
+  <div class="stars" role="radiogroup" aria-label="Rating">
+    @for (star of stars; track star) {
+      <button
+        type="button"
+        class="star"
+        role="radio"
+        [class.on]="star <= form.controls.rating.value"
+        [attr.aria-checked]="star === form.controls.rating.value"
+        [attr.aria-label]="star + (star === 1 ? ' star' : ' stars')"
+        (click)="rate(star)"
+      >
+        ★
+      </button>
+    }
+  </div>
+  <label class="ui-label">
+    Comment (optional)
+    <textarea class="ui-field" rows="3" formControlName="comment"></textarea>
+  </label>
+  @if (error(); as message) {
+    <p class="ui-error" role="alert">{{ message }}</p>
+  }
+  <button type="submit" class="ui-button primary" [disabled]="saving()">Post review</button>
+</form>

@@ -1,7 +1,8 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Put } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Put } from '@nestjs/common';
 import { CurrentUserId } from '../common/decorators/current-user-id.decorator';
 import { Recipe } from '../recipes/entities/recipe.entity';
 import { CreateUserDto } from './dto/create-user.dto';
+import { LogInDto } from './dto/log-in.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from './entities/user.entity';
 import { UsersService } from './users.service';
@@ -13,6 +14,13 @@ export class UsersController {
   @Post()
   public register(@Body() dto: CreateUserDto): Promise<User> {
     return this.usersService.register(dto);
+  }
+
+  /** TEMPORARY: username-only sign-in until Supabase authentication exists. */
+  @Post('login')
+  @HttpCode(200)
+  public logIn(@Body() dto: LogInDto): Promise<User> {
+    return this.usersService.logIn(dto);
   }
 
   // `me` routes are declared before `:userId` so "me" is not treated as an id.

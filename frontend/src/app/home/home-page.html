@@ -1,0 +1,31 @@
+<div class="ui-page">
+  <section class="intro">
+    <h1 class="ui-title">Hi, {{ session.currentUser()?.displayName }}!</h1>
+    <p class="ui-subtitle">What are we cooking today?</p>
+    @if (counts(); as counts) {
+      <p class="summary">
+        {{ counts.pantry }} {{ counts.pantry === 1 ? 'item' : 'items' }} in your pantry ·
+        {{ counts.groceryItems }} still to buy
+      </p>
+    }
+  </section>
+
+  <nav class="shortcuts" aria-label="Shortcuts">
+    @for (shortcut of shortcuts; track shortcut.path; let index = $index) {
+      <a class="ui-card shortcut" [class.green]="index % 3 !== 0" [routerLink]="shortcut.path">
+        <span class="icon" aria-hidden="true">{{ shortcut.icon }}</span>
+        <span class="label">{{ shortcut.label }}</span>
+        <span class="ui-hint">{{ shortcut.hint }}</span>
+      </a>
+    }
+  </nav>
+
+  <section class="newest">
+    <h2 class="ui-heading">Newest recipes</h2>
+    @for (recipe of newest(); track recipe.id; let index = $index) {
+      <app-recipe-card [recipe]="recipe" [green]="index % 2 === 1" />
+    } @empty {
+      <p class="ui-status">No recipes yet.</p>
+    }
+  </section>
+</div>

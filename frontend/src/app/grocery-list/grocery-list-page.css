@@ -43,13 +43,6 @@
   color: var(--color-icon-green);
 }
 
-.household-name {
-  flex: 1;
-  font-size: 18px;
-  line-height: 110%;
-  color: var(--color-text);
-}
-
 .manage {
   padding: 0;
   border: 0;
@@ -165,4 +158,30 @@
   font-size: 16px;
   line-height: 110%;
   color: var(--color-error);
+}
+
+.list-picker,
+.list-name {
+  flex: 1;
+  min-width: 0;
+  padding: 2px 6px;
+  border: 1px solid var(--color-checkbox-border);
+  border-radius: var(--radius);
+  background: #ffffff;
+  font-size: 18px;
+}
+
+.list-name-form {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+}
+
+.delete-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
 }

@@ -1,25 +1,58 @@
-<div class="recipe-list">
-  <h1>Recipes</h1>
+<div class="ui-page">
+  <section class="intro">
+    <h1 class="ui-title">Recipes</h1>
+    <p class="ui-subtitle">Find something to cook, or share your own.</p>
+  </section>
+
+  <a class="ui-button primary wide" routerLink="/recipes/new">+ Upload a recipe</a>
+
+  <div class="filters">
+    <label class="ui-visually-hidden" for="recipe-search">Search recipes</label>
+    <input
+      id="recipe-search"
+      class="ui-field"
+      type="search"
+      placeholder="Search by name, tag, or ingredient"
+      [value]="search()"
+      (input)="onSearch($event)"
+    />
+    @if (tags().length > 0) {
+      <div class="tag-filter" role="group" aria-label="Filter by tag">
+        @for (option of tags(); track option) {
+          <button
+            type="button"
+            class="tag"
+            [class.active]="tag() === option"
+            [attr.aria-pressed]="tag() === option"
+            (click)="toggleTag(option)"
+          >
+            {{ option }}
+          </button>
+        }
+      </div>
+    }
+  </div>
 
   @if (loading()) {
-    <p class="status">Loading recipes...</p>
+    <p class="ui-status">Loading recipes…</p>
   } @else if (loadError()) {
-    <p class="status">We couldn't load recipes.</p>
+    <div class="ui-card">
+      <p class="ui-status">We couldn't load recipes. Make sure the backend is running.</p>
+      <button type="button" class="ui-button primary" (click)="load()">Try again</button>
+    </div>
   } @else {
     <ul class="cards">
-      @for (recipe of recipes(); track recipe.id) {
-        <li>
-          <a class="card" [routerLink]="['/recipes', recipe.id]">
-            <span class="title">{{ recipe.title }}</span>
-            <span class="meta">
-              {{ recipe.prepTimeMinutes }} min | ★ {{ recipe.rating ?? '—' }} ({{
-                recipe.numRatings
-              }})
-            </span>
-          </a>
-        </li>
+      @for (recipe of shown(); track recipe.id; let index = $index) {
+        <li><app-recipe-card [recipe]="recipe" [green]="index % 2 === 1" /></li>
       } @empty {
-        <li class="status">No recipes yet.</li>
+        <li class="ui-card">
+          @if (recipes().length === 0) {
+            <p class="ui-status">No recipes yet. Be the first to upload one!</p>
+          } @else {
+            <p class="ui-status">No recipes match your search.</p>
+            <button type="button" class="ui-button" (click)="clearFilters()">Clear filters</button>
+          }
+        </li>
       }
     </ul>
   }

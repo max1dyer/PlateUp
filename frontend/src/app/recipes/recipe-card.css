@@ -1,0 +1,70 @@
+.card {
+  position: relative;
+  display: flex;
+  gap: 12px;
+  padding: 10px;
+  border-radius: var(--radius);
+  background: var(--color-card-cream);
+  color: var(--color-text-strong);
+  text-decoration: none;
+}
+
+.card.green {
+  background: var(--color-card-green);
+}
+
+.card:hover .title {
+  text-decoration: underline;
+}
+
+.photo {
+  flex: none;
+  width: 84px;
+  height: 84px;
+  border-radius: var(--radius);
+  object-fit: cover;
+}
+
+.placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  font-size: 34px;
+}
+
+.body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding-right: 84px;
+}
+
+.title {
+  font-size: 22px;
+  line-height: 105%;
+}
+
+.meta {
+  font-size: 15px;
+  line-height: 110%;
+  color: var(--color-text-muted);
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.tags .ui-chip {
+  font-size: 13px;
+}
+
+.save {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}

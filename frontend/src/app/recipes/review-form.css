@@ -1,0 +1,28 @@
+.review-form {
+  margin-top: 10px;
+}
+
+.heading {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 400;
+}
+
+.stars {
+  display: flex;
+  gap: 2px;
+}
+
+.star {
+  padding: 0 2px;
+  border: 0;
+  background: none;
+  font-size: 30px;
+  line-height: 1;
+  color: var(--color-checkbox-border);
+  cursor: pointer;
+}
+
+.star.on {
+  color: #e5a900;
+}

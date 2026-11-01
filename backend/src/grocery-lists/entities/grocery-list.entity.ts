@@ -1,9 +1,17 @@
 import { requireOneOf, requireText } from '../../common/domain/guards';
 import { DomainValidationError } from '../../common/errors/domain-validation.error';
 import { IngredientCategory } from '../../common/domain/ingredient-category';
+import { isSameIngredient } from '../../common/domain/ingredient-name';
 import { OwnedEntity } from '../../common/domain/owned.entity';
 import { Quantity } from '../../common/domain/quantity';
 import { GroceryListItem, GroceryListItemChanges } from './grocery-list-item.entity';
+
+/** One ingredient to add with `GroceryList.addItems`. */
+export interface NewGroceryEntry {
+  name: string;
+  quantity: Quantity | null;
+  category?: IngredientCategory;
+}
 
 export interface GroceryListSnapshot {
   ownerId: string;
@@ -64,6 +72,30 @@ export class GroceryList extends OwnedEntity<GroceryListSnapshot> {
   }
 
   /**
+   * Adds several ingredients at once (e.g. a recipe's), combining each with a
+   * matching line as `addItem` does. All of them are checked first, so if any
+   * one is in a unit that can't be combined, nothing is added (UC6).
+   */
+  public addItems(entries: readonly NewGroceryEntry[]): GroceryListItem[] {
+    entries.forEach((entry, index) => {
+      const existing = this.findItemNamed(entry.name);
+      const earlier = entries
+        .slice(0, index)
+        .find((other) => isSameIngredient(other.name, entry.name));
+      const conflict =
+        (existing && !existing.canAddQuantity(entry.quantity)) ||
+        (earlier && !GroceryList.canCombine(earlier.quantity, entry.quantity));
+      if (conflict) {
+        throw new DomainValidationError(
+          `${entry.name} is already on your list in a unit that can't be combined with ` +
+            `${String(entry.quantity?.unit)}. Edit or remove that item first.`,
+        );
+      }
+    });
+    return entries.map((entry) => this.addItem(entry.name, entry.quantity, entry.category));
+  }
+
+  /**
    * Edits an item's name, quantity, category, or purchased flag. Returns false
    * if the item is not on this list. Renaming to another line's ingredient is
    * refused, to keep one line per ingredient.
@@ -107,6 +139,10 @@ export class GroceryList extends OwnedEntity<GroceryListSnapshot> {
 
   protected snapshot(): GroceryListSnapshot {
     return { ownerId: this.ownerId, name: this.listName, items: this.items };
+  }
+
+  private static canCombine(a: Quantity | null, b: Quantity | null): boolean {
+    return a === null || b === null || a.isCompatibleWith(b);
   }
 
   private findItemNamed(name: string): GroceryListItem | undefined {

@@ -1,0 +1,67 @@
+<div class="ui-page">
+  <section class="intro">
+    <img src="logo.png" alt="" class="logo" />
+    <h1 class="ui-title">PlateUp!</h1>
+    <p class="ui-subtitle">Plan meals, track your pantry, and shop smarter.</p>
+  </section>
+
+  <div class="tabs" role="tablist" aria-label="Sign in or create an account">
+    <button
+      type="button"
+      role="tab"
+      class="tab"
+      [class.active]="mode() === 'log-in'"
+      [attr.aria-selected]="mode() === 'log-in'"
+      (click)="switchTo('log-in')"
+    >
+      Log in
+    </button>
+    <button
+      type="button"
+      role="tab"
+      class="tab"
+      [class.active]="mode() === 'register'"
+      [attr.aria-selected]="mode() === 'register'"
+      (click)="switchTo('register')"
+    >
+      Create account
+    </button>
+  </div>
+
+  <form class="ui-card" [formGroup]="form" (ngSubmit)="submit()">
+    <label class="ui-label">
+      Username
+      <input
+        class="ui-field"
+        formControlName="username"
+        autocomplete="username"
+        autocapitalize="none"
+        [attr.maxlength]="maxUsername"
+      />
+      @if (mode() === 'register') {
+        <span class="ui-hint">Letters, digits, dots, dashes, or underscores.</span>
+      }
+    </label>
+    @if (mode() === 'register') {
+      <label class="ui-label">
+        Display name
+        <input
+          class="ui-field"
+          formControlName="displayName"
+          autocomplete="name"
+          [attr.maxlength]="maxDisplayName"
+        />
+      </label>
+    }
+    @if (error(); as message) {
+      <p class="ui-error" role="alert">{{ message }}</p>
+    }
+    <button type="submit" class="ui-button primary wide" [disabled]="saving()">
+      {{ mode() === 'register' ? 'Create account' : 'Log in' }}
+    </button>
+  </form>
+
+  <p class="ui-hint demo">
+    Just looking around? Log in as <strong>demo-chef</strong> to see a profile with recipes.
+  </p>
+</div>

@@ -8,6 +8,7 @@ tmp/
 out-tsc/
 bazel-out/
 
+.claude/
 .angular/
 .angular/cache/
 .sass-cache/

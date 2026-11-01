@@ -38,3 +38,169 @@ select {
   font: inherit;
   color: inherit;
 }
+
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+/*
+ * Shared building blocks (prefix `ui-`) so every page uses the same theme as
+ * the Figma grocery list page. Component styles only add layout on top.
+ */
+.ui-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: var(--page-width);
+  margin: 0 auto;
+  padding: 24px 20px 28px;
+}
+
+.ui-title {
+  margin: 0;
+  font-size: 40px;
+  line-height: 110%;
+  font-weight: 400;
+}
+
+.ui-subtitle {
+  margin: 0;
+  font-size: 20px;
+  line-height: 110%;
+  color: var(--color-text-muted);
+}
+
+.ui-heading {
+  margin: 0;
+  font-size: 28px;
+  line-height: 110%;
+  font-weight: 400;
+}
+
+.ui-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border-radius: var(--radius);
+  background: var(--color-card-cream);
+}
+
+.ui-card.green {
+  background: var(--color-card-green);
+}
+
+.ui-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 37px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--color-card-cream);
+  font-size: 18px;
+  line-height: 110%;
+  color: var(--color-text);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.ui-button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.ui-button.primary {
+  background: var(--color-primary);
+  color: var(--color-on-color);
+}
+
+.ui-button.secondary {
+  background: var(--color-secondary);
+  color: var(--color-on-color);
+}
+
+.ui-button.plain {
+  background: none;
+}
+
+.ui-button.danger {
+  background: var(--color-danger-tint);
+  color: var(--color-text-strong);
+}
+
+.ui-button.wide {
+  width: 100%;
+  min-height: 44px;
+  font-size: 22px;
+}
+
+.ui-label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 18px;
+  line-height: 110%;
+}
+
+.ui-hint {
+  font-size: 15px;
+  color: var(--color-text-muted);
+}
+
+.ui-field {
+  width: 100%;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--color-checkbox-border);
+  border-radius: var(--radius);
+  background: #ffffff;
+  font-size: 18px;
+}
+
+.ui-field:focus-visible,
+.ui-button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.ui-status {
+  margin: 0;
+  font-size: 18px;
+  line-height: 110%;
+  color: var(--color-text-muted);
+}
+
+.ui-error {
+  margin: 0;
+  font-size: 16px;
+  line-height: 110%;
+  color: var(--color-error);
+}
+
+.ui-chip {
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--color-secondary);
+  font-size: 15px;
+  color: var(--color-on-color);
+}
+
+.ui-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.ui-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

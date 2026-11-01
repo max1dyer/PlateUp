@@ -9,6 +9,33 @@ export function requireText(value: string | undefined, field: string): string {
   return trimmed;
 }
 
+/** Trims and returns `value` (blank allowed), or throws if it is longer than `max` characters. */
+export function requireMaxLength(value: string | undefined, max: number, field: string): string {
+  const trimmed = typeof value === 'string' ? value.trim() : '';
+  if (trimmed.length > max) {
+    throw new DomainValidationError(`${field} must be at most ${max} characters.`);
+  }
+  return trimmed;
+}
+
+/** Image sources accepted for pictures: web addresses or uploaded images as data URLs. */
+const IMAGE_SOURCE = /^(https?:\/\/\S+|data:image\/(png|jpeg|gif|webp);base64,[A-Za-z0-9+/=]+)$/;
+
+/** Returns `value` (null or blank means "no image"), or throws if it is not an image source. */
+export function requireImageSourceOrNull(
+  value: string | null | undefined,
+  field: string,
+): string | null {
+  const trimmed = typeof value === 'string' ? value.trim() : '';
+  if (trimmed.length === 0) {
+    return null;
+  }
+  if (!IMAGE_SOURCE.test(trimmed)) {
+    throw new DomainValidationError(`${field} must be a web address or an uploaded image.`);
+  }
+  return trimmed;
+}
+
 /** Returns `value`, or throws if it is not a whole number greater than zero. */
 export function requirePositiveInteger(value: number, field: string): number {
   if (!Number.isInteger(value) || value <= 0) {

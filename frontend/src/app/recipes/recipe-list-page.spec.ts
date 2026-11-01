@@ -1,3 +1,4 @@
+import { ApplicationRef } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
@@ -40,6 +41,32 @@ describe('RecipeListPage', () => {
 
     const page = await render();
 
-    expect(page.querySelector('.status')?.textContent).toContain("We couldn't load recipes.");
+    expect(page.querySelector('.ui-status')?.textContent).toContain("We couldn't load recipes.");
+  });
+
+  it('filters by search text and by tag', async () => {
+    service.getRecipes.mockReturnValue(
+      of([
+        recipe({ id: 'r1', title: 'Chicken and Rice', tags: ['High Protein'] }),
+        recipe({ id: 'r2', title: 'Oatmeal', tags: ['Breakfast'], ingredients: [] }),
+      ]),
+    );
+    const page = await render();
+    const titles = (): (string | null | undefined)[] =>
+      [...page.querySelectorAll('.card .title')].map((title) => title.textContent);
+
+    const search = page.querySelector('#recipe-search') as HTMLInputElement;
+    search.value = 'oat';
+    search.dispatchEvent(new Event('input'));
+    await TestBed.inject(ApplicationRef).whenStable();
+    expect(titles()).toEqual(['Oatmeal']);
+
+    search.value = '';
+    search.dispatchEvent(new Event('input'));
+    [...page.querySelectorAll<HTMLButtonElement>('.tag')]
+      .find((tag) => tag.textContent?.trim() === 'High Protein')
+      ?.click();
+    await TestBed.inject(ApplicationRef).whenStable();
+    expect(titles()).toEqual(['Chicken and Rice']);
   });
 });

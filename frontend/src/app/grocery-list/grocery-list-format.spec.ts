@@ -1,5 +1,4 @@
-import { HttpErrorResponse } from '@angular/common/http';
-import { errorMessage, formatQuantity, groupByCategory } from './grocery-list-format';
+import { formatQuantity, groupByCategory, scaleQuantity } from './grocery-list-format';
 import { groceryItem } from './grocery-list.fixtures';
 
 describe('formatQuantity', () => {
@@ -36,13 +35,9 @@ describe('groupByCategory', () => {
   });
 });
 
-describe('errorMessage', () => {
-  it("uses the backend's message when there is one", () => {
-    const error = new HttpErrorResponse({ status: 400, error: { message: 'Milk is taken.' } });
-    expect(errorMessage(error)).toBe('Milk is taken.');
-  });
-
-  it('falls back to a general message', () => {
-    expect(errorMessage(new Error('offline'))).toBe('Something went wrong. Please try again.');
+describe('scaleQuantity', () => {
+  it('multiplies the amount and rounds to two decimals like the backend', () => {
+    expect(scaleQuantity({ amount: 1.5, unit: 'cup' }, 2)).toEqual({ amount: 3, unit: 'cup' });
+    expect(scaleQuantity({ amount: 1, unit: 'lb' }, 1 / 3)).toEqual({ amount: 0.33, unit: 'lb' });
   });
 });

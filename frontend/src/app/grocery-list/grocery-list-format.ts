@@ -1,4 +1,3 @@
-import { HttpErrorResponse } from '@angular/common/http';
 import {
   CATEGORIES,
   GroceryListItem,
@@ -56,6 +55,11 @@ export function formatQuantity(quantity: Quantity | null): string {
   return `${amount} ${unit}`;
 }
 
+/** `quantity` multiplied by `factor` (e.g. new servings / recipe servings), to two decimals. */
+export function scaleQuantity(quantity: Quantity, factor: number): Quantity {
+  return { amount: Math.round(quantity.amount * factor * 100) / 100, unit: quantity.unit };
+}
+
 function formatAmount(amount: number): string {
   const whole = Math.floor(amount);
   const remainder = Math.round((amount - whole) * 100) / 100;
@@ -67,12 +71,4 @@ function formatAmount(amount: number): string {
     return String(amount);
   }
   return whole === 0 ? fraction : `${whole} ${fraction}`;
-}
-
-/** The backend's error message if it sent one, otherwise a general one. */
-export function errorMessage(error: unknown): string {
-  if (error instanceof HttpErrorResponse && typeof error.error?.message === 'string') {
-    return error.error.message;
-  }
-  return 'Something went wrong. Please try again.';
 }

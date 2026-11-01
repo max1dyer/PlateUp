@@ -1,0 +1,29 @@
+<a class="card" [class.green]="green()" [routerLink]="['/recipes', recipe().id]">
+  @if (recipe().thumbnailUrl; as photo) {
+    <img class="photo" [src]="photo" alt="" loading="lazy" />
+  } @else {
+    <div class="photo placeholder" aria-hidden="true">🍽️</div>
+  }
+  <div class="body">
+    <span class="title">{{ recipe().title }}</span>
+    <span class="meta">
+      {{ recipe().prepTimeMinutes }} min · serves {{ recipe().servings }} ·
+      @if (recipe().rating !== null) {
+        ★ {{ recipe().rating }} ({{ recipe().numRatings }})
+      } @else {
+        No ratings yet
+      }
+      @if (recipe().visibility === 'private') {
+        · Private
+      }
+    </span>
+    @if (recipe().tags.length > 0) {
+      <span class="tags">
+        @for (tag of recipe().tags; track tag) {
+          <span class="ui-chip">{{ tag }}</span>
+        }
+      </span>
+    }
+  </div>
+  <app-save-button class="save" [recipeId]="recipe().id" [recipeTitle]="recipe().title" />
+</a>

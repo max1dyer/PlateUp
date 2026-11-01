@@ -1,6 +1,6 @@
 import { Component, ElementRef, input, output, signal, viewChild } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
-import { errorMessage } from './grocery-list-format';
+import { errorMessage } from '../core/api';
 import {
   CATEGORIES,
   GroceryList,

@@ -1,5 +1,6 @@
 import { DomainValidationError } from '../../common/errors/domain-validation.error';
 import {
+  requireImageSourceOrNull,
   requireNonNegative,
   requirePositiveInteger,
   requireText,
@@ -155,6 +156,7 @@ export class Recipe extends OwnedEntity<RecipeSnapshot> {
       ...details,
       title: requireText(details.title, 'Title'),
       description: details.description.trim(),
+      thumbnailUrl: requireImageSourceOrNull(details.thumbnailUrl, 'Photo'),
       servings: requirePositiveInteger(details.servings, 'Servings'),
       prepTimeMinutes: requireNonNegative(details.prepTimeMinutes, 'Prep time'),
       steps,

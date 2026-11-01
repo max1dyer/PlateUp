@@ -1,0 +1,23 @@
+<div class="ui-page">
+  <h1 class="ui-title">Saved Recipes</h1>
+
+  @if (loading()) {
+    <p class="ui-status">Loading your saved recipes…</p>
+  } @else if (loadError()) {
+    <div class="ui-card">
+      <p class="ui-status">We couldn't load your saved recipes.</p>
+      <button type="button" class="ui-button primary" (click)="load()">Try again</button>
+    </div>
+  } @else {
+    @for (recipe of saved(); track recipe.id; let index = $index) {
+      <app-recipe-card [recipe]="recipe" [green]="index % 2 === 1" />
+    } @empty {
+      <div class="ui-card">
+        <p class="ui-status">
+          You haven't saved any recipes yet. Tap ♡ Save on a recipe to keep it here.
+        </p>
+        <a class="ui-button primary" routerLink="/recipes">Browse recipes</a>
+      </div>
+    }
+  }
+</div>

@@ -1,0 +1,112 @@
+<div class="ui-page">
+  @if (data(); as data) {
+    @if (user(); as user) {
+      @if (editing()) {
+        <h1 class="ui-title">Edit Profile</h1>
+        <app-profile-edit-form [user]="user" (closed)="editing.set(false)" />
+      } @else {
+        <section class="profile-header">
+          @if (user.profilePictureUrl) {
+            <img class="avatar" [src]="user.profilePictureUrl" [alt]="user.displayName" />
+          } @else {
+            <div class="avatar empty" aria-hidden="true">
+              {{ user.displayName.charAt(0).toUpperCase() }}
+            </div>
+          }
+          <div class="who">
+            <h1 class="ui-title name">{{ user.displayName }}</h1>
+            <p class="ui-subtitle">&#64;{{ user.username }}</p>
+          </div>
+        </section>
+        <p class="bio" [class.ui-status]="!user.bio">
+          {{ user.bio || (isMe() ? 'Add a bio so people know what you cook.' : 'No bio yet.') }}
+        </p>
+        @if (isMe()) {
+          <button type="button" class="ui-button" (click)="editing.set(true)">
+            ✏️ Edit profile
+          </button>
+        }
+      }
+    }
+
+    <section class="section">
+      <div class="section-heading">
+        <h2 class="ui-heading">
+          {{ isMe() ? 'My recipes' : 'Recipes' }} ({{ data.recipes.length }})
+        </h2>
+        @if (isMe()) {
+          <a class="more" routerLink="/recipes/new">+ Upload</a>
+        }
+      </div>
+      @for (recipe of data.recipes; track recipe.id; let index = $index) {
+        <app-recipe-card [recipe]="recipe" [green]="index % 2 === 1" />
+      } @empty {
+        <p class="ui-status">
+          {{ isMe() ? "You haven't uploaded any recipes yet." : 'No public recipes yet.' }}
+        </p>
+      }
+    </section>
+
+    @if (isMe()) {
+      <section class="section">
+        <div class="section-heading">
+          <h2 class="ui-heading">Saved recipes ({{ saved().length }})</h2>
+          <a class="more" routerLink="/saved">See all</a>
+        </div>
+        @for (recipe of saved().slice(0, 3); track recipe.id; let index = $index) {
+          <app-recipe-card [recipe]="recipe" [green]="index % 2 === 0" />
+        } @empty {
+          <p class="ui-status">Recipes you save show up here.</p>
+        }
+      </section>
+
+      <section class="section">
+        <div class="section-heading">
+          <h2 class="ui-heading">Grocery lists ({{ data.groceryLists.length }})</h2>
+          <a class="more" routerLink="/grocery">Open</a>
+        </div>
+        @if (data.groceryLists.length > 0) {
+          <ul class="ui-card links">
+            @for (list of data.groceryLists; track list.id) {
+              <li>
+                <a [routerLink]="['/grocery']" [queryParams]="{ list: list.id }">
+                  <span>{{ list.name }}</span>
+                  <span class="count">{{ list.items.length }} items</span>
+                </a>
+              </li>
+            }
+          </ul>
+        } @else {
+          <p class="ui-status">No grocery lists yet.</p>
+        }
+      </section>
+
+      <section class="section">
+        <div class="section-heading">
+          <h2 class="ui-heading">Pantry ({{ data.pantry.length }})</h2>
+          <a class="more" routerLink="/pantry">Manage</a>
+        </div>
+        @if (data.pantry.length > 0) {
+          <ul class="ui-card green links">
+            @for (item of data.pantry.slice(0, pantryPreview); track item.id) {
+              <li class="pantry-item">
+                <span>{{ item.name }}</span>
+                <span class="count">{{ formatQuantity(item.quantity) }}</span>
+              </li>
+            }
+            @if (data.pantry.length > pantryPreview) {
+              <li class="count">and {{ data.pantry.length - pantryPreview }} more…</li>
+            }
+          </ul>
+        } @else {
+          <p class="ui-status">Your pantry is empty.</p>
+        }
+      </section>
+    }
+  } @else if (loadError()) {
+    <p class="ui-status">We couldn't load this profile. The user may not exist.</p>
+    <a class="ui-button primary" routerLink="/recipes">Back to recipes</a>
+  } @else {
+    <p class="ui-status">Loading profile…</p>
+  }
+</div>

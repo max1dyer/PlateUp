@@ -77,4 +77,14 @@ describe('UsersService', () => {
 
     await expect(service.saveRecipe(user.id, recipe.id)).rejects.toThrow(NotFoundException);
   });
+
+  it('logIn finds the user by username regardless of case', async () => {
+    const user = await service.register({ username: 'peter', displayName: 'Peter' });
+
+    await expect(service.logIn({ username: ' PETER ' })).resolves.toBe(user);
+  });
+
+  it('logIn 404s for an unknown username', async () => {
+    await expect(service.logIn({ username: 'nobody' })).rejects.toThrow(NotFoundException);
+  });
 });

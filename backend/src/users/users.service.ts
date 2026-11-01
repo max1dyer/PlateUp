@@ -2,6 +2,7 @@ import { ConflictException, Injectable, NotFoundException } from '@nestjs/common
 import { Recipe } from '../recipes/entities/recipe.entity';
 import { RecipesService } from '../recipes/recipes.service';
 import { CreateUserDto } from './dto/create-user.dto';
+import { LogInDto } from './dto/log-in.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from './entities/user.entity';
 import { UserRepository } from './repositories/user.repository';
@@ -23,6 +24,18 @@ export class UsersService {
       profilePictureUrl: dto.profilePictureUrl ?? null,
     });
     return this.users.save(user);
+  }
+
+  /**
+   * TEMPORARY: signs in by username alone, until Supabase authentication
+   * replaces it. 404s for an unknown username.
+   */
+  public async logIn(dto: LogInDto): Promise<User> {
+    const user = await this.users.findByUsername(dto.username ?? '');
+    if (!user) {
+      throw new NotFoundException(`No account with the username "${dto.username}".`);
+    }
+    return user;
   }
 
   public async findOne(userId: string): Promise<User> {

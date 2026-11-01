@@ -25,6 +25,8 @@ flowchart LR
   DVE -->|caught by| F[DomainErrorFilter → HTTP 400]
 ```
 
+The frontend mirrors this split: each feature folder (`recipes`, `pantry`, `grocery-list`, `users`, `home`) has page components, small child components, and one `HttpClient` service. Cross-cutting pieces live in `app/core/`: `SessionService` (who is signed in), `AuthService` (sign in/out, restore a remembered session), `userIdInterceptor` (adds the user header to every `/api` call), `signedInGuard` (sends visitors to `/login`), and `ToastService` (confirmation messages).
+
 | Layer          | Responsibility                                                                   | Must not                                     |
 | -------------- | -------------------------------------------------------------------------------- | -------------------------------------------- |
 | Controller     | Map an HTTP route to one service call; identify the user with `@CurrentUserId()` | Contain business logic or touch repositories |
@@ -93,6 +95,20 @@ These are the major classes for CRC cards and the class diagram. Paths are relat
 | `GroceryList`, `GroceryListItem`, `GroceryListsService`, `GroceryListsController`, `GroceryListRepository` | grocery-lists feature | `grocery-lists/`                           |
 | `DemoDataSeeder`, `SeedModule` (TEMPORARY: sample data loaded at startup)                                  | seed data             | `seed/`                                    |
 
+DTOs (`CreateRecipeDto`, `LogInDto`, `AddRecipeToListDto`, ...) are plain request shapes in each feature's `dto/` folder and are not part of the diagram. `guessCategory()` (`common/domain/ingredient-category.ts`) is a pure function that files generated grocery items under a store section.
+
+Frontend classes (paths relative to `frontend/src/app/`):
+
+| Class                                                                                     | Kind             | Path                        |
+| ----------------------------------------------------------------------------------------- | ---------------- | --------------------------- |
+| `SessionService`, `AuthService`, `ToastService`, `userIdInterceptor`, `signedInGuard`     | core services    | `core/`                     |
+| `UsersService`, `LoginPage`, `ProfilePage`, `ProfileEditForm`                             | users / accounts | `users/`                    |
+| `RecipesService`, `SavedRecipesService`, `RecipeListPage`, `RecipePage`, `RecipeFormPage` | recipes          | `recipes/`                  |
+| `SavedRecipesPage`, `RecipeCard`, `SaveButton`, `AddToGroceryPanel`, `ReviewForm`         | recipes          | `recipes/`                  |
+| `PantryService`, `PantryPage`, `PantryItemRow`                                            | pantry           | `pantry/`                   |
+| `GroceryListsService`, `GroceryListPage`, `GroceryItemRow`, `AddItemsForm`                | grocery lists    | `grocery-list/`             |
+| `HomePage`, `InfoPage`, `SiteHeader`, `SiteFooter`, `ToastOutlet`                         | shell and layout | `home/`, `info/`, `layout/` |
+
 ### Domain class diagram (draft)
 
 This draft is generated from the source. Refine it into the final UML class diagram (for example in draw.io or StarUML) before the Interim deadline.
@@ -118,6 +134,7 @@ classDiagram
     +username: string
     -profile: UserProfile
     -savedRecipes: Set~string~
+    +normalizeUsername(username)$ string
     +updateProfile(changes) void
     +saveRecipe(recipeId) void
     +unsaveRecipe(recipeId) void
@@ -155,7 +172,8 @@ classDiagram
     -listName: string
     -itemsById: Map~string, GroceryListItem~
     +rename(name) void
-    +addItem(name, quantity) GroceryListItem
+    +addItem(name, quantity, category) GroceryListItem
+    +addItems(entries) GroceryListItem[]
     +updateItem(itemId, changes) boolean
     +removeItem(itemId) boolean
   }
@@ -193,28 +211,7 @@ classDiagram
 
 Candidates from the source code:
 
-1. **UC6 Generate Grocery List** (Interim scope: one recipe at a chosen serving size). The flow is `GroceryListsController` → `GroceryListsService` → `RecipesService.findOne()` → `Recipe.ingredientsFor(servings)` → `RecipeIngredient.scale()` → `Quantity.scale()` → `GroceryList.addItem()` → `GroceryListRepository.save()`. **TODO:** the service endpoint that ties these together is not implemented yet. `Recipe.ingredientsFor()` exists.
+1. **UC6 Generate Grocery List** (Interim scope: one recipe at a chosen serving size). `POST /grocery-lists/:listId/recipes` → `GroceryListsController.addRecipe` → `GroceryListsService.addRecipe` → `GroceryListsService.findOne` (ownership) → `RecipesService.findOne()` (visibility) → `Recipe.ingredientsFor(servings)` → `RecipeIngredient.scale()` → `Quantity.scale()` → `guessCategory()` per ingredient → `GroceryList.addItems()` (checks every entry first, then `addItem()` each, combining matches with `Quantity.plus`) → `GroceryListRepository.save()`. In the browser: `RecipePage` (servings stepper) → `AddToGroceryPanel` → `GroceryListsService.addRecipe` → navigate to `/grocery?list=…`.
 2. **UC5 Add Ingredient to Pantry**, including merging an existing ingredient in a compatible unit (`PantryService.add` → `PantryItemRepository.findByOwner` → `PantryItem.canAddQuantity` → `Quantity.plus`).
-3. **UC3 Upload Recipe**, including the validation failure path (`Recipe` constructor → `requireText` throws `DomainValidationError` → `DomainErrorFilter` → 400).
-
----
-
-## CRC cards
-
-**TODO (Interim):** one card per class in the inventory above. Use a template with something like this?
-
-```markdown
-### <ClassName>
-
-**Responsibilities**
-
-- ...
-
-**Collaborators**
-
-| Collaborator | Coupling                                  | Justification |
-| ------------ | ----------------------------------------- | ------------- |
-| ...          | Data / Stamp / Control / Common / Content | ...           |
-
-**Cohesion:** Functional / Sequential / Communicational / Procedural / Temporal / Logical / Coincidental. Justify in one sentence.
-```
+3. **UC3 Upload Recipe**, including the validation failure path (`RecipeFormPage` → `RecipesService.createRecipe` → `RecipesController.create` → `RecipesService.create` → `Recipe` constructor → `requireText` throws `DomainValidationError` → `DomainErrorFilter` → 400 → message shown in the form).
+4. **UC23 Save Recipe** (`SaveButton` → `SavedRecipesService.toggle` → `UsersService.saveRecipe` → `PUT /users/me/saved-recipes/:id` → `UsersService.saveRecipe` → `RecipesService.findOne` (visibility) → `User.saveRecipe` → `UserRepository.save` → `SessionService.setUser`).

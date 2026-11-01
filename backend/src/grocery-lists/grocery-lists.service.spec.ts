@@ -2,21 +2,31 @@ import { NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { IngredientCategory } from '../common/domain/ingredient-category';
 import { Quantity, Unit } from '../common/domain/quantity';
+import { DomainValidationError } from '../common/errors/domain-validation.error';
+import { RecipeVisibility } from '../recipes/entities/recipe.entity';
+import { RecipesService } from '../recipes/recipes.service';
+import { InMemoryRecipeRepository } from '../recipes/repositories/in-memory-recipe.repository';
+import { RecipeRepository } from '../recipes/repositories/recipe.repository';
+import { buildCreateRecipeDto } from '../recipes/testing/recipe.fixtures';
 import { GroceryListsService } from './grocery-lists.service';
 import { GroceryListRepository } from './repositories/grocery-list.repository';
 import { InMemoryGroceryListRepository } from './repositories/in-memory-grocery-list.repository';
 
 describe('GroceryListsService', () => {
   let service: GroceryListsService;
+  let recipes: RecipesService;
 
   beforeEach(async () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         GroceryListsService,
+        RecipesService,
         { provide: GroceryListRepository, useClass: InMemoryGroceryListRepository },
+        { provide: RecipeRepository, useClass: InMemoryRecipeRepository },
       ],
     }).compile();
     service = moduleRef.get(GroceryListsService);
+    recipes = moduleRef.get(RecipesService);
   });
 
   it('create and findAll are scoped to the owner', async () => {
@@ -134,5 +144,86 @@ describe('GroceryListsService', () => {
     await service.remove('alice', list.id);
 
     await expect(service.findOne('alice', list.id)).rejects.toThrow(NotFoundException);
+  });
+
+  describe('addRecipe (UC6)', () => {
+    // buildCreateRecipeDto serves 2 with 400 g chicken breast and 1 cup rice.
+    it('adds every ingredient scaled to the chosen servings', async () => {
+      const recipe = await recipes.create('chef', buildCreateRecipeDto());
+      const list = await service.create('alice', { name: 'Weekly' });
+
+      const updated = await service.addRecipe('alice', list.id, {
+        recipeId: recipe.id,
+        servings: 4,
+      });
+
+      expect(updated.items.map((item) => [item.name, item.quantity])).toEqual([
+        ['Chicken breast', new Quantity(800, Unit.Gram)],
+        ['Rice', new Quantity(2, Unit.Cup)],
+      ]);
+    });
+
+    it("defaults to the recipe's own servings and guesses each category", async () => {
+      const recipe = await recipes.create('chef', buildCreateRecipeDto());
+      const list = await service.create('alice', { name: 'Weekly' });
+
+      const updated = await service.addRecipe('alice', list.id, { recipeId: recipe.id });
+
+      expect(updated.items[0].quantity).toEqual(new Quantity(400, Unit.Gram));
+      expect(updated.items.map((item) => item.category)).toEqual([
+        IngredientCategory.Protein,
+        IngredientCategory.Carbs,
+      ]);
+    });
+
+    it('combines ingredients already on the list', async () => {
+      const recipe = await recipes.create('chef', buildCreateRecipeDto());
+      const list = await service.create('alice', { name: 'Weekly' });
+      await service.addItem('alice', list.id, {
+        name: 'rice',
+        quantity: { amount: 1, unit: Unit.Cup },
+      });
+
+      const updated = await service.addRecipe('alice', list.id, { recipeId: recipe.id });
+
+      expect(updated.items).toHaveLength(2);
+      expect(updated.items[0].quantity).toEqual(new Quantity(2, Unit.Cup));
+      expect(updated.items[0].name).toBe('rice');
+    });
+
+    it('adds nothing when one ingredient cannot be combined', async () => {
+      const recipe = await recipes.create('chef', buildCreateRecipeDto());
+      const list = await service.create('alice', { name: 'Weekly' });
+      await service.addItem('alice', list.id, {
+        name: 'Rice',
+        quantity: { amount: 1, unit: Unit.Bag },
+      });
+
+      await expect(service.addRecipe('alice', list.id, { recipeId: recipe.id })).rejects.toThrow(
+        DomainValidationError,
+      );
+      expect((await service.findOne('alice', list.id)).items).toHaveLength(1);
+    });
+
+    it("404s for another user's private recipe", async () => {
+      const recipe = await recipes.create(
+        'chef',
+        buildCreateRecipeDto({ visibility: RecipeVisibility.Private }),
+      );
+      const list = await service.create('alice', { name: 'Weekly' });
+
+      await expect(service.addRecipe('alice', list.id, { recipeId: recipe.id })).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('rejects servings that are not a positive whole number', async () => {
+      const recipe = await recipes.create('chef', buildCreateRecipeDto());
+      const list = await service.create('alice', { name: 'Weekly' });
+
+      await expect(
+        service.addRecipe('alice', list.id, { recipeId: recipe.id, servings: 0 }),
+      ).rejects.toThrow(DomainValidationError);
+    });
   });
 });

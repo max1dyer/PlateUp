@@ -118,7 +118,8 @@ Error
 Every push and pull request to `main` or `develop` triggers the GitHub Actions workflow [`.github/workflows/ci.yml`](../.github/workflows/ci.yml). It installs dependencies with `npm ci`, then checks formatting, runs the linter, runs **all backend and frontend unit tests**, and builds both workspaces. A failure at any step blocks the merge.
 
 - **Functionality** is tested at three levels in the backend: entity specs (business rules such as scaling and visibility), service specs (use-case flows against the in-memory repository), and controller specs (HTTP → service delegation).
-- **Interface operation** is tested in the frontend: component specs render components with Angular's `TestBed` and assert on the DOM (e.g. grouping, counts, and error states on the grocery-list page). HTTP service specs check each request against `HttpTestingController`.
+- **Interface tests over real HTTP**: `backend/src/app.http.spec.ts` starts the whole Nest app on a random port and drives it with `fetch`, covering the pantry and recipe CRUD paths end to end (create, list, edit, delete, 400/401/403/404 responses) and the full user flow (register → log in → save a recipe → generate a scaled grocery list).
+- **Interface operation** is tested in the frontend: component specs render components with Angular's `TestBed` and assert on the DOM (e.g. grouping, counts, and error states on the grocery-list page; adding, combining, editing, and removing pantry items; building a recipe from the upload form; scaling ingredients when servings change). HTTP service specs check each request against `HttpTestingController`.
 
 Where to find tests: every `*.spec.ts` file sits next to the file it tests, e.g. `backend/src/recipes/recipes.service.spec.ts` and `frontend/src/app/app.spec.ts`.
 

@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { Router, provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { groceryItem, groceryList } from './grocery-list.fixtures';
 import { DEFAULT_LIST_NAME, GroceryListPage } from './grocery-list-page';
@@ -8,17 +9,23 @@ describe('GroceryListPage', () => {
   const service = {
     getLists: vi.fn(),
     createList: vi.fn(),
+    renameList: vi.fn(),
+    deleteList: vi.fn(),
     removePurchasedItems: vi.fn(),
   };
 
-  async function render(): Promise<{
+  async function render(url = '/grocery'): Promise<{
     fixture: ComponentFixture<GroceryListPage>;
     page: HTMLElement;
   }> {
     await TestBed.configureTestingModule({
       imports: [GroceryListPage],
-      providers: [{ provide: GroceryListsService, useValue: service }],
+      providers: [
+        provideRouter([{ path: 'grocery', component: GroceryListPage }]),
+        { provide: GroceryListsService, useValue: service },
+      ],
     }).compileComponents();
+    await TestBed.inject(Router).navigateByUrl(url);
     const fixture = TestBed.createComponent(GroceryListPage);
     fixture.detectChanges();
     await fixture.whenStable();
@@ -96,5 +103,37 @@ describe('GroceryListPage', () => {
 
     expect(page.querySelector('app-add-items-form')).not.toBeNull();
     expect(page.querySelector('.action')).toBeNull();
+  });
+
+  it('opens the list named in the address', async () => {
+    service.getLists.mockReturnValue(
+      of([
+        groceryList([], { id: 'list-1', name: 'Weekly' }),
+        groceryList([], { id: 'list-2', name: 'Party' }),
+      ]),
+    );
+
+    const { page } = await render('/grocery?list=list-2');
+
+    expect((page.querySelector('.list-picker') as HTMLSelectElement).value).toBe('list-2');
+  });
+
+  it('+ New creates a list and switches to it', async () => {
+    service.getLists.mockReturnValue(of([groceryList()]));
+    service.createList.mockReturnValue(of(groceryList([], { id: 'list-2', name: 'Party' })));
+    const { fixture, page } = await render();
+
+    [...page.querySelectorAll<HTMLButtonElement>('.manage')]
+      .find((button) => button.textContent?.includes('New'))
+      ?.click();
+    fixture.detectChanges();
+    const input = page.querySelector('.list-name') as HTMLInputElement;
+    input.value = 'Party';
+    input.dispatchEvent(new Event('input'));
+    (page.querySelector('.list-name-form') as HTMLFormElement).dispatchEvent(new Event('submit'));
+    await fixture.whenStable();
+
+    expect(service.createList).toHaveBeenCalledWith('Party');
+    expect((page.querySelector('.list-picker') as HTMLSelectElement).value).toBe('list-2');
   });
 });

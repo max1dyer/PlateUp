@@ -1,7 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { guessCategory } from '../common/domain/ingredient-category';
 import { Quantity } from '../common/domain/quantity';
 import { QuantityDto } from '../common/dto/quantity.dto';
+import { RecipesService } from '../recipes/recipes.service';
 import { AddGroceryItemDto } from './dto/add-grocery-item.dto';
+import { AddRecipeToListDto } from './dto/add-recipe-to-list.dto';
 import { CreateGroceryListDto } from './dto/create-grocery-list.dto';
 import { UpdateGroceryItemDto } from './dto/update-grocery-item.dto';
 import { UpdateGroceryListDto } from './dto/update-grocery-list.dto';
@@ -11,7 +14,10 @@ import { GroceryListRepository } from './repositories/grocery-list.repository';
 
 @Injectable()
 export class GroceryListsService {
-  constructor(private readonly groceryLists: GroceryListRepository) {}
+  constructor(
+    private readonly groceryLists: GroceryListRepository,
+    private readonly recipesService: RecipesService,
+  ) {}
 
   public findAll(ownerId: string): Promise<GroceryList[]> {
     return this.groceryLists.findByOwner(ownerId);
@@ -51,6 +57,28 @@ export class GroceryListsService {
   ): Promise<GroceryList> {
     const list = await this.findOne(ownerId, listId);
     list.addItem(dto.name, this.toQuantity(dto.quantity), dto.category);
+    return this.groceryLists.save(list);
+  }
+
+  /**
+   * Generates grocery items from a recipe the user can see, with every
+   * ingredient scaled to `servings` and merged into matching lines (UC6).
+   */
+  public async addRecipe(
+    ownerId: string,
+    listId: string,
+    dto: AddRecipeToListDto,
+  ): Promise<GroceryList> {
+    const list = await this.findOne(ownerId, listId);
+    const recipe = await this.recipesService.findOne(dto.recipeId, ownerId);
+    const servings = dto.servings ?? recipe.servings;
+    list.addItems(
+      recipe.ingredientsFor(servings).map((ingredient) => ({
+        name: ingredient.name,
+        quantity: ingredient.quantity,
+        category: guessCategory(ingredient.name),
+      })),
+    );
     return this.groceryLists.save(list);
   }
 

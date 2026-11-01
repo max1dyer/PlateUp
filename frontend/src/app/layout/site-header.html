@@ -14,14 +14,25 @@
         >{{ link.label }}</a
       >
     }
-    <!-- Placeholder until login exists. -->
-    <button
-      type="button"
-      class="nav-link"
-      [style.left]="leftPercent(logOut.left)"
-      [style.top.px]="logOut.top"
-    >
-      {{ logOut.label }}
-    </button>
+    @if (session.isSignedIn()) {
+      <button
+        type="button"
+        class="nav-link"
+        [style.left]="leftPercent(account.left)"
+        [style.top.px]="account.top"
+        (click)="logOut()"
+      >
+        Log out
+      </button>
+    } @else {
+      <a
+        class="nav-link"
+        routerLink="/login"
+        routerLinkActive="active"
+        [style.left]="leftPercent(account.left)"
+        [style.top.px]="account.top"
+        >Log in</a
+      >
+    }
   </nav>
 </header>

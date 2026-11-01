@@ -42,3 +42,23 @@ export interface Recipe {
   numRatings: number;
   reviews: RecipeReview[];
 }
+
+/** Body of `POST /recipes` (and, partially, `PATCH /recipes/:recipeId`). */
+export interface NewRecipe {
+  title: string;
+  description: string;
+  thumbnailUrl: string | null;
+  visibility: 'public' | 'private';
+  servings: number;
+  prepTimeMinutes: number;
+  nutrition: Nutrition;
+  tags: string[];
+  ingredients: RecipeIngredient[];
+  steps: string[];
+}
+
+/** Body of `PUT /recipes/:recipeId/reviews/me`. */
+export interface NewReview {
+  rating: number;
+  comment: string;
+}

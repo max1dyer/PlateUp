@@ -1,5 +1,17 @@
 import { BaseEntity } from '../../common/domain/base.entity';
-import { requireText } from '../../common/domain/guards';
+import {
+  requireImageSourceOrNull,
+  requireMaxLength,
+  requireText,
+} from '../../common/domain/guards';
+import { DomainValidationError } from '../../common/errors/domain-validation.error';
+
+export const MAX_USERNAME_LENGTH = 30;
+export const MAX_DISPLAY_NAME_LENGTH = 50;
+export const MAX_BIO_LENGTH = 300;
+
+/** Lower-case letters, digits, dots, dashes and underscores. */
+const USERNAME_PATTERN = /^[a-z0-9._-]+$/;
 
 /** The user-editable part of a profile. */
 export interface UserProfile {
@@ -13,6 +25,7 @@ export interface UserSnapshot extends UserProfile {
   savedRecipeIds: string[];
 }
 
+/** A PlateUp account: a unique username, a public profile, and the recipes the user saved. */
 export class User extends BaseEntity<UserSnapshot> {
   public readonly username: string;
   private profile: UserProfile;
@@ -26,7 +39,13 @@ export class User extends BaseEntity<UserSnapshot> {
 
   /** Usernames are case-insensitive and stored in lower case. */
   public static normalizeUsername(username: string): string {
-    return requireText(username, 'Username').toLowerCase();
+    const normalized = requireText(username, 'Username').toLowerCase();
+    if (normalized.length > MAX_USERNAME_LENGTH || !USERNAME_PATTERN.test(normalized)) {
+      throw new DomainValidationError(
+        `Username must be at most ${MAX_USERNAME_LENGTH} letters, digits, dots, dashes, or underscores.`,
+      );
+    }
+    return normalized;
   }
 
   public get displayName(): string {
@@ -62,10 +81,11 @@ export class User extends BaseEntity<UserSnapshot> {
   }
 
   private static validateProfile(profile: UserProfile): UserProfile {
+    const displayName = requireText(profile.displayName, 'Display name');
     return {
-      displayName: requireText(profile.displayName, 'Display name'),
-      bio: profile.bio.trim(),
-      profilePictureUrl: profile.profilePictureUrl,
+      displayName: requireMaxLength(displayName, MAX_DISPLAY_NAME_LENGTH, 'Display name'),
+      bio: requireMaxLength(profile.bio, MAX_BIO_LENGTH, 'Bio'),
+      profilePictureUrl: requireImageSourceOrNull(profile.profilePictureUrl, 'Profile picture'),
     };
   }
 }

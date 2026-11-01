@@ -44,4 +44,18 @@ describe('GroceryListsService', () => {
     http.expectOne({ method: 'DELETE', url: '/api/grocery-lists/l1/purchased-items' });
     expect(received).toEqual(updated);
   });
+
+  it('addRecipe posts the recipe and servings; renameList and deleteList use the list id', () => {
+    service.addRecipe('list-1', 'recipe-1', 6).subscribe();
+    service.renameList('list-1', 'Party').subscribe();
+    service.deleteList('list-1').subscribe();
+
+    expect(
+      http.expectOne({ method: 'POST', url: '/api/grocery-lists/list-1/recipes' }).request.body,
+    ).toEqual({ recipeId: 'recipe-1', servings: 6 });
+    expect(
+      http.expectOne({ method: 'PATCH', url: '/api/grocery-lists/list-1' }).request.body,
+    ).toEqual({ name: 'Party' });
+    expect(http.expectOne({ method: 'DELETE', url: '/api/grocery-lists/list-1' })).toBeTruthy();
+  });
 });
