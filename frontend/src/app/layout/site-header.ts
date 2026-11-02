@@ -1,5 +1,8 @@
 import { Component } from '@angular/core';
-import { RouterLink, RouterLinkActive } from '@angular/router';
+import { Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { AuthService } from '../core/auth.service';
+import { SessionService } from '../core/session.service';
+import { ToastService } from '../core/toast.service';
 
 /** Width of the Figma frame the link positions below were measured in. */
 const FRAME_WIDTH = 402;
@@ -30,7 +33,21 @@ export class SiteHeader {
     { label: 'Profile', path: '/profile', left: 324, top: 46 },
   ];
 
-  protected readonly logOut = { label: 'Log out', left: 319, top: 67 };
+  /** Position of the Log out / Log in control, the last slot in the bar. */
+  protected readonly account = { left: 319, top: 67 };
+
+  constructor(
+    protected readonly session: SessionService,
+    private readonly auth: AuthService,
+    private readonly router: Router,
+    private readonly toasts: ToastService,
+  ) {}
+
+  protected logOut(): void {
+    this.auth.logOut();
+    this.toasts.success('You are logged out.');
+    void this.router.navigateByUrl('/login');
+  }
 
   /** Converts a Figma x position to a percentage so the bar also fits narrower phones. */
   protected leftPercent(left: number): string {

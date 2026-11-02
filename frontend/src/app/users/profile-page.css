@@ -1,0 +1,75 @@
+.profile-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.avatar {
+  flex: none;
+  width: 88px;
+  height: 88px;
+  border: 3px solid var(--color-primary);
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-card-cream);
+  font-size: 40px;
+  color: var(--color-primary);
+}
+
+.who {
+  min-width: 0;
+}
+
+.name {
+  overflow-wrap: anywhere;
+}
+
+.bio {
+  margin: 0;
+  font-size: 19px;
+  line-height: 125%;
+  white-space: pre-line;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.section-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.more {
+  font-size: 18px;
+  color: var(--color-primary);
+}
+
+.links {
+  margin: 0;
+  list-style: none;
+}
+
+.links a,
+.pantry-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 20px;
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.count {
+  font-size: 16px;
+  color: var(--color-text-muted);
+}

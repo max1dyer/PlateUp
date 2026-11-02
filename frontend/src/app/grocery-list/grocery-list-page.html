@@ -2,26 +2,51 @@
   <section class="intro">
     <h1 class="title">Your Grocery List</h1>
     <p class="description">Easy management for the whole household.</p>
-    <!-- Static placeholder until households exist. -->
-    <div class="household">
-      <svg
-        class="household-icon"
-        viewBox="0 0 24 24"
-        aria-hidden="true"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2.27"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-      >
-        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-        <circle cx="9" cy="7" r="4" />
-        <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-      </svg>
-      <span class="household-name">PlateUp Devs household</span>
-      <button type="button" class="manage">Manage</button>
-    </div>
+    @if (!loading() && !loadError()) {
+      <div class="household">
+        <svg
+          class="household-icon"
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.27"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
+          <rect x="9" y="3" width="6" height="4" rx="1" />
+          <path d="M9 12h6M9 16h4" />
+        </svg>
+        @if (listMode() === 'view') {
+          <select
+            class="list-picker"
+            aria-label="Grocery list"
+            [value]="selectedId()"
+            (change)="onSelect($event)"
+          >
+            @for (option of lists(); track option.id) {
+              <option [value]="option.id" [selected]="option.id === selectedId()">
+                {{ option.name }}
+              </option>
+            }
+          </select>
+          <button type="button" class="manage" (click)="startRenaming()">Rename</button>
+          <button type="button" class="manage" (click)="startCreating()">+ New</button>
+        } @else {
+          <form class="list-name-form" [formGroup]="listForm" (ngSubmit)="saveListName()">
+            <input
+              class="list-name"
+              formControlName="name"
+              [attr.aria-label]="listMode() === 'create' ? 'New list name' : 'List name'"
+              [placeholder]="listMode() === 'create' ? 'New list name' : ''"
+            />
+            <button type="submit" class="manage">Save</button>
+            <button type="button" class="manage" (click)="listMode.set('view')">Cancel</button>
+          </form>
+        }
+      </div>
+    }
   </section>
 
   @if (loading()) {
@@ -78,8 +103,23 @@
           }
         </div>
       } @empty {
-        <p class="status">Your Grocery List is empty. Use “+ Add items” to start your list.</p>
+        <p class="status">
+          Your Grocery List is empty. Use “+ Add items”, or open a recipe and choose “Add all to
+          Grocery”.
+        </p>
       }
     </section>
+
+    <div class="delete-list">
+      @if (confirmingDelete()) {
+        <span>Delete “{{ list.name }}” and all its items?</span>
+        <button type="button" class="remove-selected" (click)="deleteList()">Yes, delete</button>
+        <button type="button" class="manage" (click)="confirmingDelete.set(false)">Keep it</button>
+      } @else {
+        <button type="button" class="manage" (click)="confirmingDelete.set(true)">
+          Delete this list
+        </button>
+      }
+    </div>
   }
 </div>

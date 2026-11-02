@@ -14,7 +14,10 @@ export function groceryItem(overrides: Partial<GroceryListItem> = {}): GroceryLi
   };
 }
 
-export function groceryList(items: GroceryListItem[] = []): GroceryList {
+export function groceryList(
+  items: GroceryListItem[] = [],
+  overrides: Partial<GroceryList> = {},
+): GroceryList {
   return {
     id: 'list-1',
     createdAt: '2026-10-27T00:00:00.000Z',
@@ -22,5 +25,6 @@ export function groceryList(items: GroceryListItem[] = []): GroceryList {
     ownerId: 'demo-user',
     name: 'Grocery list',
     items,
+    ...overrides,
   };
 }

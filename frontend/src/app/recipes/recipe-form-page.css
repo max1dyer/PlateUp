@@ -1,0 +1,72 @@
+.intro,
+.recipe-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.preview {
+  width: 100%;
+  max-height: 200px;
+  border-radius: var(--radius);
+  object-fit: cover;
+}
+
+.upload {
+  background: #ffffff;
+}
+
+.ingredient {
+  display: grid;
+  grid-template-columns: 1fr 64px 76px 28px;
+  gap: 6px;
+  align-items: center;
+}
+
+.ingredient .ui-field {
+  padding: 6px;
+}
+
+.step {
+  display: grid;
+  grid-template-columns: 22px 1fr 28px;
+  gap: 6px;
+  align-items: start;
+}
+
+.number {
+  padding-top: 8px;
+  font-size: 18px;
+}
+
+.step-tools {
+  display: flex;
+  flex-direction: column;
+}
+
+.remove {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  font-size: 20px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.remove:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.cancel {
+  width: 100%;
+}

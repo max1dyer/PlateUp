@@ -1,0 +1,24 @@
+.intro,
+.items {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.amount {
+  width: 90px;
+}
+
+.unit {
+  width: auto;
+}
+
+.list {
+  gap: 5px;
+}
+
+.divider {
+  height: 3px;
+  border-radius: var(--radius);
+  background: var(--color-secondary);
+}

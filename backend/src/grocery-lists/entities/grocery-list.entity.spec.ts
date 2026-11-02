@@ -210,4 +210,40 @@ describe('GroceryList', () => {
     list.rename('Party snacks');
     expect(list.name).toBe('Party snacks');
   });
+
+  describe('addItems', () => {
+    it('adds each entry and combines repeats within the batch', () => {
+      const list = new GroceryList('alice', 'Weekly');
+
+      list.addItems([
+        { name: 'Garlic', quantity: new Quantity(2, Unit.Piece) },
+        { name: 'garlic', quantity: new Quantity(3, Unit.Piece) },
+        { name: 'Rice', quantity: new Quantity(1, Unit.Cup), category: IngredientCategory.Carbs },
+      ]);
+
+      expect(list.items.map((item) => [item.name, item.quantity?.amount, item.category])).toEqual([
+        ['Garlic', 5, IngredientCategory.Other],
+        ['Rice', 1, IngredientCategory.Carbs],
+      ]);
+    });
+
+    it('adds nothing if any entry conflicts with the list or the batch', () => {
+      const list = new GroceryList('alice', 'Weekly');
+      list.addItem('Milk', new Quantity(1, Unit.Carton));
+
+      expect(() =>
+        list.addItems([
+          { name: 'Eggs', quantity: new Quantity(12, Unit.Piece) },
+          { name: 'Milk', quantity: new Quantity(1, Unit.Liter) },
+        ]),
+      ).toThrow(DomainValidationError);
+      expect(() =>
+        list.addItems([
+          { name: 'Flour', quantity: new Quantity(1, Unit.Cup) },
+          { name: 'flour', quantity: new Quantity(1, Unit.Bag) },
+        ]),
+      ).toThrow(DomainValidationError);
+      expect(list.items.map((item) => item.name)).toEqual(['Milk']);
+    });
+  });
 });

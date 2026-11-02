@@ -1,38 +1,79 @@
 import { DatePipe } from '@angular/common';
-import { Component, signal } from '@angular/core';
+import { Component, computed, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Observable, catchError, forkJoin, map, of, switchMap } from 'rxjs';
-import { DEMO_USER_ID } from '../core/user-id.interceptor';
-import { formatQuantity } from '../grocery-list/grocery-list-format';
+import { errorMessage } from '../core/api';
+import { SessionService } from '../core/session.service';
+import { ToastService } from '../core/toast.service';
+import { formatQuantity, scaleQuantity } from '../grocery-list/grocery-list-format';
 import { UsersService } from '../users/users.service';
-import { Recipe } from './recipe.models';
+import { AddToGroceryPanel } from './add-to-grocery-panel';
+import { Recipe, RecipeIngredient } from './recipe.models';
 import { RecipesService } from './recipes.service';
+import { ReviewForm } from './review-form';
+import { SaveButton } from './save-button';
 
-/** Shown for users whose profile cannot be loaded (deleted, or the demo user). */
+/** Shown for users whose profile cannot be loaded (e.g. a deleted account). */
 export const UNKNOWN_USER = 'Unknown user';
+
+/** Most servings the stepper offers. */
+export const MAX_SERVINGS = 50;
 
 type NameEntry = [userId: string, displayName: string];
 
-/** Full view of one recipe (`/recipes/:recipeId`): ingredients, steps, and reviews. */
+/**
+ * Full view of one recipe (`/recipes/:recipeId`, UC18): ingredients scaled to
+ * the chosen servings, steps, and reviews. From here the user can save it,
+ * add it to a grocery list, review it, or (as its author) edit or delete it.
+ */
 @Component({
   selector: 'app-recipe-page',
-  imports: [DatePipe, RouterLink],
+  imports: [DatePipe, RouterLink, AddToGroceryPanel, ReviewForm, SaveButton],
   templateUrl: './recipe-page.html',
   styleUrl: './recipe-page.css',
 })
 export class RecipePage {
   protected readonly recipe = signal<Recipe | null>(null);
   protected readonly loadError = signal(false);
+  protected readonly servings = signal(1);
+  protected readonly addingToGrocery = signal(false);
+  protected readonly confirmingDelete = signal(false);
   /** Display names of the author and reviewers, by user id. */
   private readonly names = signal<ReadonlyMap<string, string>>(new Map());
 
+  protected readonly maxServings = MAX_SERVINGS;
   protected readonly formatQuantity = formatQuantity;
+
+  protected readonly isAuthor = computed(() => this.recipe()?.authorId === this.session.userId());
+  protected readonly myReview = computed(
+    () =>
+      this.recipe()?.reviews.find((review) => review.reviewerId === this.session.userId()) ?? null,
+  );
+  protected readonly scaledIngredients = computed<RecipeIngredient[]>(() => {
+    const recipe = this.recipe();
+    if (!recipe) {
+      return [];
+    }
+    const factor = this.servings() / recipe.servings;
+    return recipe.ingredients.map((ingredient) => ({
+      name: ingredient.name,
+      quantity: scaleQuantity(ingredient.quantity, factor),
+    }));
+  });
+  /** Whole stars to show for the average rating, e.g. "★★★★☆". */
+  protected readonly starText = computed(() => {
+    const rating = Math.round(this.recipe()?.rating ?? 0);
+    return '★'.repeat(rating) + '☆'.repeat(5 - rating);
+  });
 
   constructor(
     route: ActivatedRoute,
     private readonly recipes: RecipesService,
     private readonly users: UsersService,
+    private readonly session: SessionService,
+    private readonly toasts: ToastService,
+    private readonly router: Router,
   ) {
     route.paramMap
       .pipe(
@@ -40,44 +81,74 @@ export class RecipePage {
         switchMap((recipeId) => {
           this.recipe.set(null);
           this.loadError.set(false);
+          this.addingToGrocery.set(false);
           return this.recipes.getRecipe(recipeId).pipe(catchError(() => of(null)));
         }),
+        switchMap((recipe) =>
+          recipe ? this.lookUpNames(recipe).pipe(map((names) => ({ recipe, names }))) : of(null),
+        ),
         takeUntilDestroyed(),
       )
-      .subscribe((recipe) => {
-        this.recipe.set(recipe);
-        this.loadError.set(recipe === null);
-        if (recipe) {
-          this.loadNames(recipe);
+      .subscribe((loaded) => {
+        this.loadError.set(loaded === null);
+        if (loaded) {
+          this.names.set(loaded.names);
+          this.servings.set(loaded.recipe.servings);
+          this.recipe.set(loaded.recipe);
         }
       });
   }
 
   protected nameOf(userId: string): string {
-    if (userId === DEMO_USER_ID) {
+    if (userId === this.session.userId()) {
       return 'You';
     }
     return this.names().get(userId) ?? UNKNOWN_USER;
   }
 
-  /** Recipes only carry user ids, so look up the names to show. */
-  private loadNames(recipe: Recipe): void {
-    const reviewerIds = recipe.reviews.map((review) => review.reviewerId);
-    const userIds = [...new Set([recipe.authorId, ...reviewerIds])];
-    const lookups = userIds.filter((userId) => userId !== DEMO_USER_ID);
-    if (lookups.length === 0) {
+  protected changeServings(delta: number): void {
+    this.servings.update((current) => Math.min(MAX_SERVINGS, Math.max(1, current + delta)));
+  }
+
+  protected onReviewed(recipe: Recipe): void {
+    this.recipe.set(recipe);
+  }
+
+  protected deleteRecipe(): void {
+    const recipe = this.recipe();
+    if (!recipe) {
       return;
     }
-    forkJoin(lookups.map((userId) => this.lookUpName(userId))).subscribe((entries) => {
-      this.names.set(new Map(entries.filter((entry): entry is NameEntry => entry !== null)));
+    this.recipes.deleteRecipe(recipe.id).subscribe({
+      next: () => {
+        this.toasts.success(`Deleted ${recipe.title}`);
+        void this.router.navigateByUrl('/recipes');
+      },
+      error: (error: unknown) => this.toasts.error(errorMessage(error)),
     });
   }
 
-  /** A failed lookup is not an error for the page; that user just shows as unknown. */
-  private lookUpName(userId: string): Observable<NameEntry | null> {
-    return this.users.getUser(userId).pipe(
-      map((user): NameEntry => [userId, user.displayName]),
-      catchError(() => of(null)),
+  /**
+   * Recipes only carry user ids, so look up the names to show. A failed
+   * lookup is not an error for the page; that user just shows as unknown.
+   */
+  private lookUpNames(recipe: Recipe): Observable<ReadonlyMap<string, string>> {
+    const reviewerIds = recipe.reviews.map((review) => review.reviewerId);
+    const lookups = [...new Set([recipe.authorId, ...reviewerIds])].filter(
+      (userId) => userId !== this.session.userId(),
+    );
+    if (lookups.length === 0) {
+      return of(new Map());
+    }
+    return forkJoin(
+      lookups.map((userId) =>
+        this.users.getUser(userId).pipe(
+          map((user): NameEntry => [userId, user.displayName]),
+          catchError(() => of(null)),
+        ),
+      ),
+    ).pipe(
+      map((entries) => new Map(entries.filter((entry): entry is NameEntry => entry !== null))),
     );
   }
 }

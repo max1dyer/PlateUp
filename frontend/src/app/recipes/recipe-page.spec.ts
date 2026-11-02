@@ -1,15 +1,20 @@
+import { ApplicationRef } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
-import { DEMO_USER_ID } from '../core/user-id.interceptor';
+import { SessionService } from '../core/session.service';
+import { GroceryListsService } from '../grocery-list/grocery-lists.service';
+import { user } from '../users/user.fixtures';
 import { UsersService } from '../users/users.service';
 import { recipe, recipeReview } from './recipe.fixtures';
 import { RecipePage, UNKNOWN_USER } from './recipe-page';
 import { RecipesService } from './recipes.service';
 
 describe('RecipePage', () => {
-  const recipesService = { getRecipe: vi.fn() };
-  const usersService = { getUser: vi.fn() };
+  const recipesService = { getRecipe: vi.fn(), deleteRecipe: vi.fn(), reviewRecipe: vi.fn() };
+  const usersService = { getUser: vi.fn(), saveRecipe: vi.fn(), unsaveRecipe: vi.fn() };
+  const groceryLists = { getLists: vi.fn(), createList: vi.fn(), addRecipe: vi.fn() };
+  const ME = 'me-1';
 
   async function render(): Promise<HTMLElement> {
     await TestBed.configureTestingModule({
@@ -22,8 +27,10 @@ describe('RecipePage', () => {
         },
         { provide: RecipesService, useValue: recipesService },
         { provide: UsersService, useValue: usersService },
+        { provide: GroceryListsService, useValue: groceryLists },
       ],
     }).compileComponents();
+    TestBed.inject(SessionService).setUser(user({ id: ME }));
     const fixture = TestBed.createComponent(RecipePage);
     fixture.detectChanges();
     await fixture.whenStable();
@@ -34,7 +41,10 @@ describe('RecipePage', () => {
   const text = (page: HTMLElement, selector: string): string[] =>
     [...page.querySelectorAll(selector)].map((element) => element.textContent?.trim() ?? '');
 
-  beforeEach(() => vi.resetAllMocks());
+  beforeEach(() => {
+    vi.resetAllMocks();
+    localStorage.clear();
+  });
 
   it('loads the recipe from the route id and shows its content', async () => {
     recipesService.getRecipe.mockReturnValue(of(recipe({ rating: 4.5, numRatings: 2 })));
@@ -51,14 +61,14 @@ describe('RecipePage', () => {
     expect(text(page, '.recipe-stats')[0]).toContain('4.5');
   });
 
-  it('shows reviews with reviewer names, calling the demo user "You"', async () => {
+  it('shows reviews with reviewer names, calling the signed-in user "You"', async () => {
     recipesService.getRecipe.mockReturnValue(
       of(
         recipe({
           numRatings: 2,
           reviews: [
             recipeReview({ reviewerId: 'reviewer-1', comment: 'Great' }),
-            recipeReview({ reviewerId: DEMO_USER_ID, rating: 3, comment: 'Okay' }),
+            recipeReview({ reviewerId: ME, rating: 3, comment: 'Okay' }),
           ],
         }),
       ),
@@ -71,7 +81,7 @@ describe('RecipePage', () => {
 
     expect(text(page, '.review-user')).toEqual(['Bob Baker', 'You']);
     expect(text(page, '.review-comment')).toEqual(['Great', 'Okay']);
-    expect(usersService.getUser).not.toHaveBeenCalledWith(DEMO_USER_ID);
+    expect(usersService.getUser).not.toHaveBeenCalledWith(ME);
   });
 
   it('falls back to a placeholder when a user cannot be loaded', async () => {
@@ -81,7 +91,7 @@ describe('RecipePage', () => {
     const page = await render();
 
     expect(text(page, '.recipe-author')[0]).toBe(`Uploaded by ${UNKNOWN_USER}`);
-    expect(text(page, '.reviews-section p')).toEqual(['No reviews yet']);
+    expect(text(page, '.reviews-section > p')).toEqual(['No reviews yet']);
   });
 
   it('shows an error when the recipe cannot be loaded', async () => {
@@ -89,7 +99,41 @@ describe('RecipePage', () => {
 
     const page = await render();
 
-    expect(text(page, '.error-message')).toEqual(["We couldn't load this recipe."]);
+    expect(text(page, '.error-message')[0]).toContain("We couldn't load this recipe.");
     expect(page.querySelector('h1')).toBeNull();
+  });
+
+  it('scales ingredient amounts when the servings change', async () => {
+    recipesService.getRecipe.mockReturnValue(of(recipe()));
+    usersService.getUser.mockReturnValue(of({ displayName: 'Alice Cook' }));
+    const page = await render();
+
+    (page.querySelector('[aria-label="More servings"]') as HTMLButtonElement).click();
+    (page.querySelector('[aria-label="More servings"]') as HTMLButtonElement).click();
+    await TestBed.inject(ApplicationRef).whenStable();
+
+    expect(text(page, '.stepper output')).toEqual(['4']);
+    expect(text(page, '.ingredient-quantity')).toEqual(['3 lb', '2 cups']);
+    expect(text(page, '.grocery-button')[0]).toContain('4 servings');
+  });
+
+  it('shows Edit and Delete, and no review form, to the author', async () => {
+    recipesService.getRecipe.mockReturnValue(of(recipe({ authorId: ME })));
+
+    const page = await render();
+
+    expect(text(page, '.author-actions a')).toEqual(['✏️ Edit']);
+    expect(page.querySelector('app-review-form')).toBeNull();
+    expect(text(page, '.recipe-author')[0]).toBe('Uploaded by You');
+  });
+
+  it('offers a review form to other users', async () => {
+    recipesService.getRecipe.mockReturnValue(of(recipe()));
+    usersService.getUser.mockReturnValue(of({ displayName: 'Alice Cook' }));
+
+    const page = await render();
+
+    expect(page.querySelector('.author-actions')).toBeNull();
+    expect(page.querySelector('app-review-form')).not.toBeNull();
   });
 });

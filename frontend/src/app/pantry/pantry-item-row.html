@@ -1,0 +1,48 @@
+@if (!editing()) {
+  <div class="row">
+    <button
+      type="button"
+      class="details"
+      [attr.aria-label]="'Edit ' + item().name"
+      (click)="startEditing()"
+    >
+      <span class="name">{{ item().name }}</span>
+      <span class="quantity">{{ formatQuantity(item().quantity) }}</span>
+    </button>
+    <button
+      type="button"
+      class="delete"
+      [attr.aria-label]="'Remove ' + item().name"
+      [disabled]="saving()"
+      (click)="remove()"
+    >
+      🗑️
+    </button>
+  </div>
+} @else {
+  <form class="edit" [formGroup]="form" (ngSubmit)="save()">
+    <input class="ui-field" formControlName="name" aria-label="Ingredient name" />
+    <div class="ui-row">
+      <input
+        class="ui-field amount"
+        type="number"
+        min="0"
+        step="any"
+        formControlName="amount"
+        aria-label="Amount"
+      />
+      <select class="ui-field unit" formControlName="unit" aria-label="Unit">
+        @for (unit of units; track unit) {
+          <option [value]="unit">{{ unit }}</option>
+        }
+      </select>
+    </div>
+    <div class="ui-row">
+      <button type="submit" class="ui-button primary" [disabled]="saving()">Save</button>
+      <button type="button" class="ui-button plain" (click)="editing.set(false)">Cancel</button>
+    </div>
+  </form>
+}
+@if (error(); as message) {
+  <p class="ui-error" role="alert">{{ message }}</p>
+}

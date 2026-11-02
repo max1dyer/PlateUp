@@ -1,0 +1,35 @@
+<form class="ui-card panel" [formGroup]="form" (ngSubmit)="add()">
+  <h2 class="heading">Add to a grocery list</h2>
+  <p class="ui-hint">
+    {{ recipe().ingredients.length }} ingredients for {{ servings() }}
+    {{ servings() === 1 ? 'serving' : 'servings' }}. Items already on the list are combined.
+  </p>
+  @if (loading()) {
+    <p class="ui-status">Loading your lists…</p>
+  } @else {
+    <label class="ui-label">
+      List
+      <select class="ui-field" formControlName="listId">
+        @for (list of lists(); track list.id) {
+          <option [value]="list.id">{{ list.name }} ({{ list.items.length }} items)</option>
+        }
+        <option [value]="newList">+ New list</option>
+      </select>
+    </label>
+    @if (form.controls.listId.value === newList) {
+      <label class="ui-label">
+        New list name
+        <input class="ui-field" formControlName="newListName" />
+      </label>
+    }
+  }
+  @if (error(); as message) {
+    <p class="ui-error" role="alert">{{ message }}</p>
+  }
+  <div class="ui-row">
+    <button type="submit" class="ui-button primary" [disabled]="loading() || saving()">
+      Add ingredients
+    </button>
+    <button type="button" class="ui-button plain" (click)="closed.emit()">Cancel</button>
+  </div>
+</form>

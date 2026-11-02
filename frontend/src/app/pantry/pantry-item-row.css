@@ -1,0 +1,55 @@
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 28px;
+}
+
+.details {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.name {
+  flex: 1;
+  font-size: 23px;
+  line-height: 110%;
+  overflow-wrap: anywhere;
+}
+
+.quantity {
+  flex: none;
+  font-size: 18px;
+  color: var(--color-text-muted);
+}
+
+.delete {
+  flex: none;
+  padding: 2px 4px;
+  border: 0;
+  background: none;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.edit {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.amount {
+  width: 100px;
+}
+
+.unit {
+  width: auto;
+}

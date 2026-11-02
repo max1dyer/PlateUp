@@ -1,6 +1,7 @@
 import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post } from '@nestjs/common';
 import { CurrentUserId } from '../common/decorators/current-user-id.decorator';
 import { AddGroceryItemDto } from './dto/add-grocery-item.dto';
+import { AddRecipeToListDto } from './dto/add-recipe-to-list.dto';
 import { CreateGroceryListDto } from './dto/create-grocery-list.dto';
 import { UpdateGroceryItemDto } from './dto/update-grocery-item.dto';
 import { UpdateGroceryListDto } from './dto/update-grocery-list.dto';
@@ -54,6 +55,16 @@ export class GroceryListsController {
     @Body() dto: AddGroceryItemDto,
   ): Promise<GroceryList> {
     return this.groceryListsService.addItem(userId, listId, dto);
+  }
+
+  /** Adds a recipe's ingredients, scaled to the chosen servings. */
+  @Post(':listId/recipes')
+  public addRecipe(
+    @CurrentUserId() userId: string,
+    @Param('listId') listId: string,
+    @Body() dto: AddRecipeToListDto,
+  ): Promise<GroceryList> {
+    return this.groceryListsService.addRecipe(userId, listId, dto);
   }
 
   @Patch(':listId/items/:itemId')

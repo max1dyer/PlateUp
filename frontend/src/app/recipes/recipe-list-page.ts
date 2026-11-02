@@ -1,15 +1,18 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, computed, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { RecipeCard } from './recipe-card';
+import { filterRecipes, tagsOf } from './recipe-filter';
 import { Recipe } from './recipe.models';
 import { RecipesService } from './recipes.service';
 
 /**
- * "Recipes" page: every recipe the user can see, each linking to its full
- * page. Placeholder for the recipe feed with sorting and filtering.
+ * "Recipes" feed (UC2): every recipe the user can see, newest first, with a
+ * search box and tag filter. Each card links to the full recipe and can be
+ * saved in one tap.
  */
 @Component({
   selector: 'app-recipe-list-page',
-  imports: [RouterLink],
+  imports: [RouterLink, RecipeCard],
   templateUrl: './recipe-list-page.html',
   styleUrl: './recipe-list-page.css',
 })
@@ -17,13 +20,26 @@ export class RecipeListPage implements OnInit {
   protected readonly recipes = signal<Recipe[]>([]);
   protected readonly loading = signal(true);
   protected readonly loadError = signal(false);
+  protected readonly search = signal('');
+  protected readonly tag = signal<string | null>(null);
+
+  protected readonly tags = computed(() => tagsOf(this.recipes()));
+  protected readonly shown = computed(() =>
+    filterRecipes(this.recipes(), this.search(), this.tag()),
+  );
 
   constructor(private readonly recipesService: RecipesService) {}
 
   public ngOnInit(): void {
+    this.load();
+  }
+
+  protected load(): void {
+    this.loading.set(true);
+    this.loadError.set(false);
     this.recipesService.getRecipes().subscribe({
       next: (recipes) => {
-        this.recipes.set(recipes);
+        this.recipes.set([...recipes].sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
         this.loading.set(false);
       },
       error: () => {
@@ -31,5 +47,18 @@ export class RecipeListPage implements OnInit {
         this.loading.set(false);
       },
     });
+  }
+
+  protected onSearch(event: Event): void {
+    this.search.set((event.target as HTMLInputElement).value);
+  }
+
+  protected toggleTag(tag: string): void {
+    this.tag.update((current) => (current === tag ? null : tag));
+  }
+
+  protected clearFilters(): void {
+    this.search.set('');
+    this.tag.set(null);
   }
 }

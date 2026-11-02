@@ -6,6 +6,7 @@ describe('UsersController', () => {
   let controller: UsersController;
   const service = {
     register: jest.fn(),
+    logIn: jest.fn(),
     findOne: jest.fn(),
     updateProfile: jest.fn(),
     getSavedRecipes: jest.fn(),
@@ -50,5 +51,10 @@ describe('UsersController', () => {
     expect(service.getSavedRecipes).toHaveBeenCalledWith('alice');
     expect(service.saveRecipe).toHaveBeenCalledWith('alice', 'r1');
     expect(service.unsaveRecipe).toHaveBeenCalledWith('alice', 'r1');
+  });
+
+  it('logIn delegates the username', async () => {
+    await controller.logIn({ username: 'peter' });
+    expect(service.logIn).toHaveBeenCalledWith({ username: 'peter' });
   });
 });

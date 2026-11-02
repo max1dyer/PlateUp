@@ -1,0 +1,45 @@
+<form class="ui-card" [formGroup]="form" (ngSubmit)="save()">
+  <div class="picture">
+    @if (form.controls.profilePictureUrl.value; as picture) {
+      <img class="avatar" [src]="picture" alt="Profile picture preview" />
+    } @else {
+      <div class="avatar empty" aria-hidden="true">🙂</div>
+    }
+    <div class="picture-actions">
+      <label class="ui-button">
+        📷 Upload picture
+        <input
+          class="ui-visually-hidden"
+          type="file"
+          accept="image/png,image/jpeg,image/gif,image/webp"
+          (change)="onPictureChosen($event)"
+        />
+      </label>
+      @if (form.controls.profilePictureUrl.value) {
+        <button type="button" class="ui-button plain" (click)="removePicture()">Remove</button>
+      }
+    </div>
+  </div>
+  <label class="ui-label">
+    Display name
+    <input class="ui-field" formControlName="displayName" [attr.maxlength]="maxDisplayName" />
+  </label>
+  <label class="ui-label">
+    Bio
+    <textarea
+      class="ui-field"
+      rows="4"
+      formControlName="bio"
+      [attr.maxlength]="maxBio"
+      placeholder="Tell people what you like to cook."
+    ></textarea>
+    <span class="ui-hint">{{ form.controls.bio.value.length }} / {{ maxBio }}</span>
+  </label>
+  @if (error(); as message) {
+    <p class="ui-error" role="alert">{{ message }}</p>
+  }
+  <div class="ui-row">
+    <button type="submit" class="ui-button primary" [disabled]="saving()">Save profile</button>
+    <button type="button" class="ui-button plain" (click)="closed.emit()">Cancel</button>
+  </div>
+</form>

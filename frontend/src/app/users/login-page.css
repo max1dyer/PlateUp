@@ -1,0 +1,40 @@
+.intro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+}
+
+.logo {
+  width: 64px;
+  height: 74px;
+  object-fit: contain;
+}
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: var(--radius);
+  background: var(--color-card-green);
+}
+
+.tab {
+  flex: 1;
+  height: 37px;
+  border: 0;
+  border-radius: var(--radius);
+  background: none;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.tab.active {
+  background: var(--color-secondary);
+  color: var(--color-on-color);
+}
+
+.demo {
+  text-align: center;
+}

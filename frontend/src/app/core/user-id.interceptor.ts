@@ -1,18 +1,20 @@
 import { HttpInterceptorFn } from '@angular/common/http';
-
-/** Prefix of every backend call; the dev server proxies it to the NestJS API. */
-export const API_PREFIX = '/api';
+import { inject } from '@angular/core';
+import { API_PREFIX, USER_ID_HEADER } from './api';
+import { SessionService } from './session.service';
 
 /**
- * TEMPORARY: until Supabase login exists, every user of this frontend is the
- * same demo user. The backend reads this header through `@CurrentUserId()`.
+ * Adds the signed-in user's id header to backend calls (and only to those).
+ *
+ * TEMPORARY: until Supabase login exists the backend trusts this header. When
+ * auth lands, this sends the access token instead.
+ *
+ * @pattern Chain of Responsibility — one handler in Angular's interceptor chain.
  */
-export const DEMO_USER_ID = 'demo-user';
-
-/** Adds the user id header to backend calls (and only to those). */
 export const userIdInterceptor: HttpInterceptorFn = (request, next) => {
-  if (!request.url.startsWith(`${API_PREFIX}/`)) {
+  const userId = inject(SessionService).userId();
+  if (!request.url.startsWith(`${API_PREFIX}/`) || userId === null) {
     return next(request);
   }
-  return next(request.clone({ setHeaders: { 'x-user-id': DEMO_USER_ID } }));
+  return next(request.clone({ setHeaders: { [USER_ID_HEADER]: userId } }));
 };

@@ -11,6 +11,7 @@ describe('GroceryListsController', () => {
     rename: jest.fn(),
     remove: jest.fn(),
     addItem: jest.fn(),
+    addRecipe: jest.fn(),
     updateItem: jest.fn(),
     removeItem: jest.fn(),
     removePurchasedItems: jest.fn(),
@@ -54,5 +55,10 @@ describe('GroceryListsController', () => {
     expect(service.updateItem).toHaveBeenCalledWith('alice', 'l1', 'i1', { purchased: true });
     expect(service.removeItem).toHaveBeenCalledWith('alice', 'l1', 'i1');
     expect(service.removePurchasedItems).toHaveBeenCalledWith('alice', 'l1');
+  });
+
+  it('addRecipe delegates the recipe and servings', async () => {
+    await controller.addRecipe('alice', 'l1', { recipeId: 'r1', servings: 4 });
+    expect(service.addRecipe).toHaveBeenCalledWith('alice', 'l1', { recipeId: 'r1', servings: 4 });
   });
 });

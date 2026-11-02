@@ -1,10 +1,10 @@
 <div class="recipe-container">
   @if (recipe(); as recipe) {
     <!-- Recipe image and top navigation -->
-    <section class="recipe-header">
+    <section class="recipe-header" [class.no-photo]="!recipe.thumbnailUrl">
       <div class="top-nav">
         <a class="nav-button" routerLink="/recipes" aria-label="Back to recipes">‹</a>
-        <button type="button" class="nav-button" aria-label="Like recipe">♡</button>
+        <app-save-button [recipeId]="recipe.id" [recipeTitle]="recipe.title" />
       </div>
 
       @if (recipe.thumbnailUrl) {
@@ -17,31 +17,98 @@
       <header class="recipe-heading">
         <h1>{{ recipe.title }}</h1>
 
-        <p class="recipe-author">Uploaded by {{ nameOf(recipe.authorId) }}</p>
+        <p class="recipe-author">
+          Uploaded by
+          <a [routerLink]="isAuthor() ? '/profile' : ['/users', recipe.authorId]">{{
+            nameOf(recipe.authorId)
+          }}</a>
+        </p>
 
-        <p class="recipe-date">{{ recipe.createdAt | date: 'MMMM d, y' }}</p>
+        <p class="recipe-date">
+          {{ recipe.createdAt | date: 'MMMM d, y' }}
+          @if (recipe.visibility === 'private') {
+            · Private
+          }
+        </p>
 
         <p class="recipe-stats">
           {{ recipe.prepTimeMinutes }} Minutes | {{ recipe.steps.length }} Steps |
-          <span class="rating-stars">★★★★★</span>
+          <span class="rating-stars" aria-hidden="true">{{ starText() }}</span>
           {{ recipe.rating ?? '—' }}
           ({{ recipe.numRatings }})
         </p>
       </header>
 
+      @if (isAuthor()) {
+        <div class="author-actions">
+          <a class="ui-button" [routerLink]="['/recipes', recipe.id, 'edit']">✏️ Edit</a>
+          @if (confirmingDelete()) {
+            <span class="confirm">Delete this recipe?</span>
+            <button type="button" class="ui-button danger" (click)="deleteRecipe()">
+              Yes, delete
+            </button>
+            <button type="button" class="ui-button plain" (click)="confirmingDelete.set(false)">
+              Keep it
+            </button>
+          } @else {
+            <button type="button" class="ui-button danger" (click)="confirmingDelete.set(true)">
+              🗑️ Delete
+            </button>
+          }
+        </div>
+      }
+
       <!-- Recipe tags -->
-      <div class="recipe-tags">
-        @for (tag of recipe.tags; track tag) {
-          <span class="recipe-tag">{{ tag }}</span>
-        }
-      </div>
+      @if (recipe.tags.length > 0) {
+        <div class="recipe-tags">
+          @for (tag of recipe.tags; track tag) {
+            <span class="recipe-tag">{{ tag }}</span>
+          }
+        </div>
+      }
 
-      <!-- Description and servings -->
+      <!-- Description and nutrition -->
       <div class="recipe-description">
-        <p>{{ recipe.description }}</p>
-
-        <p class="serving-size">Serving size: {{ recipe.servings }}</p>
+        @if (recipe.description) {
+          <p>{{ recipe.description }}</p>
+        }
+        <p class="nutrition">
+          Per serving: {{ recipe.nutrition.calories }} kcal · {{ recipe.nutrition.protein }} g
+          protein · {{ recipe.nutrition.carbohydrates }} g carbs · {{ recipe.nutrition.fat }} g fat
+        </p>
       </div>
+
+      <!-- Servings (scales the ingredient amounts) -->
+      <div class="servings">
+        <span id="servings-label">Servings</span>
+        <div class="stepper" role="group" aria-labelledby="servings-label">
+          <button
+            type="button"
+            aria-label="Fewer servings"
+            [disabled]="servings() <= 1"
+            (click)="changeServings(-1)"
+          >
+            −
+          </button>
+          <output aria-live="polite">{{ servings() }}</output>
+          <button
+            type="button"
+            aria-label="More servings"
+            [disabled]="servings() >= maxServings"
+            (click)="changeServings(1)"
+          >
+            +
+          </button>
+        </div>
+      </div>
+      @if (servings() !== recipe.servings) {
+        <p class="scaled-note">
+          Amounts scaled from the original {{ recipe.servings }} servings.
+          <button type="button" class="link-button" (click)="servings.set(recipe.servings)">
+            Reset
+          </button>
+        </p>
+      }
 
       <!-- Ingredients checklist -->
       <section class="ingredients-section">
@@ -51,7 +118,7 @@
         </div>
 
         <ul class="ingredient-list">
-          @for (ingredient of recipe.ingredients; track $index) {
+          @for (ingredient of scaledIngredients(); track $index) {
             <li class="ingredient-row">
               <label class="ingredient-label">
                 <input type="checkbox" />
@@ -70,7 +137,21 @@
       </section>
 
       <!-- Add to grocery list -->
-      <button class="action-button grocery-button" type="button">Add all to Grocery</button>
+      @if (addingToGrocery()) {
+        <app-add-to-grocery-panel
+          [recipe]="recipe"
+          [servings]="servings()"
+          (closed)="addingToGrocery.set(false)"
+        />
+      } @else {
+        <button
+          class="action-button grocery-button"
+          type="button"
+          (click)="addingToGrocery.set(true)"
+        >
+          Add all to Grocery ({{ servings() }} {{ servings() === 1 ? 'serving' : 'servings' }})
+        </button>
+      }
 
       <!-- Cooking instructions -->
       <section class="steps-section">
@@ -82,9 +163,6 @@
           }
         </ol>
       </section>
-
-      <!-- Add to meal planner -->
-      <button class="action-button planner-button" type="button">Add meal to Planner</button>
     </section>
 
     <!-- Reviews -->
@@ -95,15 +173,28 @@
         <article class="recipe-review">
           <p class="review-user">{{ nameOf(review.reviewerId) }}</p>
           <p class="review-rating">{{ review.rating }} / 5</p>
-          <p class="review-comment">{{ review.comment }}</p>
+          @if (review.comment) {
+            <p class="review-comment">{{ review.comment }}</p>
+          }
         </article>
       } @empty {
         <p>No reviews yet</p>
       }
+
+      @if (!isAuthor()) {
+        <app-review-form
+          [recipeId]="recipe.id"
+          [existing]="myReview()"
+          (reviewed)="onReviewed($event)"
+        />
+      }
     </section>
   } @else if (loadError()) {
-    <p class="error-message">We couldn't load this recipe.</p>
+    <div class="ui-page">
+      <p class="error-message">We couldn't load this recipe. It may have been deleted.</p>
+      <a class="ui-button primary" routerLink="/recipes">Back to recipes</a>
+    </div>
   } @else {
-    <p class="loading-message">Loading recipe...</p>
+    <p class="loading-message">Loading recipe…</p>
   }
 </div>

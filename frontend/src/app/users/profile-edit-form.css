@@ -1,0 +1,27 @@
+.picture {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.avatar {
+  flex: none;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  font-size: 34px;
+}
+
+.picture-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
