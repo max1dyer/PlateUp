@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { ContactPage } from './contact/contact-page';
 import { signedInGuard } from './core/signed-in.guard';
 import { GroceryListPage } from './grocery-list/grocery-list-page';
 import { HomePage } from './home/home-page';
@@ -11,22 +12,28 @@ import { SavedRecipesPage } from './recipes/saved-recipes-page';
 import { LoginPage } from './users/login-page';
 import { ProfilePage } from './users/profile-page';
 
+/** Text for the about page. */
 const ABOUT: InfoPageData = {
   title: 'About PlateUp',
   paragraphs: [
-    'PlateUp helps students and busy households plan meals around what they already have: ' +
-      'find or share recipes, keep a pantry, and turn any recipe into a grocery list sized ' +
-      'for the people you are feeding.',
-    'Built for RPI Software Design and Documentation by Matt Durcan, Max Dyer, Kartik ' +
-      'Prabhu, and Will Shockey.',
-  ],
-};
-
-const CONTACT: InfoPageData = {
-  title: 'Contact Us',
-  paragraphs: [
-    'Found a bug or have an idea? Open an issue on the PlateUp GitHub repository and the ' +
-      'team will take a look.',
+    'PlateUp started with a simple problem: cooking with a roommate meant keeping track of ' +
+      'multiple recipes, grocery lists, and planners across too many different notes, lists, ' +
+      'and spreadsheets. We wanted one place where everything could work together, so we built ' +
+      'PlateUp.',
+    'PlateUp is designed to make cooking and meal planning easier by bringing your recipes, ' +
+      'pantry, grocery lists, and weekly planner into one app. We strive to create an app ' +
+      'beneficial to any cook, whether you want something trendy, budget-friendly, or ' +
+      'protein-dense. You can discover recipes from other users, save your favorites, and find ' +
+      'something new based on your dietary needs, ingredients you already have, and more. When ' +
+      'you find a recipe you like, PlateUp can add it to your meal plan and automatically add ' +
+      'ingredients you need to your grocery list.',
+    'We also wanted cooking to be something people could share. Users can upload their own ' +
+      'recipes, share grocery and pantry lists between household members, follow other cooks, ' +
+      'and leave reviews. Whether you are planning meals for yourself or with others, PlateUp is ' +
+      'here to make the process easier to manage.',
+    "Our team's primary goal is to build high-quality software that is intuitive, reliable, " +
+      'and genuinely useful. We are developing PlateUp to make the everyday process of deciding ' +
+      'what to cook easier, more organized, budget-aware, and enjoyable.',
   ],
 };
 
@@ -42,7 +49,7 @@ const PLANNER: InfoPageData = {
 export const routes: Routes = [
   { path: 'login', component: LoginPage, title: 'Log in | PlateUp!' },
   { path: 'about', component: InfoPage, data: { page: ABOUT }, title: 'About | PlateUp!' },
-  { path: 'contact', component: InfoPage, data: { page: CONTACT }, title: 'Contact | PlateUp!' },
+  { path: 'contact', component: ContactPage, title: 'Contact | PlateUp!' },
   {
     path: '',
     canActivateChild: [signedInGuard],

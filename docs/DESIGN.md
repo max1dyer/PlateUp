@@ -93,6 +93,7 @@ These are the major classes for CRC cards and the class diagram. Paths are relat
 | `Recipe`, `RecipeIngredient`, `RecipeReview`, `RecipesService`, `RecipesController`, `RecipeRepository`    | recipes feature       | `recipes/`                                 |
 | `PantryItem`, `PantryService`, `PantryController`, `PantryItemRepository`                                  | pantry feature        | `pantry/`                                  |
 | `GroceryList`, `GroceryListItem`, `GroceryListsService`, `GroceryListsController`, `GroceryListRepository` | grocery-lists feature | `grocery-lists/`                           |
+| `ContactMessage`, `ContactService`, `ContactController`, `ContactMessageRepository`                        | contact feature       | `contact/`                                 |
 | `DemoDataSeeder`, `SeedModule` (TEMPORARY: sample data loaded at startup)                                  | seed data             | `seed/`                                    |
 
 DTOs (`CreateRecipeDto`, `LogInDto`, `AddRecipeToListDto`, ...) are plain request shapes in each feature's `dto/` folder and are not part of the diagram. `guessCategory()` (`common/domain/ingredient-category.ts`) is a pure function that files generated grocery items under a store section.
@@ -107,6 +108,7 @@ Frontend classes (paths relative to `frontend/src/app/`):
 | `SavedRecipesPage`, `RecipeCard`, `SaveButton`, `AddToGroceryPanel`, `ReviewForm`         | recipes          | `recipes/`                  |
 | `PantryService`, `PantryPage`, `PantryItemRow`                                            | pantry           | `pantry/`                   |
 | `GroceryListsService`, `GroceryListPage`, `GroceryItemRow`, `AddItemsForm`                | grocery lists    | `grocery-list/`             |
+| `ContactService`, `ContactPage`                                                           | contact          | `contact/`                  |
 | `HomePage`, `InfoPage`, `SiteHeader`, `SiteFooter`, `ToastOutlet`                         | shell and layout | `home/`, `info/`, `layout/` |
 
 ### Domain class diagram (draft)
@@ -183,6 +185,11 @@ classDiagram
     -isPurchased: boolean
     +setPurchased(purchased) void
   }
+  class ContactMessage {
+    +name: string
+    +email: string
+    +message: string
+  }
   class Quantity {
     <<value object>>
     +amount: number
@@ -194,6 +201,7 @@ classDiagram
   BaseEntity <|-- OwnedEntity
   BaseEntity <|-- User
   BaseEntity <|-- GroceryListItem
+  BaseEntity <|-- ContactMessage
   OwnedEntity <|-- Recipe
   OwnedEntity <|-- PantryItem
   OwnedEntity <|-- GroceryList

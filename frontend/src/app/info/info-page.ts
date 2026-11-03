@@ -10,7 +10,7 @@ export interface InfoPageData {
 }
 
 /**
- * A simple text page whose content comes from route data: About, Contact,
+ * A simple text page whose content comes from route data: About
  * and placeholders for features scheduled for a later release (the Planner).
  */
 @Component({
