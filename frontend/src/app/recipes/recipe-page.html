@@ -130,19 +130,29 @@
       <section class="ingredients-section">
         <div class="section-heading">
           <h2>Ingredients</h2>
-          <span>{{ recipe.ingredients.length }} ingredients</span>
+          <span>{{ pantryCount() }} of {{ recipe.ingredients.length }} in your pantry</span>
         </div>
 
         <ul class="ingredient-list">
           @for (ingredient of scaledIngredients(); track $index) {
             <li class="ingredient-row">
-              <label class="ingredient-label">
-                <input type="checkbox" />
+              <button 
+                type="button" 
+                class="pantry-status" 
+                [class.in-pantry]="isInPantry(ingredient.name)"
+                (click)="togglePantryStatus(ingredient.name)"
+                [attr.aria-label]="
+                  isInPantry(ingredient.name) 
+                  ? 'Mark ' + ingredient.name + ' as missing'
+                  : 'Mark ' + ingredient.name + ' as in pantry'
+                "
+              >
+                {{ isInPantry(ingredient.name) ? '✓' : 'X' }}
+              </button>
 
-                <span class="ingredient-name">
-                  {{ ingredient.name }}
-                </span>
-              </label>
+              <span class="ingredient-name">
+                {{ ingredient.name }}
+              </span>
 
               <span class="ingredient-quantity">
                 {{ formatQuantity(ingredient.quantity) }}
@@ -154,19 +164,32 @@
 
       <!-- Add to grocery list -->
       @if (addingToGrocery()) {
-        <app-add-to-grocery-panel
-          [recipe]="recipe"
-          [servings]="servings()"
-          (closed)="addingToGrocery.set(false)"
-        />
+          <app-add-to-grocery-panel
+            [recipe]="recipe"
+            [servings]="servings()"
+            [ingredients]="ingredientsToAdd()"
+            [addWholeRecipe]="ingredientsToAdd().length === recipe.ingredients.length"
+            (closed)="addingToGrocery.set(false)"
+          />
       } @else {
-        <button
-          class="action-button grocery-button"
-          type="button"
-          (click)="addingToGrocery.set(true)"
-        >
-          Add all to Grocery ({{ servings() }} {{ servings() === 1 ? 'serving' : 'servings' }})
-        </button>
+        <div class="grocery-actions">
+          <button
+            class="action-button grocery-button"
+            type="button"
+            (click)="addMissingToGrocery()"
+            [disabled]="missingCount() === 0"
+          >
+            Add {{ missingCount() }} to Grocery ({{ servings() }} {{ servings() === 1 ? 'serving' : 'servings' }})
+          </button>
+        
+          <button
+            class="action-button grocery-button"
+            type="button"
+            (click)="addAllToGrocery()"
+          >
+            Add all to Grocery ({{ servings() }} {{ servings() === 1 ? 'serving' : 'servings' }})
+          </button>
+        </div>
       }
 
       <!-- Cooking instructions -->
