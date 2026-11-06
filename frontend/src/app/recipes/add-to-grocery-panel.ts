@@ -2,7 +2,9 @@
 import { Component, OnInit, computed, input, output, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import {
   Observable,
+  catchError,
   concatMap,
   forkJoin,
   from,
@@ -35,7 +37,6 @@ export interface PantryMatch {
   have: Quantity;
 }
 
- */
 @Component({
   selector: 'app-add-to-grocery-panel',
   imports: [ReactiveFormsModule],
@@ -51,10 +52,11 @@ export class AddToGroceryPanel implements OnInit {
 
   protected readonly newList = NEW_LIST;
   protected readonly formatQuantity = formatQuantity;
+
   protected readonly lists = signal<GroceryList[]>([]);
   protected readonly pantryItems = signal<PantryItem[]>([]);
-  /** Names of pantry matches the user chose to add anyway. */
   protected readonly addAnyway = signal<ReadonlySet<string>>(new Set());
+
   protected readonly loading = signal(true);
   protected readonly saving = signal(false);
   protected readonly error = signal<string | null>(null);
@@ -65,6 +67,7 @@ export class AddToGroceryPanel implements OnInit {
 
     return recipe.ingredients.flatMap(ingredient => {
       const owned = this.pantryItems().find(item =>
+        isSameIngredient(item.name, ingredient.name),
       );
 
       return owned

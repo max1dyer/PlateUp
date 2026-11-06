@@ -34,8 +34,10 @@
       <fieldset class="pantry">
         <legend class="pantry-heading">Already in your pantry</legend>
 
+        <p class="ui-hint">
           These are left off the list. Tick any you want to buy anyway.
         </p>
+
         @for (match of pantryMatches(); track match.name) {
           <label class="pantry-item">
             <input
