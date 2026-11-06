@@ -13,6 +13,40 @@ export function tagsOf(recipes: readonly Recipe[]): string[] {
   return [...byKey.values()].sort((a, b) => a.localeCompare(b));
 }
 
+export type RecipeSort =
+  'newest' | 'rating' | 'popularity' | 'protein' | 'calories' | 'ingredients' | 'time' | 'steps';
+
+/** Sort choices in the order the "Sort by" menu shows them. */
+export const SORT_OPTIONS: readonly { value: RecipeSort; label: string }[] = [
+  { value: 'newest', label: 'Newest' },
+  { value: 'rating', label: 'Highest rated' },
+  { value: 'popularity', label: 'Most reviewed' },
+  { value: 'protein', label: 'Most protein' },
+  { value: 'calories', label: 'Fewest calories' },
+  { value: 'ingredients', label: 'Fewest ingredients' },
+  { value: 'time', label: 'Quickest' },
+  { value: 'steps', label: 'Fewest steps' },
+];
+
+/** How each sort compares two recipes; a negative result puts `a` first. */
+const COMPARATORS: Record<RecipeSort, (a: Recipe, b: Recipe) => number> = {
+  newest: (a, b) => b.createdAt.localeCompare(a.createdAt),
+  // Unrated recipes go last.
+  rating: (a, b) => (b.rating ?? -1) - (a.rating ?? -1),
+  popularity: (a, b) => b.numRatings - a.numRatings,
+  protein: (a, b) => b.nutrition.protein - a.nutrition.protein,
+  calories: (a, b) => a.nutrition.calories - b.nutrition.calories,
+  ingredients: (a, b) => a.ingredients.length - b.ingredients.length,
+  time: (a, b) => a.prepTimeMinutes - b.prepTimeMinutes,
+  steps: (a, b) => a.steps.length - b.steps.length,
+};
+
+/** A sorted copy of `recipes`; ties are broken newest first. */
+export function sortRecipes(recipes: readonly Recipe[], sort: RecipeSort): Recipe[] {
+  const compare = COMPARATORS[sort];
+  return [...recipes].sort((a, b) => compare(a, b) || COMPARATORS.newest(a, b));
+}
+
 /**
  * Recipes whose title, description, tags, or ingredients contain `search`
  * (ignoring case), and that have `tag` when one is chosen.

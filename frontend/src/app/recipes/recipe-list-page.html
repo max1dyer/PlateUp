@@ -16,21 +16,46 @@
       [value]="search()"
       (input)="onSearch($event)"
     />
-    @if (tags().length > 0) {
-      <div class="tag-filter" role="group" aria-label="Filter by tag">
-        @for (option of tags(); track option) {
-          <button
-            type="button"
-            class="tag"
-            [class.active]="tag() === option"
-            [attr.aria-pressed]="tag() === option"
-            (click)="toggleTag(option)"
-          >
-            {{ option }}
-          </button>
-        }
-      </div>
-    }
+    <div class="controls">
+      @if (tags().length > 0) {
+        <details class="filter-menu">
+          <summary class="ui-button">
+            Filters
+            @if (tag() !== null) {
+              <span class="badge">1</span>
+            }
+          </summary>
+          <div class="filter-panel">
+            <p class="panel-heading">Tags</p>
+            <div class="tag-filter" role="group" aria-label="Filter by tag">
+              @for (option of tags(); track option) {
+                <button
+                  type="button"
+                  class="tag"
+                  [class.active]="tag() === option"
+                  [attr.aria-pressed]="tag() === option"
+                  (click)="toggleTag(option)"
+                >
+                  {{ option }}
+                </button>
+              }
+            </div>
+            @if (tag() !== null) {
+              <button type="button" class="clear" (click)="tag.set(null)">Clear tag</button>
+            }
+          </div>
+        </details>
+      }
+
+      <label class="sort">
+        <span>Sort by</span>
+        <select id="recipe-sort" class="ui-field" [value]="sort()" (change)="onSort($event)">
+          @for (option of sortOptions; track option.value) {
+            <option [value]="option.value">{{ option.label }}</option>
+          }
+        </select>
+      </label>
+    </div>
   </div>
 
   @if (loading()) {
