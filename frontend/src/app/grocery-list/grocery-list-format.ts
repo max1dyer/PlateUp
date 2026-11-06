@@ -72,3 +72,16 @@ function formatAmount(amount: number): string {
   }
   return whole === 0 ? fraction : `${whole} ${fraction}`;
 }
+
+/**
+ * Same rule as the backend's `isSameIngredient`: names match ignoring case and
+ * extra spaces ("eggs " = "Eggs"), so the UI agrees with what the server merges.
+ */
+export function isSameIngredient(a: string, b: string): boolean {
+  const first = normalizeName(a);
+  return first.length > 0 && first === normalizeName(b);
+}
+
+function normalizeName(name: string): string {
+  return name.trim().replace(/\s+/g, ' ').toLowerCase();
+}

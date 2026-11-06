@@ -8,6 +8,9 @@ import { RecipesService } from '../recipes/recipes.service';
 import { InMemoryRecipeRepository } from '../recipes/repositories/in-memory-recipe.repository';
 import { RecipeRepository } from '../recipes/repositories/recipe.repository';
 import { buildCreateRecipeDto } from '../recipes/testing/recipe.fixtures';
+import { PantryService } from '../pantry/pantry.service';
+import { InMemoryPantryItemRepository } from '../pantry/repositories/in-memory-pantry-item.repository';
+import { PantryItemRepository } from '../pantry/repositories/pantry-item.repository';
 import { GroceryListsService } from './grocery-lists.service';
 import { GroceryListRepository } from './repositories/grocery-list.repository';
 import { InMemoryGroceryListRepository } from './repositories/in-memory-grocery-list.repository';
@@ -15,18 +18,22 @@ import { InMemoryGroceryListRepository } from './repositories/in-memory-grocery-
 describe('GroceryListsService', () => {
   let service: GroceryListsService;
   let recipes: RecipesService;
+  let pantry: PantryService;
 
   beforeEach(async () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         GroceryListsService,
         RecipesService,
+        PantryService,
+        { provide: PantryItemRepository, useClass: InMemoryPantryItemRepository },
         { provide: GroceryListRepository, useClass: InMemoryGroceryListRepository },
         { provide: RecipeRepository, useClass: InMemoryRecipeRepository },
       ],
     }).compile();
     service = moduleRef.get(GroceryListsService);
     recipes = moduleRef.get(RecipesService);
+    pantry = moduleRef.get(PantryService);
   });
 
   it('create and findAll are scoped to the owner', async () => {
@@ -224,6 +231,83 @@ describe('GroceryListsService', () => {
       await expect(
         service.addRecipe('alice', list.id, { recipeId: recipe.id, servings: 0 }),
       ).rejects.toThrow(DomainValidationError);
+    });
+  });
+
+  describe('pantry', () => {
+    const liter = (amount: number) => ({ amount, unit: Unit.Liter });
+
+    it('addRecipe leaves off excluded ingredients, ignoring case and spacing', async () => {
+      const recipe = await recipes.create('alice', buildCreateRecipeDto());
+      const names = recipe.ingredientsFor(recipe.servings).map((ingredient) => ingredient.name);
+      const list = await service.create('alice', { name: 'Weekly' });
+
+      const updated = await service.addRecipe('alice', list.id, {
+        recipeId: recipe.id,
+        excludeIngredients: [`  ${names[0].toUpperCase()} `],
+      });
+
+      expect(updated.items.map((item) => item.name)).toEqual(names.slice(1));
+    });
+
+    it('moveItemToPantry adds the item to the pantry and removes it from the list', async () => {
+      const list = await service.create('alice', { name: 'Weekly' });
+      await service.addItem('alice', list.id, { name: 'Milk', quantity: liter(1) });
+      await pantry.add('alice', { name: 'milk', quantity: liter(0.5) });
+
+      const updated = await service.moveItemToPantry('alice', list.id, list.items[0].id);
+
+      expect(updated.items).toHaveLength(0);
+      const [milk] = await pantry.findAll('alice');
+      expect(milk.quantity).toEqual(new Quantity(1.5, Unit.Liter));
+    });
+
+    it('moveItemToPantry keeps an item the pantry refuses on the list', async () => {
+      const list = await service.create('alice', { name: 'Weekly' });
+      await service.addItem('alice', list.id, { name: 'Chips' });
+      await service.addItem('alice', list.id, { name: 'Milk', quantity: liter(1) });
+      await pantry.add('alice', { name: 'Milk', quantity: { amount: 1, unit: Unit.Carton } });
+      const [chips, milk] = list.items;
+
+      await expect(service.moveItemToPantry('alice', list.id, chips.id)).rejects.toThrow(
+        'Give Chips an amount',
+      );
+      await expect(service.moveItemToPantry('alice', list.id, milk.id)).rejects.toThrow(
+        DomainValidationError,
+      );
+      expect(list.items).toHaveLength(2);
+    });
+
+    it('moveItemToPantry 404s for an unknown item or another user’s list', async () => {
+      const list = await service.create('alice', { name: 'Weekly' });
+      await service.addItem('alice', list.id, { name: 'Milk', quantity: liter(1) });
+
+      await expect(service.moveItemToPantry('alice', list.id, 'nope')).rejects.toThrow(
+        NotFoundException,
+      );
+      await expect(service.moveItemToPantry('bob', list.id, list.items[0].id)).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(await pantry.findAll('bob')).toHaveLength(0);
+    });
+
+    it('movePurchasedToPantry moves checked items and reports the ones it skips', async () => {
+      const list = await service.create('alice', { name: 'Weekly' });
+      await service.addItem('alice', list.id, { name: 'Milk', quantity: liter(1) });
+      await service.addItem('alice', list.id, { name: 'Chips' });
+      await service.addItem('alice', list.id, { name: 'Bread', quantity: liter(1) });
+      const [milk, chips, bread] = list.items;
+      await service.updateItem('alice', list.id, milk.id, { purchased: true });
+      await service.updateItem('alice', list.id, chips.id, { purchased: true });
+
+      const result = await service.movePurchasedToPantry('alice', list.id);
+
+      expect(result.moved).toEqual(['Milk']);
+      expect(result.skipped).toEqual([
+        { name: 'Chips', reason: expect.stringContaining('amount') },
+      ]);
+      expect(result.list.items).toEqual([chips, bread]);
+      expect((await pantry.findAll('alice')).map((item) => item.name)).toEqual(['Milk']);
     });
   });
 });

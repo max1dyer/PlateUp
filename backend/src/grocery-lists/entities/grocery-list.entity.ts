@@ -37,6 +37,11 @@ export class GroceryList extends OwnedEntity<GroceryListSnapshot> {
     return [...this.itemsById.values()];
   }
 
+  /** The item with this id, or undefined if it is not on this list. */
+  public findItem(itemId: string): GroceryListItem | undefined {
+    return this.itemsById.get(itemId);
+  }
+
   public rename(name: string): void {
     this.listName = requireText(name, 'Grocery list name');
     this.touch();

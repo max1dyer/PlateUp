@@ -52,10 +52,30 @@ describe('GroceryListsService', () => {
 
     expect(
       http.expectOne({ method: 'POST', url: '/api/grocery-lists/list-1/recipes' }).request.body,
-    ).toEqual({ recipeId: 'recipe-1', servings: 6 });
+    ).toEqual({ recipeId: 'recipe-1', servings: 6, excludeIngredients: [] });
     expect(
       http.expectOne({ method: 'PATCH', url: '/api/grocery-lists/list-1' }).request.body,
     ).toEqual({ name: 'Party' });
     expect(http.expectOne({ method: 'DELETE', url: '/api/grocery-lists/list-1' })).toBeTruthy();
+  });
+
+  it('addRecipe sends the ingredients to leave off', () => {
+    service.addRecipe('list-1', 'recipe-1', 2, ['Rice']).subscribe();
+
+    expect(
+      http.expectOne({ method: 'POST', url: '/api/grocery-lists/list-1/recipes' }).request.body,
+    ).toEqual({ recipeId: 'recipe-1', servings: 2, excludeIngredients: ['Rice'] });
+  });
+
+  it('move-to-pantry calls post to the item and purchased-items pantry routes', () => {
+    service.moveItemToPantry('l1', 'i1').subscribe();
+    service.movePurchasedToPantry('l1').subscribe();
+
+    expect(
+      http.expectOne({ method: 'POST', url: '/api/grocery-lists/l1/items/i1/pantry' }),
+    ).toBeTruthy();
+    expect(
+      http.expectOne({ method: 'POST', url: '/api/grocery-lists/l1/purchased-items/pantry' }),
+    ).toBeTruthy();
   });
 });

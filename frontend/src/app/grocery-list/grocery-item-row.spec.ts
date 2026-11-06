@@ -7,7 +7,7 @@ import { GroceryList } from './grocery-list.models';
 import { GroceryListsService } from './grocery-lists.service';
 
 describe('GroceryItemRow', () => {
-  const service = { updateItem: vi.fn(), removeItem: vi.fn() };
+  const service = { updateItem: vi.fn(), removeItem: vi.fn(), moveItemToPantry: vi.fn() };
   let fixture: ComponentFixture<GroceryItemRow>;
   let row: HTMLElement;
   let emitted: GroceryList[];
@@ -101,5 +101,54 @@ describe('GroceryItemRow', () => {
 
     expect(service.removeItem).toHaveBeenCalledWith('list-1', 'item-1');
     expect(emitted).toHaveLength(1);
+  });
+
+  it('Move to Pantry moves the item and emits the updated list', () => {
+    service.moveItemToPantry.mockReturnValue(of(groceryList()));
+    click('.details');
+
+    click('.pantry');
+
+    expect(service.updateItem).not.toHaveBeenCalled();
+    expect(service.moveItemToPantry).toHaveBeenCalledWith('list-1', 'item-1');
+    expect(emitted).toHaveLength(1);
+  });
+
+  it('Move to Pantry saves unsaved edits first', () => {
+    const edited = groceryList([groceryItem({ name: 'Milk', quantity: { amount: 2, unit: 'l' } })]);
+    service.updateItem.mockReturnValue(of(edited));
+    service.moveItemToPantry.mockReturnValue(of(groceryList()));
+    click('.details');
+    const amount = row.querySelector('.amount-field') as HTMLInputElement;
+    amount.value = '2';
+    amount.dispatchEvent(new Event('input'));
+
+    click('.pantry');
+
+    expect(service.updateItem).toHaveBeenCalledWith('list-1', 'item-1', {
+      name: 'Milk',
+      quantity: { amount: 2, unit: 'l' },
+      category: 'dairy',
+    });
+    expect(service.moveItemToPantry).toHaveBeenCalledWith('list-1', 'item-1');
+    expect(emitted).toEqual([edited, groceryList()]);
+  });
+
+  it('Move to Pantry shows the reason the pantry refused it', () => {
+    service.moveItemToPantry.mockReturnValue(
+      throwError(
+        () =>
+          new HttpErrorResponse({
+            status: 400,
+            error: { message: 'Milk is already in your pantry in carton.' },
+          }),
+      ),
+    );
+    click('.details');
+
+    click('.pantry');
+
+    expect(row.querySelector('.error')?.textContent).toContain('already in your pantry');
+    expect(emitted).toHaveLength(0);
   });
 });

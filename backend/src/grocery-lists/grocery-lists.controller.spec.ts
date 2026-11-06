@@ -15,6 +15,8 @@ describe('GroceryListsController', () => {
     updateItem: jest.fn(),
     removeItem: jest.fn(),
     removePurchasedItems: jest.fn(),
+    moveItemToPantry: jest.fn(),
+    movePurchasedToPantry: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -60,5 +62,13 @@ describe('GroceryListsController', () => {
   it('addRecipe delegates the recipe and servings', async () => {
     await controller.addRecipe('alice', 'l1', { recipeId: 'r1', servings: 4 });
     expect(service.addRecipe).toHaveBeenCalledWith('alice', 'l1', { recipeId: 'r1', servings: 4 });
+  });
+
+  it('pantry routes delegate moving items to the pantry', async () => {
+    await controller.moveItemToPantry('alice', 'l1', 'i1');
+    await controller.movePurchasedToPantry('alice', 'l1');
+
+    expect(service.moveItemToPantry).toHaveBeenCalledWith('alice', 'l1', 'i1');
+    expect(service.movePurchasedToPantry).toHaveBeenCalledWith('alice', 'l1');
   });
 });

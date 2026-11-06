@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { PantryModule } from '../pantry/pantry.module';
 import { RecipesModule } from '../recipes/recipes.module';
 import { GroceryListsController } from './grocery-lists.controller';
 import { GroceryListsService } from './grocery-lists.service';
@@ -6,7 +7,7 @@ import { GroceryListRepository } from './repositories/grocery-list.repository';
 import { InMemoryGroceryListRepository } from './repositories/in-memory-grocery-list.repository';
 
 @Module({
-  imports: [RecipesModule],
+  imports: [RecipesModule, PantryModule],
   controllers: [GroceryListsController],
   providers: [
     GroceryListsService,

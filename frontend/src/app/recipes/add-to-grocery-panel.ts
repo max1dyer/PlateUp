@@ -1,19 +1,34 @@
-import { Component, OnInit, input, output, signal } from '@angular/core';
+import { Component, OnInit, computed, input, output, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { Observable, map, of, switchMap } from 'rxjs';
+import { Observable, catchError, forkJoin, map, of, switchMap } from 'rxjs';
 import { errorMessage } from '../core/api';
 import { ToastService } from '../core/toast.service';
-import { GroceryList } from '../grocery-list/grocery-list.models';
+import {
+  formatQuantity,
+  isSameIngredient,
+  scaleQuantity,
+} from '../grocery-list/grocery-list-format';
+import { GroceryList, Quantity } from '../grocery-list/grocery-list.models';
 import { GroceryListsService } from '../grocery-list/grocery-lists.service';
+import { PantryItem } from '../pantry/pantry.models';
+import { PantryService } from '../pantry/pantry.service';
 import { Recipe } from './recipe.models';
 
 /** Value of the list picker that means "make a new list". */
 export const NEW_LIST = 'new';
 
+/** A recipe ingredient the user already has in their pantry. */
+export interface PantryMatch {
+  name: string;
+  needed: Quantity;
+  have: Quantity;
+}
+
 /**
  * Generates grocery items from a recipe at the chosen servings (UC6): pick an
  * existing list or name a new one, then add every scaled ingredient at once.
+ * Ingredients already in the pantry are left off unless the user ticks them.
  */
 @Component({
   selector: 'app-add-to-grocery-panel',
@@ -27,10 +42,43 @@ export class AddToGroceryPanel implements OnInit {
   public readonly closed = output<void>();
 
   protected readonly newList = NEW_LIST;
+  protected readonly formatQuantity = formatQuantity;
   protected readonly lists = signal<GroceryList[]>([]);
+  protected readonly pantryItems = signal<PantryItem[]>([]);
+  /** Names of pantry matches the user chose to add anyway. */
+  protected readonly addAnyway = signal<ReadonlySet<string>>(new Set());
   protected readonly loading = signal(true);
   protected readonly saving = signal(false);
   protected readonly error = signal<string | null>(null);
+
+  /** Recipe ingredients (scaled to the servings) that are already in the pantry. */
+  protected readonly pantryMatches = computed<PantryMatch[]>(() => {
+    const recipe = this.recipe();
+    const factor = this.servings() / recipe.servings;
+    return recipe.ingredients.flatMap((ingredient) => {
+      const owned = this.pantryItems().find((item) => isSameIngredient(item.name, ingredient.name));
+      return owned
+        ? [
+            {
+              name: ingredient.name,
+              needed: scaleQuantity(ingredient.quantity, factor),
+              have: owned.quantity,
+            },
+          ]
+        : [];
+    });
+  });
+
+  /** Ingredient names that will be left off the list. */
+  protected readonly skipped = computed(() =>
+    this.pantryMatches()
+      .map((match) => match.name)
+      .filter((name) => !this.addAnyway().has(name)),
+  );
+
+  protected readonly addCount = computed(
+    () => this.recipe().ingredients.length - this.skipped().length,
+  );
 
   protected readonly form = new FormGroup({
     listId: new FormControl(NEW_LIST, { nonNullable: true }),
@@ -39,15 +87,21 @@ export class AddToGroceryPanel implements OnInit {
 
   constructor(
     private readonly groceryLists: GroceryListsService,
+    private readonly pantry: PantryService,
     private readonly toasts: ToastService,
     private readonly router: Router,
   ) {}
 
   public ngOnInit(): void {
     this.form.controls.newListName.setValue(this.recipe().title);
-    this.groceryLists.getLists().subscribe({
-      next: (lists) => {
+    forkJoin({
+      lists: this.groceryLists.getLists(),
+      // The pantry check is a convenience; if it fails, add every ingredient as before.
+      pantry: this.pantry.getItems().pipe(catchError(() => of<PantryItem[]>([]))),
+    }).subscribe({
+      next: ({ lists, pantry }) => {
         this.lists.set(lists);
+        this.pantryItems.set(pantry);
         if (lists.length > 0) {
           this.form.controls.listId.setValue(lists[0].id);
         }
@@ -60,8 +114,29 @@ export class AddToGroceryPanel implements OnInit {
     });
   }
 
+  protected isAddingAnyway(name: string): boolean {
+    return this.addAnyway().has(name);
+  }
+
+  protected toggleAddAnyway(name: string): void {
+    this.addAnyway.update((names) => {
+      const next = new Set(names);
+      if (next.has(name)) {
+        next.delete(name);
+      } else {
+        next.add(name);
+      }
+      return next;
+    });
+    this.error.set(null);
+  }
+
   protected add(): void {
     const { listId, newListName } = this.form.getRawValue();
+    if (this.addCount() === 0) {
+      this.error.set('Everything is already in your pantry. Tick an item to add it anyway.');
+      return;
+    }
     if (listId === NEW_LIST && newListName.trim().length === 0) {
       this.error.set('Name the new list.');
       return;
@@ -70,16 +145,21 @@ export class AddToGroceryPanel implements OnInit {
       listId === NEW_LIST
         ? this.groceryLists.createList(newListName).pipe(map((list) => list.id))
         : of(listId);
+    const skipped = this.skipped();
+    const count = this.addCount();
     this.saving.set(true);
     this.error.set(null);
     targetId
-      .pipe(switchMap((id) => this.groceryLists.addRecipe(id, this.recipe().id, this.servings())))
+      .pipe(
+        switchMap((id) =>
+          this.groceryLists.addRecipe(id, this.recipe().id, this.servings(), skipped),
+        ),
+      )
       .subscribe({
         next: (list) => {
           this.saving.set(false);
-          this.toasts.success(
-            `Added ${this.recipe().ingredients.length} ingredients to ${list.name}`,
-          );
+          const pantryNote = skipped.length > 0 ? ` (${skipped.length} already in pantry)` : '';
+          this.toasts.success(`Added ${count} ingredients to ${list.name}${pantryNote}`);
           void this.router.navigate(['/grocery'], { queryParams: { list: list.id } });
         },
         error: (error: unknown) => {

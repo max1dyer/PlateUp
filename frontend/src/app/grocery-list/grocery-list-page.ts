@@ -103,6 +103,28 @@ export class GroceryListPage implements OnInit {
     });
   }
 
+  /** Moves the checked items into the pantry; items it can't take stay checked on the list. */
+  protected moveSelectedToPantry(): void {
+    const list = this.list();
+    if (!list) {
+      return;
+    }
+    this.groceryLists.movePurchasedToPantry(list.id).subscribe({
+      next: ({ list: updated, moved, skipped }) => {
+        this.onListChanged(updated);
+        if (moved.length > 0) {
+          this.toasts.success(
+            `Moved ${moved.length} ${moved.length === 1 ? 'item' : 'items'} to your pantry`,
+          );
+        }
+        if (skipped.length > 0) {
+          this.actionError.set(skipped.map((item) => item.reason).join(' '));
+        }
+      },
+      error: (error: unknown) => this.actionError.set(errorMessage(error)),
+    });
+  }
+
   protected startCreating(): void {
     this.listForm.setValue({ name: '' });
     this.listMode.set('create');

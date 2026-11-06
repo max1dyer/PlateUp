@@ -75,14 +75,24 @@
           <!-- Placeholder until ingredient pricing exists. -->
           est. $—
         </p>
-        <button
-          type="button"
-          class="remove-selected"
-          [disabled]="inCartCount() === 0"
-          (click)="removeSelected()"
-        >
-          🗑️ Remove Selected
-        </button>
+        <div class="summary-actions">
+          <button
+            type="button"
+            class="remove-selected"
+            [disabled]="inCartCount() === 0"
+            (click)="removeSelected()"
+          >
+            🗑️ Remove Selected
+          </button>
+          <button
+            type="button"
+            class="move-to-pantry"
+            [disabled]="inCartCount() === 0"
+            (click)="moveSelectedToPantry()"
+          >
+            📦 Move to Pantry
+          </button>
+        </div>
       </div>
       @if (actionError(); as message) {
         <p class="error" role="alert">{{ message }}</p>

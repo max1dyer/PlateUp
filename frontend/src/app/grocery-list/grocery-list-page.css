@@ -107,7 +107,27 @@
   cursor: pointer;
 }
 
-.remove-selected:disabled {
+.summary-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.move-to-pantry {
+  width: 148px;
+  height: 37px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--color-card-green);
+  font-size: 16px;
+  line-height: 110%;
+  color: var(--color-text-strong);
+  cursor: pointer;
+}
+
+.remove-selected:disabled,
+.move-to-pantry:disabled {
   cursor: default;
 }
 

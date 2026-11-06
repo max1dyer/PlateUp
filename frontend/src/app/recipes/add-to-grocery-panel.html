@@ -22,13 +22,32 @@
         <input class="ui-field" formControlName="newListName" />
       </label>
     }
+    @if (pantryMatches().length > 0) {
+      <fieldset class="pantry">
+        <legend class="pantry-heading">Already in your pantry</legend>
+        <p class="ui-hint">These are left off the list. Tick any you want to buy anyway.</p>
+        @for (match of pantryMatches(); track match.name) {
+          <label class="pantry-item">
+            <input
+              type="checkbox"
+              [checked]="isAddingAnyway(match.name)"
+              (change)="toggleAddAnyway(match.name)"
+            />
+            <span class="pantry-name">{{ match.name }}</span>
+            <span class="pantry-amounts">
+              need {{ formatQuantity(match.needed) }}, have {{ formatQuantity(match.have) }}
+            </span>
+          </label>
+        }
+      </fieldset>
+    }
   }
   @if (error(); as message) {
     <p class="ui-error" role="alert">{{ message }}</p>
   }
   <div class="ui-row">
     <button type="submit" class="ui-button primary" [disabled]="loading() || saving()">
-      Add ingredients
+      Add {{ addCount() }} {{ addCount() === 1 ? 'ingredient' : 'ingredients' }}
     </button>
     <button type="button" class="ui-button plain" (click)="closed.emit()">Cancel</button>
   </div>

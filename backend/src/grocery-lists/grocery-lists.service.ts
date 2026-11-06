@@ -1,14 +1,18 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { guessCategory } from '../common/domain/ingredient-category';
 import { Quantity } from '../common/domain/quantity';
+import { isSameIngredient } from '../common/domain/ingredient-name';
 import { QuantityDto } from '../common/dto/quantity.dto';
+import { DomainValidationError } from '../common/errors/domain-validation.error';
+import { PantryService } from '../pantry/pantry.service';
 import { RecipesService } from '../recipes/recipes.service';
 import { AddGroceryItemDto } from './dto/add-grocery-item.dto';
 import { AddRecipeToListDto } from './dto/add-recipe-to-list.dto';
 import { CreateGroceryListDto } from './dto/create-grocery-list.dto';
 import { UpdateGroceryItemDto } from './dto/update-grocery-item.dto';
 import { UpdateGroceryListDto } from './dto/update-grocery-list.dto';
-import { GroceryListItemChanges } from './entities/grocery-list-item.entity';
+import { MoveToPantryResult, SkippedPantryMove } from './dto/move-to-pantry-result';
+import { GroceryListItem, GroceryListItemChanges } from './entities/grocery-list-item.entity';
 import { GroceryList } from './entities/grocery-list.entity';
 import { GroceryListRepository } from './repositories/grocery-list.repository';
 
@@ -17,6 +21,7 @@ export class GroceryListsService {
   constructor(
     private readonly groceryLists: GroceryListRepository,
     private readonly recipesService: RecipesService,
+    private readonly pantryService: PantryService,
   ) {}
 
   public findAll(ownerId: string): Promise<GroceryList[]> {
@@ -63,6 +68,8 @@ export class GroceryListsService {
   /**
    * Generates grocery items from a recipe the user can see, with every
    * ingredient scaled to `servings` and merged into matching lines (UC6).
+   * Ingredients named in `excludeIngredients` (e.g. already in the pantry)
+   * are left off.
    */
   public async addRecipe(
     ownerId: string,
@@ -72,12 +79,16 @@ export class GroceryListsService {
     const list = await this.findOne(ownerId, listId);
     const recipe = await this.recipesService.findOne(dto.recipeId, ownerId);
     const servings = dto.servings ?? recipe.servings;
+    const excluded = dto.excludeIngredients ?? [];
     list.addItems(
-      recipe.ingredientsFor(servings).map((ingredient) => ({
-        name: ingredient.name,
-        quantity: ingredient.quantity,
-        category: guessCategory(ingredient.name),
-      })),
+      recipe
+        .ingredientsFor(servings)
+        .filter((ingredient) => !excluded.some((name) => isSameIngredient(name, ingredient.name)))
+        .map((ingredient) => ({
+          name: ingredient.name,
+          quantity: ingredient.quantity,
+          category: guessCategory(ingredient.name),
+        })),
     );
     return this.groceryLists.save(list);
   }
@@ -108,10 +119,65 @@ export class GroceryListsService {
     return this.groceryLists.save(list);
   }
 
+  /**
+   * "Move to Pantry": adds the item to the owner's pantry (combining it with a
+   * matching pantry item) and then takes it off the list. If the pantry
+   * refuses it (no amount, or a unit that can't be combined) the list is
+   * left unchanged.
+   */
+  public async moveItemToPantry(
+    ownerId: string,
+    listId: string,
+    itemId: string,
+  ): Promise<GroceryList> {
+    const list = await this.findOne(ownerId, listId);
+    const item = list.findItem(itemId);
+    if (!item) {
+      throw this.itemNotFound(itemId);
+    }
+    await this.addToPantry(ownerId, item);
+    list.removeItem(itemId);
+    return this.groceryLists.save(list);
+  }
+
+  /**
+   * "Move Selected to Pantry": moves every checked item as `moveItemToPantry`
+   * does. Items the pantry refuses stay on the list and are reported as skipped.
+   */
+  public async movePurchasedToPantry(ownerId: string, listId: string): Promise<MoveToPantryResult> {
+    const list = await this.findOne(ownerId, listId);
+    const moved: string[] = [];
+    const skipped: SkippedPantryMove[] = [];
+    for (const item of list.items.filter((candidate) => candidate.purchased)) {
+      try {
+        await this.addToPantry(ownerId, item);
+      } catch (error) {
+        if (error instanceof DomainValidationError) {
+          skipped.push({ name: item.name, reason: error.message });
+          continue;
+        }
+        throw error;
+      }
+      list.removeItem(item.id);
+      moved.push(item.name);
+    }
+    return { list: await this.groceryLists.save(list), moved, skipped };
+  }
+
   public async removePurchasedItems(ownerId: string, listId: string): Promise<GroceryList> {
     const list = await this.findOne(ownerId, listId);
     list.removePurchasedItems();
     return this.groceryLists.save(list);
+  }
+
+  /** The pantry needs an amount, so an item without one is refused. */
+  private async addToPantry(ownerId: string, item: GroceryListItem): Promise<void> {
+    if (item.quantity === null) {
+      throw new DomainValidationError(
+        `Give ${item.name} an amount before moving it to your pantry.`,
+      );
+    }
+    await this.pantryService.add(ownerId, { name: item.name, quantity: item.quantity });
   }
 
   private toQuantity(dto: QuantityDto | null | undefined): Quantity | null {
