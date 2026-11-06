@@ -98,6 +98,48 @@
   margin: 8px 0;
 }
 
+.delete-confirmation {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+}
+
+.confirm {
+  color: var(--color-text-strong);
+}
+
+.delete-confirmation-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.delete-confirmation .remove-selected {
+  width: 148px;
+  height: 37px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--color-danger-tint);
+  font-size: 16px;
+  line-height: 110%;
+  color: var(--color-text-strong);
+  cursor: pointer;
+}
+
+.delete-confirmation .manage {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 18px;
+  line-height: 17px;
+  color: var(--color-primary);
+  cursor: pointer;
+}
+
 /* Tags */
 
 .recipe-tags {
