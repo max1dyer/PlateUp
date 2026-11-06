@@ -43,13 +43,16 @@
         <div class="author-actions">
           <a class="ui-button" [routerLink]="['/recipes', recipe.id, 'edit']">✏️ Edit</a>
           @if (confirmingDelete()) {
-            <span class="confirm">Delete this recipe?</span>
-            <button type="button" class="ui-button danger" (click)="deleteRecipe()">
-              Yes, delete
-            </button>
-            <button type="button" class="ui-button plain" (click)="confirmingDelete.set(false)">
-              Keep it
-            </button>
+            <div class ="delete-confirmation">
+              <span class="confirm">Delete this recipe?</span>
+
+              <div class="delete-confirmation-actions">
+                <button type="button" class="remove-selected" (click)="deleteRecipe()">
+                  Yes, delete
+                </button>
+                <button type="button" class="manage" (click)="confirmingDelete.set(false)">
+                  Keep it
+                </button>
           } @else {
             <button type="button" class="ui-button danger" (click)="confirmingDelete.set(true)">
               🗑️ Delete
