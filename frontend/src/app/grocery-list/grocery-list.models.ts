@@ -106,3 +106,10 @@ export interface GroceryItemChanges {
   category?: IngredientCategory;
   purchased?: boolean;
 }
+
+/** Response of `POST /grocery-lists/:listId/purchased-items/pantry`. */
+export interface MoveToPantryResult {
+  list: GroceryList;
+  moved: string[];
+  skipped: { name: string; reason: string }[];
+}

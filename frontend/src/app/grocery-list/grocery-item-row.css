@@ -123,6 +123,11 @@
   color: var(--color-text-strong);
 }
 
+.pantry {
+  background: var(--color-card-green);
+  color: var(--color-text-strong);
+}
+
 .error {
   margin: 4px 0 0;
   font-size: 16px;

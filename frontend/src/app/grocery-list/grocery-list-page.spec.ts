@@ -12,6 +12,7 @@ describe('GroceryListPage', () => {
     renameList: vi.fn(),
     deleteList: vi.fn(),
     removePurchasedItems: vi.fn(),
+    movePurchasedToPantry: vi.fn(),
   };
 
   async function render(url = '/grocery'): Promise<{
@@ -135,5 +136,34 @@ describe('GroceryListPage', () => {
 
     expect(service.createList).toHaveBeenCalledWith('Party');
     expect((page.querySelector('.list-picker') as HTMLSelectElement).value).toBe('list-2');
+  });
+
+  it('Move to Pantry moves the checked items and explains any it skipped', async () => {
+    const chips = groceryItem({ id: 'item-2', name: 'Chips', quantity: null, purchased: true });
+    service.getLists.mockReturnValue(of([groceryList([groceryItem({ purchased: true }), chips])]));
+    service.movePurchasedToPantry.mockReturnValue(
+      of({
+        list: groceryList([chips]),
+        moved: ['Eggs'],
+        skipped: [
+          { name: 'Chips', reason: 'Give Chips an amount before moving it to your pantry.' },
+        ],
+      }),
+    );
+    const { fixture, page } = await render();
+
+    (page.querySelector('.move-to-pantry') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(service.movePurchasedToPantry).toHaveBeenCalledWith('list-1');
+    expect(text(page, '.heading')).toEqual(['All items (1)']);
+    expect(text(page, '.error')[0]).toContain('Give Chips an amount');
+  });
+
+  it('Move to Pantry is disabled when nothing is checked', async () => {
+    service.getLists.mockReturnValue(of([groceryList([groceryItem()])]));
+    const { page } = await render();
+
+    expect((page.querySelector('.move-to-pantry') as HTMLButtonElement).disabled).toBe(true);
   });
 });

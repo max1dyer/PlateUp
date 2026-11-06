@@ -5,6 +5,7 @@ import { AddRecipeToListDto } from './dto/add-recipe-to-list.dto';
 import { CreateGroceryListDto } from './dto/create-grocery-list.dto';
 import { UpdateGroceryItemDto } from './dto/update-grocery-item.dto';
 import { UpdateGroceryListDto } from './dto/update-grocery-list.dto';
+import { MoveToPantryResult } from './dto/move-to-pantry-result';
 import { GroceryList } from './entities/grocery-list.entity';
 import { GroceryListsService } from './grocery-lists.service';
 
@@ -84,6 +85,27 @@ export class GroceryListsController {
     @Param('itemId') itemId: string,
   ): Promise<GroceryList> {
     return this.groceryListsService.removeItem(userId, listId, itemId);
+  }
+
+  /** Moves one item into the user's pantry and off the list. */
+  @Post(':listId/items/:itemId/pantry')
+  @HttpCode(200)
+  public moveItemToPantry(
+    @CurrentUserId() userId: string,
+    @Param('listId') listId: string,
+    @Param('itemId') itemId: string,
+  ): Promise<GroceryList> {
+    return this.groceryListsService.moveItemToPantry(userId, listId, itemId);
+  }
+
+  /** Moves every checked item into the user's pantry and off the list. */
+  @Post(':listId/purchased-items/pantry')
+  @HttpCode(200)
+  public movePurchasedToPantry(
+    @CurrentUserId() userId: string,
+    @Param('listId') listId: string,
+  ): Promise<MoveToPantryResult> {
+    return this.groceryListsService.movePurchasedToPantry(userId, listId);
   }
 
   @Delete(':listId/purchased-items')
