@@ -1,0 +1,44 @@
+<div class="ui-page">
+  <h1 class="ui-title">Contact Us</h1>
+  <p class="text">
+    Found a bug, have an idea, or just want to say hello? Send the PlateUp team a message below.
+  </p>
+
+  @if (sent()) {
+    <div class="ui-card green" role="status">
+      <p class="text">Thanks for reaching out! The team will read your message soon.</p>
+      <button type="button" class="ui-button" (click)="writeAnother()">Send another message</button>
+    </div>
+  } @else {
+    <form class="ui-card" [formGroup]="form" (ngSubmit)="send()">
+      <label class="ui-label">
+        Name
+        <input
+          class="ui-field"
+          formControlName="name"
+          autocomplete="name"
+          [attr.maxlength]="maxName"
+        />
+      </label>
+      <label class="ui-label">
+        Email
+        <input class="ui-field" type="email" formControlName="email" autocomplete="email" />
+        <span class="ui-hint">So we can write back to you.</span>
+      </label>
+      <label class="ui-label">
+        Message
+        <textarea
+          class="ui-field"
+          rows="6"
+          formControlName="message"
+          [attr.maxlength]="maxMessage"
+        ></textarea>
+        <span class="ui-hint">{{ form.controls.message.value.length }} / {{ maxMessage }}</span>
+      </label>
+      @if (error(); as message) {
+        <p class="ui-error" role="alert">{{ message }}</p>
+      }
+      <button type="submit" class="ui-button primary" [disabled]="sending()">Send message</button>
+    </form>
+  }
+</div>

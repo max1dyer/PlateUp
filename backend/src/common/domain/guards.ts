@@ -84,3 +84,15 @@ export function requireNonNegative(value: number, field: string): number {
   }
   return value;
 }
+
+/** A practical check (something@domain.tld), not full RFC 5322. */
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/** Trims and returns `value`, or throws if it is missing or not an email address. */
+export function requireEmail(value: string | undefined, field: string): string {
+  const trimmed = requireText(value, field);
+  if (!EMAIL.test(trimmed)) {
+    throw new DomainValidationError(`${field} must be a valid email address.`);
+  }
+  return trimmed;
+}
