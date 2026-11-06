@@ -98,6 +98,15 @@
   margin: 8px 0;
 }
 
+.author-main-actions {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+}
+
 .delete-confirmation {
   display: flex;
   flex-wrap: wrap;
@@ -112,8 +121,10 @@
 
 .delete-confirmation-actions {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: row;
+  flex-wrap: nowrap;
   align-items: center;
+  justify-content: center;
   gap: 8px;
 }
 
