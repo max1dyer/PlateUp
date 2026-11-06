@@ -283,33 +283,52 @@
   border-bottom: 0;
 }
 
-.ingredient-label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
-
-.ingredient-label input {
-  width: 18px;
-  height: 18px;
-  margin: 0;
-  accent-color: var(--color-icon-green);
-  flex-shrink: 0;
-}
-
-.ingredient-label input:checked + .ingredient-name {
-  text-decoration: line-through;
-  opacity: 0.6;
-}
-
 .ingredient-name {
+  flex: 1;
+  min-width: 0;
   overflow-wrap: anywhere;
 }
 
 .ingredient-quantity {
   flex-shrink: 0;
   text-align: right;
+  color: var(--color-text-muted);
+}
+
+.grocery-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 12px auto;
+}
+
+.grocery-actions .action-button {
+  margin: 0;
+}
+
+.grocery-actions .action-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pantry-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--color-danger);
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.pantry-status.in-pantry {
   color: var(--color-text-muted);
 }
 
