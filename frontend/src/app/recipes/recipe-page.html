@@ -39,24 +39,40 @@
         </p>
       </header>
 
-      @if (isAuthor()) {
-        <div class="author-actions">
-          <a class="ui-button" [routerLink]="['/recipes', recipe.id, 'edit']">✏️ Edit</a>
-          @if (confirmingDelete()) {
-            <span class="confirm">Delete this recipe?</span>
-            <button type="button" class="ui-button danger" (click)="deleteRecipe()">
-              Yes, delete
-            </button>
-            <button type="button" class="ui-button plain" (click)="confirmingDelete.set(false)">
-              Keep it
-            </button>
-          } @else {
-            <button type="button" class="ui-button danger" (click)="confirmingDelete.set(true)">
-              🗑️ Delete
-            </button>
-          }
-        </div>
+      
+@if (isAuthor()) {
+  <div class="author-actions">
+    <div class="author-main-actions">
+      <a class="ui-button" [routerLink]="['/recipes', recipe.id, 'edit']">
+        ✏️ Edit
+      </a>
+
+      @if (!confirmingDelete()) {
+        <button type="button" class="ui-button danger" (click)="confirmingDelete.set(true)">
+          🗑️ Delete
+        </button>
+      } @else {
+        <span class="confirm">
+          Delete this recipe?
+        </span>
       }
+    </div>
+
+    @if (confirmingDelete()) {
+      <div class="delete-confirmation">
+        <div class="delete-confirmation-actions">
+          <button type="button" class="remove-selected" (click)="deleteRecipe()">
+            Yes, delete
+          </button>
+
+          <button type="button" class="manage" (click)="confirmingDelete.set(false)">
+            Keep it
+          </button>
+        </div>
+      </div>
+    }
+  </div>
+}
 
       <!-- Recipe tags -->
       @if (recipe.tags.length > 0) {

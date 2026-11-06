@@ -91,11 +91,63 @@
 
 .author-actions {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 8px;
   margin: 8px 0;
+}
+
+.author-main-actions {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.delete-confirmation {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.confirm {
+  font-size: 18px;
+  color: var(--color-text-strong);
+}
+
+.delete-confirmation-actions {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.delete-confirmation .remove-selected {
+  width: 148px;
+  height: 37px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--color-danger-tint);
+  font-size: 18px;
+  line-height: 110%;
+  color: var(--color-text-strong);
+  cursor: pointer;
+}
+
+.delete-confirmation .manage {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 18px;
+  line-height: 17px;
+  color: var(--color-primary);
+  cursor: pointer;
 }
 
 /* Tags */
