@@ -44,6 +44,40 @@ describe('RecipeListPage', () => {
     expect(page.querySelector('.ui-status')?.textContent).toContain("We couldn't load recipes.");
   });
 
+  it('starts newest first and re-sorts from the Sort by menu', async () => {
+    service.getRecipes.mockReturnValue(
+      of([
+        recipe({ id: 'r1', title: 'Old and quick', createdAt: '2026-01-01', prepTimeMinutes: 5 }),
+        recipe({ id: 'r2', title: 'New and slow', createdAt: '2026-02-01', prepTimeMinutes: 90 }),
+      ]),
+    );
+    const page = await render();
+    const titles = (): (string | null | undefined)[] =>
+      [...page.querySelectorAll('.card .title')].map((title) => title.textContent);
+    expect(titles()).toEqual(['New and slow', 'Old and quick']);
+
+    const sort = page.querySelector('#recipe-sort') as HTMLSelectElement;
+    sort.value = 'time';
+    sort.dispatchEvent(new Event('change'));
+    await TestBed.inject(ApplicationRef).whenStable();
+
+    expect(titles()).toEqual(['Old and quick', 'New and slow']);
+  });
+
+  it('keeps tag filters inside the Filters dropdown and counts the active one', async () => {
+    service.getRecipes.mockReturnValue(of([recipe({ id: 'r1', tags: ['Breakfast'] })]));
+    const page = await render();
+    const menu = page.querySelector('details.filter-menu') as HTMLDetailsElement;
+
+    expect(menu.querySelector('summary')?.textContent).toContain('Filters');
+    expect(menu.querySelector('.badge')).toBeNull();
+
+    (menu.querySelector('.tag') as HTMLButtonElement).click();
+    await TestBed.inject(ApplicationRef).whenStable();
+
+    expect(menu.querySelector('.badge')?.textContent).toBe('1');
+  });
+
   it('filters by search text and by tag', async () => {
     service.getRecipes.mockReturnValue(
       of([
