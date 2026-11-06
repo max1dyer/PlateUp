@@ -1,18 +1,7 @@
-
 import { Component, OnInit, computed, input, output, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import {
-  Observable,
-  catchError,
-  concatMap,
-  forkJoin,
-  from,
-  last,
-  map,
-  of,
-  switchMap,
-} from 'rxjs';
+import { Observable, catchError, concatMap, forkJoin, from, last, map, of, switchMap } from 'rxjs';
 
 import { errorMessage } from '../core/api';
 import { ToastService } from '../core/toast.service';
@@ -65,10 +54,8 @@ export class AddToGroceryPanel implements OnInit {
     const recipe = this.recipe();
     const factor = this.servings() / recipe.servings;
 
-    return recipe.ingredients.flatMap(ingredient => {
-      const owned = this.pantryItems().find(item =>
-        isSameIngredient(item.name, ingredient.name),
-      );
+    return recipe.ingredients.flatMap((ingredient) => {
+      const owned = this.pantryItems().find((item) => isSameIngredient(item.name, ingredient.name));
 
       return owned
         ? [
@@ -85,8 +72,8 @@ export class AddToGroceryPanel implements OnInit {
   /** Ingredients that should be omitted because they are already in the pantry. */
   protected readonly skipped = computed(() =>
     this.pantryMatches()
-      .map(match => match.name)
-      .filter(name => !this.addAnyway().has(name)),
+      .map((match) => match.name)
+      .filter((name) => !this.addAnyway().has(name)),
   );
 
   protected readonly addCount = computed(() => {
@@ -111,9 +98,7 @@ export class AddToGroceryPanel implements OnInit {
     forkJoin({
       lists: this.groceryLists.getLists(),
       // If the pantry lookup fails, continue by adding all ingredients.
-      pantry: this.pantry.getItems().pipe(
-        catchError(() => of<PantryItem[]>([])),
-      ),
+      pantry: this.pantry.getItems().pipe(catchError(() => of<PantryItem[]>([]))),
     }).subscribe({
       next: ({ lists, pantry }) => {
         this.lists.set(lists);
@@ -137,7 +122,7 @@ export class AddToGroceryPanel implements OnInit {
   }
 
   protected toggleAddAnyway(name: string): void {
-    this.addAnyway.update(names => {
+    this.addAnyway.update((names) => {
       const next = new Set(names);
 
       if (next.has(name)) {
@@ -156,9 +141,7 @@ export class AddToGroceryPanel implements OnInit {
     const { listId, newListName } = this.form.getRawValue();
 
     if (this.addCount() === 0) {
-      this.error.set(
-        'Everything is already in your pantry. Tick an item to add it anyway.',
-      );
+      this.error.set('Everything is already in your pantry. Tick an item to add it anyway.');
       return;
     }
 
@@ -169,9 +152,7 @@ export class AddToGroceryPanel implements OnInit {
 
     const targetId: Observable<string> =
       listId === NEW_LIST
-        ? this.groceryLists.createList(newListName).pipe(
-            map(list => list.id),
-          )
+        ? this.groceryLists.createList(newListName).pipe(map((list) => list.id))
         : of(listId);
 
     const skipped = this.skipped();
@@ -179,40 +160,28 @@ export class AddToGroceryPanel implements OnInit {
     // For the partial-ingredient flow, exclude pantry matches unless
     // the user checked "add anyway".
     const ingredientsToAdd = this.ingredients().filter(
-      ingredient =>
-        !skipped.some(name =>
-          isSameIngredient(name, ingredient.name),
-        ),
+      (ingredient) => !skipped.some((name) => isSameIngredient(name, ingredient.name)),
     );
 
     if (!this.addWholeRecipe() && ingredientsToAdd.length === 0) {
-      this.error.set(
-        'Everything is already in your pantry. Tick an item to add it anyway.',
-      );
+      this.error.set('Everything is already in your pantry. Tick an item to add it anyway.');
       return;
     }
 
-    const count = this.addWholeRecipe()
-      ? this.addCount()
-      : ingredientsToAdd.length;
+    const count = this.addWholeRecipe() ? this.addCount() : ingredientsToAdd.length;
 
     this.saving.set(true);
     this.error.set(null);
 
     targetId
       .pipe(
-        switchMap(id => {
+        switchMap((id) => {
           if (this.addWholeRecipe()) {
-            return this.groceryLists.addRecipe(
-              id,
-              this.recipe().id,
-              this.servings(),
-              skipped,
-            );
+            return this.groceryLists.addRecipe(id, this.recipe().id, this.servings(), skipped);
           }
 
           return from(ingredientsToAdd).pipe(
-            concatMap(ingredient =>
+            concatMap((ingredient) =>
               this.groceryLists.addItem(id, {
                 name: ingredient.name,
                 quantity: ingredient.quantity,
@@ -223,17 +192,12 @@ export class AddToGroceryPanel implements OnInit {
         }),
       )
       .subscribe({
-        next: list => {
+        next: (list) => {
           this.saving.set(false);
 
-          const pantryNote =
-            skipped.length > 0
-              ? ` (${skipped.length} already in pantry)`
-              : '';
+          const pantryNote = skipped.length > 0 ? ` (${skipped.length} already in pantry)` : '';
 
-          this.toasts.success(
-            `Added ${count} ingredients to ${list.name}${pantryNote}`,
-          );
+          this.toasts.success(`Added ${count} ingredients to ${list.name}${pantryNote}`);
 
           void this.router.navigate(['/grocery'], {
             queryParams: { list: list.id },

@@ -48,21 +48,14 @@ export class RecipePage {
   /** Ingredients the user has marked as already being in their pantry. */
   protected readonly pantryIngredients = signal<ReadonlySet<string>>(new Set());
 
-  protected readonly pantryCount = computed(
-    () => this.pantryIngredients().size,
+  protected readonly pantryCount = computed(() => this.pantryIngredients().size);
+
+  protected readonly missingIngredients = computed(() =>
+    this.scaledIngredients().filter((ingredient) => !this.pantryIngredients().has(ingredient.name)),
   );
 
-  protected readonly missingIngredients = computed(
-    () =>
-      this.scaledIngredients().filter(
-        ingredient => !this.pantryIngredients().has(ingredient.name),
-      ),
-  );
+  protected readonly missingCount = computed(() => this.missingIngredients().length);
 
-  protected readonly missingCount = computed(
-    () => this.missingIngredients().length,
-  );
-  
   protected readonly ingredientsToAdd = signal<RecipeIngredient[]>([]);
 
   protected readonly isAuthor = computed(() => this.recipe()?.authorId === this.session.userId());
@@ -173,7 +166,7 @@ export class RecipePage {
   }
 
   protected togglePantryStatus(ingredientName: string): void {
-    this.pantryIngredients.update(current => {
+    this.pantryIngredients.update((current) => {
       const updated = new Set(current);
 
       if (updated.has(ingredientName)) {
