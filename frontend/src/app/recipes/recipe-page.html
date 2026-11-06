@@ -51,15 +51,15 @@
         <button type="button" class="ui-button danger" (click)="confirmingDelete.set(true)">
           🗑️ Delete
         </button>
+      } @else {
+        <span class="confirm">
+          Delete this recipe?
+        </span>
       }
     </div>
 
     @if (confirmingDelete()) {
       <div class="delete-confirmation">
-        <span class="confirm">
-          Delete this recipe?
-        </span>
-
         <div class="delete-confirmation-actions">
           <button type="button" class="remove-selected" (click)="deleteRecipe()">
             Yes, delete
