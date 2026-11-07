@@ -73,3 +73,41 @@
   font-size: 16px;
   color: var(--color-text-muted);
 }
+
+.my-stuff {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Desktop: saved recipes, grocery lists and pantry sit side by side. */
+@media (min-width: 768px) {
+  .profile-header {
+    gap: 20px;
+  }
+
+  .avatar {
+    width: 112px;
+    height: 112px;
+  }
+
+  .bio {
+    max-width: var(--reading-width);
+  }
+
+  .edit {
+    align-self: flex-start;
+    padding: 0 28px;
+  }
+
+  .my-stuff {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 24px;
+    align-items: start;
+  }
+
+  .my-stuff .section {
+    min-width: 0;
+  }
+}

@@ -1,6 +1,13 @@
+/* Fills its cell so cards in one .ui-card-grid row share a height. */
+:host {
+  display: block;
+  height: 100%;
+}
+
 .card {
   position: relative;
   display: flex;
+  height: 100%;
   gap: 12px;
   padding: 10px;
   border-radius: var(--radius);

@@ -22,10 +22,12 @@
 
   <section class="newest">
     <h2 class="ui-heading">Newest recipes</h2>
-    @for (recipe of newest(); track recipe.id; let index = $index) {
-      <app-recipe-card [recipe]="recipe" [green]="index % 2 === 1" />
-    } @empty {
-      <p class="ui-status">No recipes yet.</p>
-    }
+    <div class="ui-card-grid">
+      @for (recipe of newest(); track recipe.id; let index = $index) {
+        <app-recipe-card [recipe]="recipe" [green]="index % 2 === 1" />
+      } @empty {
+        <p class="ui-status ui-span-all">No recipes yet.</p>
+      }
+    </div>
   </section>
 </div>

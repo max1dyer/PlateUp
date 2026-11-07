@@ -390,3 +390,40 @@
     height: 260px;
   }
 }
+
+/* Desktop: wider page, ingredients and steps side by side. */
+@media (min-width: 768px) {
+  .recipe-container {
+    max-width: calc(var(--content-width) - 64px);
+    margin: 32px auto;
+  }
+
+  .recipe-header {
+    height: 360px;
+  }
+
+  .recipe-card {
+    padding: 20px 32px 24px;
+  }
+
+  .recipe-heading h1 {
+    font-size: 40px;
+  }
+
+  .recipe-description {
+    max-width: var(--reading-width);
+    margin: 0 auto;
+    text-align: center;
+  }
+
+  .recipe-body {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+    gap: 0 40px;
+    align-items: start;
+  }
+
+  .reviews-section {
+    padding: 24px 32px;
+  }
+}

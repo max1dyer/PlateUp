@@ -15,8 +15,13 @@
   --color-error: #a61b1b;
 
   --radius: 10px;
-  /* Width of the Figma frames; content stays this wide on large screens. */
+  /* Width of the Figma (phone) frames; pages use it below the desktop breakpoint. */
   --page-width: 402px;
+  /* From the desktop breakpoint (768px) up, pages widen to these. */
+  --content-width: 1120px;
+  /* Forms and reading text stay narrower so lines don't get too long. */
+  --form-width: 560px;
+  --reading-width: 760px;
 
   font-family: 'Hubballi', sans-serif;
   font-weight: 400;
@@ -55,6 +60,48 @@ textarea {
   max-width: var(--page-width);
   margin: 0 auto;
   padding: 24px 20px 28px;
+}
+
+/*
+ * Desktop layout. Every responsive rule in the app uses this same 768px
+ * breakpoint, so the phone design (the Figma frames) is unchanged below it.
+ */
+@media (min-width: 768px) {
+  .ui-page {
+    max-width: var(--content-width);
+    padding: 36px 32px 48px;
+  }
+
+  .ui-page.narrow {
+    max-width: var(--form-width);
+  }
+
+  .ui-page.reading {
+    max-width: var(--reading-width);
+  }
+}
+
+/* A list of cards: one column on phones, as many ~340px columns as fit on desktop. */
+.ui-card-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* An empty-state message inside a .ui-card-grid takes the whole row. */
+.ui-span-all {
+  grid-column: 1 / -1;
+}
+
+@media (min-width: 768px) {
+  .ui-card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 14px;
+  }
 }
 
 .ui-title {

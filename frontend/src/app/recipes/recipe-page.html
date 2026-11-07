@@ -39,40 +39,35 @@
         </p>
       </header>
 
-      
-@if (isAuthor()) {
-  <div class="author-actions">
-    <div class="author-main-actions">
-      <a class="ui-button" [routerLink]="['/recipes', recipe.id, 'edit']">
-        ✏️ Edit
-      </a>
+      @if (isAuthor()) {
+        <div class="author-actions">
+          <div class="author-main-actions">
+            <a class="ui-button" [routerLink]="['/recipes', recipe.id, 'edit']"> ✏️ Edit </a>
 
-      @if (!confirmingDelete()) {
-        <button type="button" class="ui-button danger" (click)="confirmingDelete.set(true)">
-          🗑️ Delete
-        </button>
-      } @else {
-        <span class="confirm">
-          Delete this recipe?
-        </span>
-      }
-    </div>
+            @if (!confirmingDelete()) {
+              <button type="button" class="ui-button danger" (click)="confirmingDelete.set(true)">
+                🗑️ Delete
+              </button>
+            } @else {
+              <span class="confirm"> Delete this recipe? </span>
+            }
+          </div>
 
-    @if (confirmingDelete()) {
-      <div class="delete-confirmation">
-        <div class="delete-confirmation-actions">
-          <button type="button" class="remove-selected" (click)="deleteRecipe()">
-            Yes, delete
-          </button>
+          @if (confirmingDelete()) {
+            <div class="delete-confirmation">
+              <div class="delete-confirmation-actions">
+                <button type="button" class="remove-selected" (click)="deleteRecipe()">
+                  Yes, delete
+                </button>
 
-          <button type="button" class="manage" (click)="confirmingDelete.set(false)">
-            Keep it
-          </button>
+                <button type="button" class="manage" (click)="confirmingDelete.set(false)">
+                  Keep it
+                </button>
+              </div>
+            </div>
+          }
         </div>
-      </div>
-    }
-  </div>
-}
+      }
 
       <!-- Recipe tags -->
       @if (recipe.tags.length > 0) {
@@ -94,91 +89,96 @@
         </p>
       </div>
 
-      <!-- Servings (scales the ingredient amounts) -->
-      <div class="servings">
-        <span id="servings-label">Servings</span>
-        <div class="stepper" role="group" aria-labelledby="servings-label">
-          <button
-            type="button"
-            aria-label="Fewer servings"
-            [disabled]="servings() <= 1"
-            (click)="changeServings(-1)"
-          >
-            −
-          </button>
-          <output aria-live="polite">{{ servings() }}</output>
-          <button
-            type="button"
-            aria-label="More servings"
-            [disabled]="servings() >= maxServings"
-            (click)="changeServings(1)"
-          >
-            +
-          </button>
+      <!-- Two columns on desktop: ingredients beside steps -->
+      <div class="recipe-body">
+        <div class="ingredients-column">
+          <!-- Servings (scales the ingredient amounts) -->
+          <div class="servings">
+            <span id="servings-label">Servings</span>
+            <div class="stepper" role="group" aria-labelledby="servings-label">
+              <button
+                type="button"
+                aria-label="Fewer servings"
+                [disabled]="servings() <= 1"
+                (click)="changeServings(-1)"
+              >
+                −
+              </button>
+              <output aria-live="polite">{{ servings() }}</output>
+              <button
+                type="button"
+                aria-label="More servings"
+                [disabled]="servings() >= maxServings"
+                (click)="changeServings(1)"
+              >
+                +
+              </button>
+            </div>
+          </div>
+          @if (servings() !== recipe.servings) {
+            <p class="scaled-note">
+              Amounts scaled from the original {{ recipe.servings }} servings.
+              <button type="button" class="link-button" (click)="servings.set(recipe.servings)">
+                Reset
+              </button>
+            </p>
+          }
+
+          <!-- Ingredients checklist -->
+          <section class="ingredients-section">
+            <div class="section-heading">
+              <h2>Ingredients</h2>
+              <span>{{ recipe.ingredients.length }} ingredients</span>
+            </div>
+
+            <ul class="ingredient-list">
+              @for (ingredient of scaledIngredients(); track $index) {
+                <li class="ingredient-row">
+                  <label class="ingredient-label">
+                    <input type="checkbox" />
+
+                    <span class="ingredient-name">
+                      {{ ingredient.name }}
+                    </span>
+                  </label>
+
+                  <span class="ingredient-quantity">
+                    {{ formatQuantity(ingredient.quantity) }}
+                  </span>
+                </li>
+              }
+            </ul>
+          </section>
+
+          <!-- Add to grocery list -->
+          @if (addingToGrocery()) {
+            <app-add-to-grocery-panel
+              [recipe]="recipe"
+              [servings]="servings()"
+              (closed)="addingToGrocery.set(false)"
+            />
+          } @else {
+            <button
+              class="action-button grocery-button"
+              type="button"
+              (click)="addingToGrocery.set(true)"
+            >
+              Add all to Grocery ({{ servings() }} {{ servings() === 1 ? 'serving' : 'servings' }})
+            </button>
+          }
         </div>
+
+        <!-- Cooking instructions -->
+        <section class="steps-section">
+          <h2>Steps</h2>
+
+          <ol class="recipe-steps">
+            @for (step of recipe.steps; track $index) {
+              <li>{{ step }}</li>
+            }
+          </ol>
+        </section>
       </div>
-      @if (servings() !== recipe.servings) {
-        <p class="scaled-note">
-          Amounts scaled from the original {{ recipe.servings }} servings.
-          <button type="button" class="link-button" (click)="servings.set(recipe.servings)">
-            Reset
-          </button>
-        </p>
-      }
-
-      <!-- Ingredients checklist -->
-      <section class="ingredients-section">
-        <div class="section-heading">
-          <h2>Ingredients</h2>
-          <span>{{ recipe.ingredients.length }} ingredients</span>
-        </div>
-
-        <ul class="ingredient-list">
-          @for (ingredient of scaledIngredients(); track $index) {
-            <li class="ingredient-row">
-              <label class="ingredient-label">
-                <input type="checkbox" />
-
-                <span class="ingredient-name">
-                  {{ ingredient.name }}
-                </span>
-              </label>
-
-              <span class="ingredient-quantity">
-                {{ formatQuantity(ingredient.quantity) }}
-              </span>
-            </li>
-          }
-        </ul>
-      </section>
-
-      <!-- Add to grocery list -->
-      @if (addingToGrocery()) {
-        <app-add-to-grocery-panel
-          [recipe]="recipe"
-          [servings]="servings()"
-          (closed)="addingToGrocery.set(false)"
-        />
-      } @else {
-        <button
-          class="action-button grocery-button"
-          type="button"
-          (click)="addingToGrocery.set(true)"
-        >
-          Add all to Grocery ({{ servings() }} {{ servings() === 1 ? 'serving' : 'servings' }})
-        </button>
-      }
-
-      <!-- Cooking instructions -->
-      <section class="steps-section">
-        <h2>Steps</h2>
-
-        <ol class="recipe-steps">
-          @for (step of recipe.steps; track $index) {
-            <li>{{ step }}</li>
-          }
-        </ol>
-      </section>
     </section>
 
     <!-- Reviews -->
