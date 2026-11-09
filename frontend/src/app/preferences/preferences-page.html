@@ -1,0 +1,127 @@
+<div class="ui-page">
+  <section class="intro">
+    <h1 class="ui-title">Preferences</h1>
+    <p class="ui-subtitle">Tailor recipes to how you cook and eat.</p>
+  </section>
+
+  @if (loading()) {
+    <p class="ui-status">Loading preferences…</p>
+  } @else if (loadError()) {
+    <div class="ui-card">
+      <p class="ui-status">We couldn't load your preferences. Make sure the backend is running.</p>
+      <button type="button" class="ui-button primary" (click)="load()">Try again</button>
+    </div>
+  } @else {
+    <form class="preferences" [formGroup]="form" (ngSubmit)="save()">
+      <fieldset class="ui-card">
+        <legend class="ui-heading">Serving size</legend>
+        <label class="ui-label">
+          Open recipes at
+          <span class="inline">
+            <input
+              id="default-servings"
+              class="ui-field narrow"
+              type="number"
+              min="1"
+              [attr.max]="maxServings"
+              step="1"
+              formControlName="defaultServings"
+            />
+            servings
+          </span>
+          <span class="ui-hint">You can still change servings on any recipe.</span>
+        </label>
+      </fieldset>
+
+      <fieldset class="ui-card green">
+        <legend class="ui-heading">Dietary restrictions</legend>
+        <p class="ui-hint">Recipes that don't fit are hidden from the feed, or flagged with ⚠.</p>
+        <div class="restrictions">
+          @for (option of restrictionOptions; track option.value) {
+            <label class="restriction">
+              <input
+                type="checkbox"
+                [value]="option.value"
+                [checked]="isChecked(option.value)"
+                (change)="toggle(option.value)"
+              />
+              {{ option.label }}
+            </label>
+          }
+        </div>
+        <p class="disclaimer">{{ disclaimer }}</p>
+      </fieldset>
+
+      <fieldset class="ui-card">
+        <legend class="ui-heading">Daily goals</legend>
+        <label class="ui-label">
+          Calories per day
+          <input
+            id="daily-calories"
+            class="ui-field"
+            type="number"
+            [attr.min]="minCalories"
+            [attr.max]="maxCalories"
+            step="50"
+            placeholder="No goal"
+            formControlName="dailyCalories"
+          />
+        </label>
+        <p class="ui-label">Macro split (% of calories)</p>
+        <div class="macros">
+          <label class="ui-label">
+            Protein
+            <input
+              id="macro-protein"
+              class="ui-field"
+              type="number"
+              min="0"
+              max="100"
+              formControlName="protein"
+            />
+          </label>
+          <label class="ui-label">
+            Carbs
+            <input
+              id="macro-carbs"
+              class="ui-field"
+              type="number"
+              min="0"
+              max="100"
+              formControlName="carbohydrates"
+            />
+          </label>
+          <label class="ui-label">
+            Fat
+            <input
+              id="macro-fat"
+              class="ui-field"
+              type="number"
+              min="0"
+              max="100"
+              formControlName="fat"
+            />
+          </label>
+        </div>
+        @if (hasMacroSplit()) {
+          <p class="ui-hint macro-total" [class.off]="macroTotal() !== 100">
+            Total: {{ macroTotal() }}% {{ macroTotal() === 100 ? '✓' : '(must be 100%)' }}
+            <button type="button" class="link-button" (click)="clearMacros()">Clear</button>
+          </p>
+        } @else {
+          <p class="ui-hint">Leave blank for no macro goal.</p>
+        }
+      </fieldset>
+
+      @if (error(); as message) {
+        <p class="ui-error" role="alert">{{ message }}</p>
+      }
+      <div class="ui-row">
+        <button type="submit" class="ui-button primary" [disabled]="saving()">
+          Save preferences
+        </button>
+        <a class="ui-button plain" routerLink="/profile">Back to profile</a>
+      </div>
+    </form>
+  }
+</div>
