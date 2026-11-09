@@ -25,7 +25,7 @@ flowchart LR
   DVE -->|caught by| F[DomainErrorFilter → HTTP 400]
 ```
 
-The frontend mirrors this split: each feature folder (`recipes`, `pantry`, `grocery-list`, `users`, `home`) has page components, small child components, and one `HttpClient` service. Cross-cutting pieces live in `app/core/`: `SessionService` (who is signed in), `AuthService` (sign in/out, restore a remembered session), `userIdInterceptor` (adds the user header to every `/api` call), `signedInGuard` (sends visitors to `/login`), and `ToastService` (confirmation messages).
+The frontend mirrors this split: each feature folder (`recipes`, `pantry`, `grocery-list`, `users`, `preferences`, `home`) has page components, small child components, and one `HttpClient` service. Cross-cutting pieces live in `app/core/`: `SessionService` (who is signed in), `AuthService` (sign in/out, restore a remembered session), `userIdInterceptor` (adds the user header to every `/api` call), `signedInGuard` (sends visitors to `/login`), and `ToastService` (confirmation messages).
 
 | Layer          | Responsibility                                                                   | Must not                                     |
 | -------------- | -------------------------------------------------------------------------------- | -------------------------------------------- |
@@ -63,7 +63,7 @@ Every pattern listed here is annotated in the source with a `@pattern` TSDoc tag
 | **Singleton**               | Nest providers (default singleton scope); Angular services with `providedIn: 'root'`.                                        | One shared repository instance per app, so all services see the same data.                                                                |
 | **Chain of Responsibility** | Angular HTTP interceptors (`userIdInterceptor` in `app/core/`); Nest's exception-filter chain.                               | Cross-cutting request handling without modifying each service.                                                                            |
 
-Other techniques (not on the course list): **Repository**, **Value Object** (`Quantity`, `RecipeIngredient`, `RecipeReview`), and **Aggregate Root** (`GroceryList` owns its `GroceryListItem`s).
+Other techniques (not on the course list): **Repository**, **Value Object** (`Quantity`, `RecipeIngredient`, `RecipeReview`, `UserPreferences`), and **Aggregate Root** (`GroceryList` owns its `GroceryListItem`s).
 
 ### Planned (Beta)
 
@@ -89,14 +89,14 @@ These are the major classes for CRC cards and the class diagram. Paths are relat
 | `DomainValidationError`                                                                                    | error                 | `common/errors/domain-validation.error.ts` |
 | `DomainErrorFilter`                                                                                        | exception filter      | `common/filters/domain-error.filter.ts`    |
 | `Repository<T>` / `InMemoryRepository<T>`                                                                  | persistence           | `common/persistence/`                      |
-| `User`, `UsersService`, `UsersController`, `UserRepository`                                                | users feature         | `users/`                                   |
+| `User`, `UserPreferences`, `UsersService`, `UsersController`, `UserRepository`                             | users feature         | `users/`                                   |
 | `Recipe`, `RecipeIngredient`, `RecipeReview`, `RecipesService`, `RecipesController`, `RecipeRepository`    | recipes feature       | `recipes/`                                 |
 | `PantryItem`, `PantryService`, `PantryController`, `PantryItemRepository`                                  | pantry feature        | `pantry/`                                  |
 | `GroceryList`, `GroceryListItem`, `GroceryListsService`, `GroceryListsController`, `GroceryListRepository` | grocery-lists feature | `grocery-lists/`                           |
 | `ContactMessage`, `ContactService`, `ContactController`, `ContactMessageRepository`                        | contact feature       | `contact/`                                 |
 | `DemoDataSeeder`, `SeedModule` (TEMPORARY: sample data loaded at startup)                                  | seed data             | `seed/`                                    |
 
-DTOs (`CreateRecipeDto`, `LogInDto`, `AddRecipeToListDto`, ...) are plain request shapes in each feature's `dto/` folder and are not part of the diagram. `guessCategory()` (`common/domain/ingredient-category.ts`) is a pure function that files generated grocery items under a store section.
+DTOs (`CreateRecipeDto`, `LogInDto`, `AddRecipeToListDto`, ...) are plain request shapes in each feature's `dto/` folder and are not part of the diagram. `guessCategory()` (`common/domain/ingredient-category.ts`) is a pure function that files generated grocery items under a store section. `dietaryConflicts()` and the `DietaryRestriction` enum (`common/domain/dietary-restriction.ts`) are pure keyword rules that estimate which dietary restrictions a recipe's ingredients break; `Recipe` exposes the result as `dietaryConflicts` and `suits()`.
 
 Frontend classes (paths relative to `frontend/src/app/`):
 
@@ -104,6 +104,7 @@ Frontend classes (paths relative to `frontend/src/app/`):
 | ----------------------------------------------------------------------------------------- | ---------------- | --------------------------- |
 | `SessionService`, `AuthService`, `ToastService`, `userIdInterceptor`, `signedInGuard`     | core services    | `core/`                     |
 | `UsersService`, `LoginPage`, `ProfilePage`, `ProfileEditForm`                             | users / accounts | `users/`                    |
+| `PreferencesService`, `PreferencesPage`                                                   | preferences      | `preferences/`              |
 | `RecipesService`, `SavedRecipesService`, `RecipeListPage`, `RecipePage`, `RecipeFormPage` | recipes          | `recipes/`                  |
 | `SavedRecipesPage`, `RecipeCard`, `SaveButton`, `AddToGroceryPanel`, `ReviewForm`         | recipes          | `recipes/`                  |
 | `PantryService`, `PantryPage`, `PantryItemRow`                                            | pantry           | `pantry/`                   |
@@ -136,8 +137,11 @@ classDiagram
     +username: string
     -profile: UserProfile
     -savedRecipes: Set~string~
+    -prefs: UserPreferences
+    +preferences: UserPreferences
     +normalizeUsername(username)$ string
     +updateProfile(changes) void
+    +updatePreferences(changes) void
     +saveRecipe(recipeId) void
     +unsaveRecipe(recipeId) void
     +hasSaved(recipeId) boolean
@@ -149,8 +153,21 @@ classDiagram
     +numRatings: number
     +update(changes) void
     +review(reviewerId, rating, comment) RecipeReview
+    +dietaryConflicts: Partial~Record~DietaryRestriction, string[]~~
+    +suits(restrictions) boolean
     +isVisibleTo(userId) boolean
     +ingredientsFor(servings) RecipeIngredient[]
+  }
+  class UserPreferences {
+    <<value object>>
+    +defaultServings: number
+    +dietaryRestrictions: DietaryRestriction[]
+    +dailyCalories: number | null
+    +macroSplit: MacroSplit | null
+    +dailyTargets: DailyTargets
+    +defaults()$ UserPreferences
+    +with(changes) UserPreferences
+    +toJSON() UserPreferencesJson
   }
   class RecipeIngredient {
     +name: string
@@ -206,6 +223,7 @@ classDiagram
   OwnedEntity <|-- Recipe
   OwnedEntity <|-- PantryItem
   OwnedEntity <|-- GroceryList
+  User "1" *-- "1" UserPreferences : preferences
   Recipe "1" *-- "1..*" RecipeIngredient : ingredients
   Recipe "1" *-- "0..*" RecipeReview : reviews
   GroceryList "1" *-- "0..*" GroceryListItem : items
