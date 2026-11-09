@@ -31,8 +31,12 @@ describe('AddToGroceryPanel', () => {
     }).compileComponents();
     vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
     fixture = TestBed.createComponent(AddToGroceryPanel);
-    fixture.componentRef.setInput('recipe', recipe());
+    const testRecipe = recipe();
+    fixture.componentRef.setInput('recipe', testRecipe);
     fixture.componentRef.setInput('servings', servings);
+    // Mirror the recipe page's "Add all to Grocery" button: every ingredient, whole-recipe mode.
+    fixture.componentRef.setInput('ingredients', testRecipe.ingredients);
+    fixture.componentRef.setInput('addWholeRecipe', true);
     fixture.detectChanges();
     panel = fixture.nativeElement as HTMLElement;
   }
