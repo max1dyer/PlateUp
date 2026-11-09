@@ -45,6 +45,19 @@ export class RecipePage {
   protected readonly maxServings = MAX_SERVINGS;
   protected readonly formatQuantity = formatQuantity;
 
+  /** Ingredients the user has marked as already being in their pantry. */
+  protected readonly pantryIngredients = signal<ReadonlySet<string>>(new Set());
+
+  protected readonly pantryCount = computed(() => this.pantryIngredients().size);
+
+  protected readonly missingIngredients = computed(() =>
+    this.scaledIngredients().filter((ingredient) => !this.pantryIngredients().has(ingredient.name)),
+  );
+
+  protected readonly missingCount = computed(() => this.missingIngredients().length);
+
+  protected readonly ingredientsToAdd = signal<RecipeIngredient[]>([]);
+
   protected readonly isAuthor = computed(() => this.recipe()?.authorId === this.session.userId());
   protected readonly myReview = computed(
     () =>
@@ -150,5 +163,33 @@ export class RecipePage {
     ).pipe(
       map((entries) => new Map(entries.filter((entry): entry is NameEntry => entry !== null))),
     );
+  }
+
+  protected togglePantryStatus(ingredientName: string): void {
+    this.pantryIngredients.update((current) => {
+      const updated = new Set(current);
+
+      if (updated.has(ingredientName)) {
+        updated.delete(ingredientName);
+      } else {
+        updated.add(ingredientName);
+      }
+
+      return updated;
+    });
+  }
+
+  protected isInPantry(ingredientName: string): boolean {
+    return this.pantryIngredients().has(ingredientName);
+  }
+
+  protected addMissingToGrocery(): void {
+    this.ingredientsToAdd.set(this.missingIngredients());
+    this.addingToGrocery.set(true);
+  }
+
+  protected addAllToGrocery(): void {
+    this.ingredientsToAdd.set(this.scaledIngredients());
+    this.addingToGrocery.set(true);
   }
 }
