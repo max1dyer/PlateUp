@@ -30,3 +30,32 @@
   text-align: center;
   color: var(--color-on-color);
 }
+
+/* Desktop: links on the left, credits on the right, in one row. */
+@media (min-width: 768px) {
+  .inner {
+    flex-direction: row;
+    align-items: center;
+    gap: 24px;
+    max-width: var(--content-width);
+    min-height: 64px;
+    padding: 12px 32px;
+  }
+
+  .footer-link {
+    width: auto;
+    font-size: 17px;
+    line-height: 1;
+  }
+
+  .footer-link:hover {
+    text-decoration: underline;
+  }
+
+  .credits {
+    width: auto;
+    margin-left: auto;
+    font-size: 14px;
+    text-align: right;
+  }
+}

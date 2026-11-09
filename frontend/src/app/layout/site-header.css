@@ -2,6 +2,10 @@
   background: var(--color-primary);
 }
 
+/*
+ * Phone layout: labels sit at their Figma positions, passed in as the
+ * `--left` / `--top` CSS variables from the component.
+ */
 .inner {
   position: relative;
   max-width: var(--page-width);
@@ -12,6 +16,7 @@
 .logo-link {
   position: absolute;
   top: 21px;
+  left: var(--left);
 }
 
 .logo {
@@ -23,6 +28,8 @@
 
 .nav-link {
   position: absolute;
+  top: var(--top);
+  left: var(--left);
   padding: 0;
   border: 0;
   background: none;
@@ -36,4 +43,53 @@
 
 .nav-link.active {
   color: var(--color-text-strong);
+}
+
+.nav-link:hover {
+  text-decoration: underline;
+}
+
+/* Desktop layout: one row, logo on the left and the account control on the right. */
+@media (min-width: 768px) {
+  .inner {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    max-width: var(--content-width);
+    height: 76px;
+    padding: 0 32px;
+  }
+
+  .logo-link,
+  .nav-link {
+    position: static;
+  }
+
+  .logo-link {
+    margin-right: 8px;
+  }
+
+  .logo {
+    width: 41px;
+    height: 48px;
+  }
+
+  .nav-link {
+    font-size: 20px;
+    line-height: 1;
+  }
+
+  .nav-link.account {
+    margin-left: auto;
+  }
+}
+
+@media (min-width: 1024px) {
+  .inner {
+    gap: 28px;
+  }
+
+  .nav-link {
+    font-size: 22px;
+  }
 }

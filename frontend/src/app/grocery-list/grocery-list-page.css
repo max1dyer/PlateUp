@@ -205,3 +205,25 @@
   gap: 8px;
   font-size: 16px;
 }
+
+/* Desktop: wider column; the main actions stop stretching edge to edge. */
+@media (min-width: 768px) {
+  .page {
+    max-width: var(--reading-width);
+    padding: 36px 32px 48px;
+  }
+
+  .household {
+    max-width: var(--form-width);
+  }
+
+  .action {
+    align-self: flex-start;
+    width: auto;
+    padding: 0 28px;
+  }
+
+  .summary-actions {
+    flex-direction: row;
+  }
+}

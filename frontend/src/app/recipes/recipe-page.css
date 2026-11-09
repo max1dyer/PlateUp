@@ -409,3 +409,27 @@
     height: 260px;
   }
 }
+
+/* Desktop: the same single column as on phones, just wider. */
+@media (min-width: 768px) {
+  .recipe-container {
+    max-width: var(--reading-width);
+    margin: 32px auto;
+  }
+
+  .recipe-header {
+    height: 360px;
+  }
+
+  .recipe-card {
+    padding: 20px 32px 24px;
+  }
+
+  .recipe-heading h1 {
+    font-size: 40px;
+  }
+
+  .reviews-section {
+    padding: 24px 32px;
+  }
+}

@@ -49,7 +49,10 @@ export class SiteHeader {
     void this.router.navigateByUrl('/login');
   }
 
-  /** Converts a Figma x position to a percentage so the bar also fits narrower phones. */
+  /**
+   * Converts a Figma x position to a percentage so the bar also fits narrower phones.
+   * Bound to the `--left` CSS variable, which only the phone layout uses.
+   */
   protected leftPercent(left: number): string {
     return `${(left / FRAME_WIDTH) * 100}%`;
   }

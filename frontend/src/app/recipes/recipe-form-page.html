@@ -1,4 +1,4 @@
-<div class="ui-page">
+<div class="ui-page reading">
   <section class="intro">
     <h1 class="ui-title">{{ editing() ? 'Edit Recipe' : 'Upload a Recipe' }}</h1>
     <p class="ui-subtitle">
@@ -171,7 +171,7 @@
 
       <div class="ui-card">
         <h2 class="ui-heading">Nutrition per serving</h2>
-        <div class="grid">
+        <div class="grid nutrition-grid">
           <label class="ui-label">
             Calories
             <input class="ui-field" type="number" min="0" formControlName="calories" />

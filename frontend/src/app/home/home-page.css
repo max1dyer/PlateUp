@@ -31,3 +31,18 @@
   font-size: 21px;
   line-height: 110%;
 }
+
+@media (min-width: 768px) {
+  .shortcuts {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+  }
+
+  .shortcut {
+    padding: 16px;
+  }
+
+  .shortcut:hover .label {
+    text-decoration: underline;
+  }
+}

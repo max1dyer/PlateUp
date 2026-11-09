@@ -70,3 +70,14 @@
 .cancel {
   width: 100%;
 }
+
+/* Desktop: the same stacked cards as on phones, with roomier fields. */
+@media (min-width: 768px) {
+  .ingredient {
+    grid-template-columns: 1fr 90px 100px 28px;
+  }
+
+  .nutrition-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}

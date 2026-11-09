@@ -73,3 +73,24 @@
   font-size: 16px;
   color: var(--color-text-muted);
 }
+
+/* Desktop: same stacked sections as on phones, just wider. */
+@media (min-width: 768px) {
+  .profile-header {
+    gap: 20px;
+  }
+
+  .avatar {
+    width: 112px;
+    height: 112px;
+  }
+
+  .bio {
+    max-width: var(--reading-width);
+  }
+
+  .edit {
+    align-self: flex-start;
+    padding: 0 28px;
+  }
+}
