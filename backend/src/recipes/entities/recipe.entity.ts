@@ -1,4 +1,5 @@
 import { DomainValidationError } from '../../common/errors/domain-validation.error';
+import { DietaryRestriction, dietaryConflicts } from '../../common/domain/dietary-restriction';
 import {
   requireImageSourceOrNull,
   requireNonNegative,
@@ -43,6 +44,11 @@ export interface RecipeSnapshot extends RecipeDetails {
   rating: number | null;
   numRatings: number;
   reviews: RecipeReview[];
+  /**
+   * For each dietary restriction the recipe breaks, the ingredients that
+   * break it (an estimate from ingredient names, not allergy advice).
+   */
+  dietaryConflicts: Partial<Record<DietaryRestriction, string[]>>;
 }
 
 /** A user-contributed recipe. The owner is the recipe's author. */
@@ -121,6 +127,17 @@ export class Recipe extends OwnedEntity<RecipeSnapshot> {
     return review;
   }
 
+  /** For each dietary restriction this recipe breaks, the ingredients that break it. */
+  public get dietaryConflicts(): Partial<Record<DietaryRestriction, string[]>> {
+    return dietaryConflicts(this.details.ingredients.map((ingredient) => ingredient.name));
+  }
+
+  /** Whether no ingredient breaks any of `restrictions`. */
+  public suits(restrictions: readonly DietaryRestriction[]): boolean {
+    const conflicts = this.dietaryConflicts;
+    return restrictions.every((restriction) => conflicts[restriction] === undefined);
+  }
+
   public isVisibleTo(userId: string): boolean {
     return this.details.visibility === RecipeVisibility.Public || this.isOwnedBy(userId);
   }
@@ -138,6 +155,7 @@ export class Recipe extends OwnedEntity<RecipeSnapshot> {
       rating: this.averageRating,
       numRatings: this.numRatings,
       reviews: this.reviews,
+      dietaryConflicts: this.dietaryConflicts,
     };
   }
 
