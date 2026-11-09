@@ -44,9 +44,12 @@ select {
   color: inherit;
 }
 
+/* Text boxes grow taller only, so dragging can't push them past their card. */
 textarea {
   font: inherit;
   color: inherit;
+  resize: vertical;
+  max-width: 100%;
 }
 
 /*

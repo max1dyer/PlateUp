@@ -74,13 +74,7 @@
   color: var(--color-text-muted);
 }
 
-.my-stuff {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-/* Desktop: saved recipes, grocery lists and pantry sit side by side. */
+/* Desktop: same stacked sections as on phones, just wider. */
 @media (min-width: 768px) {
   .profile-header {
     gap: 20px;
@@ -98,16 +92,5 @@
   .edit {
     align-self: flex-start;
     padding: 0 28px;
-  }
-
-  .my-stuff {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 24px;
-    align-items: start;
-  }
-
-  .my-stuff .section {
-    min-width: 0;
   }
 }

@@ -22,26 +22,3 @@
   border-radius: var(--radius);
   background: var(--color-secondary);
 }
-
-/* Desktop: the add form stays in a left column beside the list. */
-@media (min-width: 768px) {
-  .ui-page {
-    display: grid;
-    grid-template-columns: minmax(280px, 360px) 1fr;
-    gap: 20px 32px;
-    align-items: start;
-  }
-
-  .intro {
-    grid-column: 1 / -1;
-  }
-
-  .add {
-    position: sticky;
-    top: 20px;
-  }
-
-  .contents {
-    min-width: 0;
-  }
-}

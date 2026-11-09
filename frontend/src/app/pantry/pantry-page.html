@@ -1,4 +1,4 @@
-<div class="ui-page">
+<div class="ui-page reading">
   <section class="intro">
     <h1 class="ui-title">Your Pantry</h1>
     <p class="ui-subtitle">Keep track of what you already have at home.</p>
@@ -30,46 +30,44 @@
     }
   </form>
 
-  <div class="contents">
-    @if (loading()) {
-      <p class="ui-status">Loading your pantry…</p>
-    } @else if (loadError()) {
-      <div class="ui-card">
-        <p class="ui-status">We couldn't load your pantry. Make sure the backend is running.</p>
-        <button type="button" class="ui-button primary" (click)="load()">Try again</button>
-      </div>
-    } @else {
-      <section class="items">
-        <h2 class="ui-heading">On hand ({{ items().length }})</h2>
-        @if (items().length > 5) {
-          <input
-            class="ui-field"
-            type="search"
-            placeholder="Search your pantry"
-            aria-label="Search your pantry"
-            [value]="search()"
-            (input)="onSearch($event)"
-          />
-        }
-        @if (shown().length > 0) {
-          <div class="ui-card green list">
-            @for (item of shown(); track item.id; let last = $last) {
-              <app-pantry-item-row
-                [item]="item"
-                (changed)="onChanged($event)"
-                (removed)="onRemoved($event)"
-              />
-              @if (!last) {
-                <div class="divider"></div>
-              }
+  @if (loading()) {
+    <p class="ui-status">Loading your pantry…</p>
+  } @else if (loadError()) {
+    <div class="ui-card">
+      <p class="ui-status">We couldn't load your pantry. Make sure the backend is running.</p>
+      <button type="button" class="ui-button primary" (click)="load()">Try again</button>
+    </div>
+  } @else {
+    <section class="items">
+      <h2 class="ui-heading">On hand ({{ items().length }})</h2>
+      @if (items().length > 5) {
+        <input
+          class="ui-field"
+          type="search"
+          placeholder="Search your pantry"
+          aria-label="Search your pantry"
+          [value]="search()"
+          (input)="onSearch($event)"
+        />
+      }
+      @if (shown().length > 0) {
+        <div class="ui-card green list">
+          @for (item of shown(); track item.id; let last = $last) {
+            <app-pantry-item-row
+              [item]="item"
+              (changed)="onChanged($event)"
+              (removed)="onRemoved($event)"
+            />
+            @if (!last) {
+              <div class="divider"></div>
             }
-          </div>
-        } @else if (items().length === 0) {
-          <p class="ui-status">Your pantry is empty. Add what you have on hand.</p>
-        } @else {
-          <p class="ui-status">Nothing in your pantry matches “{{ search() }}”.</p>
-        }
-      </section>
-    }
-  </div>
+          }
+        </div>
+      } @else if (items().length === 0) {
+        <p class="ui-status">Your pantry is empty. Add what you have on hand above.</p>
+      } @else {
+        <p class="ui-status">Nothing in your pantry matches “{{ search() }}”.</p>
+      }
+    </section>
+  }
 </div>
