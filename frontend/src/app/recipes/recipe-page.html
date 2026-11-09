@@ -83,6 +83,19 @@
         </div>
       }
 
+      <!-- Dietary warnings from the user's preferences -->
+      @if (dietWarnings().length > 0) {
+        <div class="diet-warning" role="note">
+          <p class="diet-warning-title">⚠ This recipe may not fit your dietary preferences</p>
+          <ul>
+            @for (warning of dietWarnings(); track warning) {
+              <li>{{ warning }}</li>
+            }
+          </ul>
+          <p class="diet-disclaimer">{{ disclaimer }}</p>
+        </div>
+      }
+
       <!-- Description and nutrition -->
       <div class="recipe-description">
         @if (recipe.description) {
@@ -92,6 +105,14 @@
           Per serving: {{ recipe.nutrition.calories }} kcal · {{ recipe.nutrition.protein }} g
           protein · {{ recipe.nutrition.carbohydrates }} g carbs · {{ recipe.nutrition.fat }} g fat
         </p>
+        @if (goalShares().length > 0) {
+          <p class="goal-shares">
+            Of your daily goals:
+            @for (share of goalShares(); track share.label; let last = $last) {
+              {{ share.percent }}% {{ share.label }}{{ last ? '' : ' ·' }}
+            }
+          </p>
+        }
       </div>
 
       <!-- Servings (scales the ingredient amounts) -->

@@ -409,3 +409,34 @@
     height: 260px;
   }
 }
+
+.diet-warning {
+  margin: 12px 0;
+  padding: 10px 12px;
+  border: 1px solid #f0b45c;
+  border-radius: 12px;
+  background: #fff1d6;
+  color: #6b3a00;
+}
+
+.diet-warning p,
+.diet-warning ul {
+  margin: 0;
+}
+
+.diet-warning ul {
+  padding-left: 20px;
+}
+
+.diet-warning-title {
+  font-weight: 700;
+}
+
+.diet-disclaimer {
+  margin-top: 6px !important;
+  font-size: 12px;
+}
+
+.goal-shares {
+  font-size: 14px;
+}
