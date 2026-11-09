@@ -9,6 +9,8 @@ describe('UsersController', () => {
     logIn: jest.fn(),
     findOne: jest.fn(),
     updateProfile: jest.fn(),
+    getPreferences: jest.fn(),
+    updatePreferences: jest.fn(),
     getSavedRecipes: jest.fn(),
     saveRecipe: jest.fn(),
     unsaveRecipe: jest.fn(),
@@ -35,6 +37,16 @@ describe('UsersController', () => {
 
     expect(service.findOne).toHaveBeenNthCalledWith(1, 'alice');
     expect(service.findOne).toHaveBeenNthCalledWith(2, 'bob');
+  });
+
+  it('getPreferences and updatePreferences act on the current user', async () => {
+    const dto = { defaultServings: 3 };
+
+    await controller.getPreferences('alice');
+    await controller.updatePreferences('alice', dto);
+
+    expect(service.getPreferences).toHaveBeenCalledWith('alice');
+    expect(service.updatePreferences).toHaveBeenCalledWith('alice', dto);
   });
 
   it('updateMe delegates profile changes', async () => {

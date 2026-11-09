@@ -5,6 +5,7 @@ import {
   requireText,
 } from '../../common/domain/guards';
 import { DomainValidationError } from '../../common/errors/domain-validation.error';
+import { UserPreferences, UserPreferencesProps } from './user-preferences';
 
 export const MAX_USERNAME_LENGTH = 30;
 export const MAX_DISPLAY_NAME_LENGTH = 50;
@@ -25,11 +26,16 @@ export interface UserSnapshot extends UserProfile {
   savedRecipeIds: string[];
 }
 
-/** A PlateUp account: a unique username, a public profile, and the recipes the user saved. */
+/**
+ * A PlateUp account: a unique username, a public profile, the recipes the
+ * user saved, and their private preferences. Preferences are left out of
+ * `toJSON()` because profiles are public; they have their own route.
+ */
 export class User extends BaseEntity<UserSnapshot> {
   public readonly username: string;
   private profile: UserProfile;
   private readonly savedRecipes = new Set<string>();
+  private prefs = UserPreferences.defaults();
 
   constructor(username: string, profile: UserProfile) {
     super();
@@ -54,6 +60,15 @@ export class User extends BaseEntity<UserSnapshot> {
 
   public get savedRecipeIds(): string[] {
     return [...this.savedRecipes];
+  }
+
+  public get preferences(): UserPreferences {
+    return this.prefs;
+  }
+
+  public updatePreferences(changes: Partial<UserPreferencesProps>): void {
+    this.prefs = this.prefs.with(changes);
+    this.touch();
   }
 
   public updateProfile(changes: Partial<UserProfile>): void {

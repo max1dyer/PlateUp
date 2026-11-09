@@ -1,5 +1,7 @@
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
+import { DietaryRestriction } from '../common/domain/dietary-restriction';
+import { DomainValidationError } from '../common/errors/domain-validation.error';
 import { RecipeVisibility } from '../recipes/entities/recipe.entity';
 import { RecipesService } from '../recipes/recipes.service';
 import { InMemoryRecipeRepository } from '../recipes/repositories/in-memory-recipe.repository';
@@ -55,6 +57,41 @@ describe('UsersService', () => {
     const updated = await service.updateProfile(user.id, { bio: 'Gym and physics.' });
 
     expect(updated.toJSON().bio).toBe('Gym and physics.');
+  });
+
+  it('new users get default preferences', async () => {
+    const user = await service.register({ username: 'peter', displayName: 'Peter' });
+
+    const prefs = await service.getPreferences(user.id);
+
+    expect(prefs.defaultServings).toBe(2);
+    expect(prefs.dietaryRestrictions).toEqual([]);
+  });
+
+  it('updatePreferences stores changes and returns the new preferences', async () => {
+    const user = await service.register({ username: 'peter', displayName: 'Peter' });
+
+    const updated = await service.updatePreferences(user.id, {
+      defaultServings: 4,
+      dietaryRestrictions: [DietaryRestriction.DairyFree],
+    });
+
+    expect(updated.defaultServings).toBe(4);
+    expect((await service.getPreferences(user.id)).dietaryRestrictions).toEqual([
+      DietaryRestriction.DairyFree,
+    ]);
+  });
+
+  it('updatePreferences rejects invalid values without changing anything', async () => {
+    const user = await service.register({ username: 'peter', displayName: 'Peter' });
+
+    await expect(
+      service.updatePreferences(user.id, {
+        defaultServings: 6,
+        macroSplit: { protein: 50, carbohydrates: 50, fat: 50 },
+      }),
+    ).rejects.toThrow(DomainValidationError);
+    expect((await service.getPreferences(user.id)).defaultServings).toBe(2);
   });
 
   it('saveRecipe, getSavedRecipes and unsaveRecipe manage saved recipes', async () => {

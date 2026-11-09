@@ -3,8 +3,10 @@ import { Recipe } from '../recipes/entities/recipe.entity';
 import { RecipesService } from '../recipes/recipes.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { LogInDto } from './dto/log-in.dto';
+import { UpdatePreferencesDto } from './dto/update-preferences.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from './entities/user.entity';
+import { UserPreferences } from './entities/user-preferences';
 import { UserRepository } from './repositories/user.repository';
 
 @Injectable()
@@ -50,6 +52,20 @@ export class UsersService {
     const user = await this.findOne(userId);
     user.updateProfile(dto);
     return this.users.save(user);
+  }
+
+  public async getPreferences(userId: string): Promise<UserPreferences> {
+    return (await this.findOne(userId)).preferences;
+  }
+
+  public async updatePreferences(
+    userId: string,
+    dto: UpdatePreferencesDto,
+  ): Promise<UserPreferences> {
+    const user = await this.findOne(userId);
+    user.updatePreferences(dto);
+    await this.users.save(user);
+    return user.preferences;
   }
 
   public async getSavedRecipes(userId: string): Promise<Recipe[]> {
