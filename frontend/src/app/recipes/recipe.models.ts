@@ -1,4 +1,5 @@
 import { Quantity } from '../grocery-list/grocery-list.models';
+import { DietaryRestriction } from '../preferences/preferences.models';
 
 export interface RecipeIngredient {
   name: string;
@@ -41,6 +42,8 @@ export interface Recipe {
   rating: number | null;
   numRatings: number;
   reviews: RecipeReview[];
+  /** For each restriction the recipe breaks, the ingredients that break it (an estimate). */
+  dietaryConflicts: Partial<Record<DietaryRestriction, string[]>>;
 }
 
 /** Body of `POST /recipes` (and, partially, `PATCH /recipes/:recipeId`). */

@@ -117,3 +117,29 @@
   padding: 0;
   list-style: none;
 }
+
+.diet-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.diet-toggle input {
+  margin-top: 3px;
+}
+
+.panel-note {
+  margin: 0;
+  font-size: 14px;
+}
+
+.disclaimer {
+  color: #6b6b6b;
+  font-size: 12px;
+}
+
+.diet-note {
+  margin: 0;
+  font-size: 15px;
+}

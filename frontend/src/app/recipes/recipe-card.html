@@ -17,6 +17,9 @@
         · Private
       }
     </span>
+    @for (warning of warnings(); track warning) {
+      <span class="diet-warning">⚠ {{ warning }}</span>
+    }
     @if (recipe().tags.length > 0) {
       <span class="tags">
         @for (tag of recipe().tags; track tag) {

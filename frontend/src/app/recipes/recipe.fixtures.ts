@@ -33,6 +33,7 @@ export function recipe(overrides: Partial<Recipe> = {}): Recipe {
     rating: null,
     numRatings: 0,
     reviews: [],
+    dietaryConflicts: {},
     ...overrides,
   };
 }

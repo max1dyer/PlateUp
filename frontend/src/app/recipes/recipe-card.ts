@@ -14,4 +14,6 @@ export class RecipeCard {
   public readonly recipe = input.required<Recipe>();
   /** Alternates the card colour like the grocery list's category cards. */
   public readonly green = input(false);
+  /** Dietary warnings, e.g. "Not dairy-free (Milk)"; shown when the recipe breaks a preference. */
+  public readonly warnings = input<readonly string[]>([]);
 }
