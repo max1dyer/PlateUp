@@ -88,7 +88,7 @@ describe('UsersService', () => {
     await expect(
       service.updatePreferences(user.id, {
         defaultServings: 6,
-        macroSplit: { protein: 50, carbohydrates: 50, fat: 50 },
+        macroGoals: { protein: -10 },
       }),
     ).rejects.toThrow(DomainValidationError);
     expect((await service.getPreferences(user.id)).defaultServings).toBe(2);

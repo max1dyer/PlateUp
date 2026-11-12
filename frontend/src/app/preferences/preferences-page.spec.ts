@@ -40,7 +40,7 @@ describe('PreferencesPage', () => {
           defaultServings: 3,
           dietaryRestrictions: ['nut-free'],
           dailyCalories: 2200,
-          macroSplit: { protein: 30, carbohydrates: 45, fat: 25 },
+          macroGoals: { protein: 165, carbohydrates: 250, fat: null },
         }),
       ),
     );
@@ -51,7 +51,10 @@ describe('PreferencesPage', () => {
     expect(checkbox(page, 'nut-free').checked).toBe(true);
     expect(checkbox(page, 'vegan').checked).toBe(false);
     expect(input(page, 'daily-calories').value).toBe('2200');
-    expect(page.querySelector('.macro-total')?.textContent).toContain('100%');
+    expect(input(page, 'macro-protein').value).toBe('165');
+    // 2200 - 165*4 - 250*4 = 540 kcal of fat = 60 g, shown as a preview only.
+    expect(input(page, 'macro-fat').value).toBe('');
+    expect(input(page, 'macro-fat').placeholder).toBe('60');
   });
 
   it('saves servings, restrictions, and goals', async () => {
@@ -62,9 +65,8 @@ describe('PreferencesPage', () => {
     type(input(page, 'default-servings'), '4');
     checkbox(page, 'dairy-free').click();
     type(input(page, 'daily-calories'), '2000');
-    type(input(page, 'macro-protein'), '30');
-    type(input(page, 'macro-carbs'), '40');
-    type(input(page, 'macro-fat'), '30');
+    type(input(page, 'macro-protein'), '150');
+    type(input(page, 'macro-carbohydrates'), '200');
     (page.querySelector('button[type="submit"]') as HTMLButtonElement).click();
     await TestBed.inject(ApplicationRef).whenStable();
 
@@ -72,30 +74,66 @@ describe('PreferencesPage', () => {
       defaultServings: 4,
       dietaryRestrictions: ['dairy-free'],
       dailyCalories: 2000,
-      macroSplit: { protein: 30, carbohydrates: 40, fat: 30 },
+      macroGoals: { protein: 150, carbohydrates: 200, fat: null },
     });
   });
 
-  it('flags a macro split that does not total 100% and shows the backend error', async () => {
+  it('previews the missing macro and can copy the preview into the field', async () => {
+    service.load.mockReturnValue(of(preferences()));
+    const page = await render();
+
+    type(input(page, 'daily-calories'), '2000');
+    type(input(page, 'macro-protein'), '150');
+    type(input(page, 'macro-carbohydrates'), '200');
+    await TestBed.inject(ApplicationRef).whenStable();
+
+    expect(input(page, 'macro-fat').placeholder).toBe('66');
+    expect(page.querySelector('.plan-status')?.textContent).toContain('66 g of fat');
+
+    (page.querySelector('.plan-status .link-button') as HTMLButtonElement).click();
+    await TestBed.inject(ApplicationRef).whenStable();
+    expect(input(page, 'macro-fat').value).toBe('66');
+  });
+
+  it('previews total calories when only macros are entered', async () => {
+    service.load.mockReturnValue(of(preferences()));
+    const page = await render();
+
+    type(input(page, 'macro-protein'), '150');
+    type(input(page, 'macro-carbohydrates'), '200');
+    type(input(page, 'macro-fat'), '60');
+    await TestBed.inject(ApplicationRef).whenStable();
+
+    expect(input(page, 'daily-calories').placeholder).toBe('1940');
+  });
+
+  it('flags macros that overshoot the calorie goal, with the amount', async () => {
+    service.load.mockReturnValue(of(preferences()));
+    const page = await render();
+
+    type(input(page, 'daily-calories'), '1500');
+    type(input(page, 'macro-protein'), '200');
+    type(input(page, 'macro-carbohydrates'), '250');
+    await TestBed.inject(ApplicationRef).whenStable();
+
+    expect(page.querySelector('.plan-status.over')?.textContent).toContain('300 kcal over');
+    expect(input(page, 'daily-calories').classList).toContain('over');
+    expect(page.querySelector('.calorie-bar .overflow')).not.toBeNull();
+  });
+
+  it('shows the backend error when saving fails', async () => {
     service.load.mockReturnValue(of(preferences()));
     service.update.mockReturnValue(
       throwError(
-        () =>
-          new HttpErrorResponse({
-            status: 400,
-            error: { message: 'Protein, carbohydrates, and fat must add up to 100%.' },
-          }),
+        () => new HttpErrorResponse({ status: 400, error: { message: 'Protein (g) is invalid.' } }),
       ),
     );
     const page = await render();
 
-    type(input(page, 'macro-protein'), '50');
-    await TestBed.inject(ApplicationRef).whenStable();
-    expect(page.querySelector('.macro-total')?.textContent).toContain('must be 100%');
-
     (page.querySelector('button[type="submit"]') as HTMLButtonElement).click();
     await TestBed.inject(ApplicationRef).whenStable();
-    expect(page.querySelector('.ui-error')?.textContent).toContain('add up to 100%');
+
+    expect(page.querySelector('.ui-error')?.textContent).toContain('Protein (g)');
   });
 
   it('offers a retry when preferences cannot be loaded', async () => {

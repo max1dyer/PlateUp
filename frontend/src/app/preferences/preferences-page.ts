@@ -8,13 +8,17 @@ import {
   DIETARY_DISCLAIMER,
   DIETARY_RESTRICTIONS,
   DietaryRestriction,
+  MACROS,
   MAX_DAILY_CALORIES,
   MAX_DEFAULT_SERVINGS,
+  MAX_MACRO_GRAMS,
   MIN_DAILY_CALORIES,
-  MacroSplit,
+  Macro,
+  MacroGoals,
   PreferenceChanges,
   UserPreferences,
 } from './preferences.models';
+import { MacroPlan, planMacros } from './macro-plan';
 import { PreferencesService } from './preferences.service';
 
 /** Form values; blank number inputs give null. */
@@ -43,6 +47,8 @@ export class PreferencesPage implements OnInit {
   protected readonly maxServings = MAX_DEFAULT_SERVINGS;
   protected readonly minCalories = MIN_DAILY_CALORIES;
   protected readonly maxCalories = MAX_DAILY_CALORIES;
+  protected readonly maxGrams = MAX_MACRO_GRAMS;
+  protected readonly macros = MACROS;
 
   protected readonly loading = signal(true);
   protected readonly loadError = signal(false);
@@ -62,15 +68,33 @@ export class PreferencesPage implements OnInit {
     initialValue: this.form.getRawValue(),
   });
 
-  /** Sum of the macro percentages entered so far (blanks count as 0). */
-  protected readonly macroTotal = computed(() => {
-    const { protein, carbohydrates, fat } = this.values();
-    return (protein ?? 0) + (carbohydrates ?? 0) + (fat ?? 0);
+  /** How the calorie and macro goals fit together, with any preview or overshoot. */
+  protected readonly plan = computed<MacroPlan>(() => {
+    const values = this.values();
+    return planMacros(numberOrNull(values.dailyCalories), {
+      protein: numberOrNull(values.protein),
+      carbohydrates: numberOrNull(values.carbohydrates),
+      fat: numberOrNull(values.fat),
+    });
   });
-  /** Whether any macro percentage has been entered. */
-  protected readonly hasMacroSplit = computed(() => {
-    const { protein, carbohydrates, fat } = this.values();
-    return [protein, carbohydrates, fat].some((value) => value !== null && value !== undefined);
+
+  /** Widths (as % of the bar) for the calorie bar's segments and goal marker. */
+  protected readonly bar = computed(() => {
+    const plan = this.plan();
+    const macroTotal = MACROS.reduce((sum, { value }) => sum + plan.caloriesByMacro[value], 0);
+    const scale = Math.max(plan.calories ?? 0, macroTotal, 1);
+    const percent = (kcal: number): number => (kcal / scale) * 100;
+    return {
+      segments: MACROS.map(({ value }) => ({
+        macro: value,
+        width: percent(plan.caloriesByMacro[value]),
+        previewed: plan.preview?.field === value,
+      })),
+      goal:
+        plan.preview?.field === 'calories' || plan.calories === null
+          ? null
+          : percent(plan.calories),
+    };
   });
 
   constructor(
@@ -109,8 +133,33 @@ export class PreferencesPage implements OnInit {
     });
   }
 
-  protected clearMacros(): void {
-    this.form.patchValue({ protein: null, carbohydrates: null, fat: null });
+  protected clearGoals(): void {
+    this.form.patchValue({ dailyCalories: null, protein: null, carbohydrates: null, fat: null });
+  }
+
+  /** The preview for `field`, if that is the field being filled in. */
+  protected previewFor(field: 'calories' | Macro): number | null {
+    const preview = this.plan().preview;
+    return preview?.field === field ? preview.value : null;
+  }
+
+  /** Copies the previewed value into its field, so it is saved as the user's own goal. */
+  protected acceptPreview(): void {
+    const preview = this.plan().preview;
+    if (preview === null) {
+      return;
+    }
+    const control = preview.field === 'calories' ? 'dailyCalories' : preview.field;
+    this.form.controls[control].setValue(preview.value);
+  }
+
+  /** A macro's share of the daily calories, for the hint under its field. */
+  protected shareOf(macro: Macro): number | null {
+    const plan = this.plan();
+    if (plan.calories === null || plan.calories === 0) {
+      return null;
+    }
+    return Math.round((plan.caloriesByMacro[macro] / plan.calories) * 100);
   }
 
   protected save(): void {
@@ -134,30 +183,35 @@ export class PreferencesPage implements OnInit {
     this.form.setValue({
       defaultServings: preferences.defaultServings,
       dailyCalories: preferences.dailyCalories,
-      protein: preferences.macroSplit?.protein ?? null,
-      carbohydrates: preferences.macroSplit?.carbohydrates ?? null,
-      fat: preferences.macroSplit?.fat ?? null,
+      ...preferences.macroGoals,
     });
   }
 
-  /** The request body; the backend validates it and reports any problem. */
+  /**
+   * The request body; the backend validates it and reports any problem.
+   * Previews are not sent: the backend derives the same values, and keeps
+   * them in step if the other goals change later.
+   */
   private changes(): PreferenceChanges {
     const values: PreferencesForm = this.form.getRawValue();
-    const macroSplit: MacroSplit | null = this.hasMacroSplit()
-      ? {
-          protein: values.protein ?? 0,
-          carbohydrates: values.carbohydrates ?? 0,
-          fat: values.fat ?? 0,
-        }
-      : null;
+    const macroGoals: MacroGoals = {
+      protein: numberOrNull(values.protein),
+      carbohydrates: numberOrNull(values.carbohydrates),
+      fat: numberOrNull(values.fat),
+    };
     return {
       // Keep the order the options are shown in.
       dietaryRestrictions: this.restrictionOptions
         .map((option) => option.value)
         .filter((value) => this.restrictions().has(value)),
       ...(values.defaultServings !== null ? { defaultServings: values.defaultServings } : {}),
-      dailyCalories: values.dailyCalories,
-      macroSplit,
+      dailyCalories: numberOrNull(values.dailyCalories),
+      macroGoals,
     };
   }
+}
+
+/** Number inputs give null when blank (and `valueChanges` may give undefined). */
+function numberOrNull(value: number | null | undefined): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }

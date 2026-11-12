@@ -25,14 +25,25 @@ export function restrictionLabel(restriction: DietaryRestriction): string {
   return DIETARY_RESTRICTIONS.find((option) => option.value === restriction)?.label ?? restriction;
 }
 
-/** Share of daily calories from each macronutrient, in whole percent totalling 100. */
-export interface MacroSplit {
-  protein: number;
-  carbohydrates: number;
-  fat: number;
-}
+/** Energy per gram of each macronutrient (mirrors the backend). */
+export const KCAL_PER_GRAM = { protein: 4, carbohydrates: 4, fat: 9 } as const;
 
-/** Daily goals derived by the backend; a field is null when its goal is not set. */
+export type Macro = keyof typeof KCAL_PER_GRAM;
+
+/** Macros in display order, with their labels. */
+export const MACROS: readonly { value: Macro; label: string }[] = [
+  { value: 'protein', label: 'Protein' },
+  { value: 'carbohydrates', label: 'Carbs' },
+  { value: 'fat', label: 'Fat' },
+];
+
+/** Grams per day of each macronutrient; null means no goal for it. */
+export type MacroGoals = Record<Macro, number | null>;
+
+/**
+ * The goals in effect each day, from the backend: the user's own goals plus
+ * the one they determine (see `planMacros`); null when not set or derivable.
+ */
 export interface DailyTargets {
   calories: number | null;
   /** Grams per day. */
@@ -46,7 +57,7 @@ export interface UserPreferences {
   defaultServings: number;
   dietaryRestrictions: DietaryRestriction[];
   dailyCalories: number | null;
-  macroSplit: MacroSplit | null;
+  macroGoals: MacroGoals;
   dailyTargets: DailyTargets;
 }
 
@@ -55,13 +66,14 @@ export interface PreferenceChanges {
   defaultServings?: number;
   dietaryRestrictions?: DietaryRestriction[];
   dailyCalories?: number | null;
-  macroSplit?: MacroSplit | null;
+  macroGoals?: Partial<MacroGoals>;
 }
 
 /** Limits enforced by the backend's `UserPreferences`, mirrored for form hints. */
 export const MAX_DEFAULT_SERVINGS = 50;
 export const MIN_DAILY_CALORIES = 500;
 export const MAX_DAILY_CALORIES = 10000;
+export const MAX_MACRO_GRAMS = 1000;
 
 /** Shown wherever dietary matching is used (spec 3.6: estimates, not allergy advice). */
 export const DIETARY_DISCLAIMER =

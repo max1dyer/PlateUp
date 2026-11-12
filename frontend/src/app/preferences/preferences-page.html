@@ -52,65 +52,124 @@
         <p class="disclaimer">{{ disclaimer }}</p>
       </fieldset>
 
-      <fieldset class="ui-card">
+      <fieldset class="ui-card goals">
         <legend class="ui-heading">Daily goals</legend>
-        <label class="ui-label">
-          Calories per day
-          <input
-            id="daily-calories"
-            class="ui-field"
-            type="number"
-            [attr.min]="minCalories"
-            [attr.max]="maxCalories"
-            step="50"
-            placeholder="No goal"
-            formControlName="dailyCalories"
-          />
+        <label class="ui-label" [class.auto]="previewFor('calories') !== null">
+          <span class="field-name">
+            Calories per day
+            @if (previewFor('calories') !== null) {
+              <span class="auto-badge">auto</span>
+            }
+          </span>
+          <span class="inline">
+            <input
+              id="daily-calories"
+              class="ui-field"
+              [class.over]="plan().status === 'over'"
+              type="number"
+              [attr.min]="minCalories"
+              [attr.max]="maxCalories"
+              step="50"
+              [placeholder]="previewFor('calories') ?? 'No goal'"
+              formControlName="dailyCalories"
+            />
+            kcal
+          </span>
         </label>
-        <p class="ui-label">Macro split (% of calories)</p>
+
         <div class="macros">
-          <label class="ui-label">
-            Protein
-            <input
-              id="macro-protein"
-              class="ui-field"
-              type="number"
-              min="0"
-              max="100"
-              formControlName="protein"
-            />
-          </label>
-          <label class="ui-label">
-            Carbs
-            <input
-              id="macro-carbs"
-              class="ui-field"
-              type="number"
-              min="0"
-              max="100"
-              formControlName="carbohydrates"
-            />
-          </label>
-          <label class="ui-label">
-            Fat
-            <input
-              id="macro-fat"
-              class="ui-field"
-              type="number"
-              min="0"
-              max="100"
-              formControlName="fat"
-            />
-          </label>
+          @for (macro of macros; track macro.value) {
+            <label
+              class="ui-label macro {{ macro.value }}"
+              [class.auto]="previewFor(macro.value) !== null"
+            >
+              <span class="field-name">
+                <span class="swatch" aria-hidden="true"></span>
+                {{ macro.label }}
+                @if (previewFor(macro.value) !== null) {
+                  <span class="auto-badge">auto</span>
+                }
+              </span>
+              <span class="inline">
+                <input
+                  [id]="'macro-' + macro.value"
+                  class="ui-field"
+                  type="number"
+                  min="0"
+                  [attr.max]="maxGrams"
+                  step="1"
+                  [placeholder]="previewFor(macro.value) ?? '—'"
+                  [formControlName]="macro.value"
+                />
+                g
+              </span>
+              <span class="ui-hint macro-kcal">
+                @if (plan().grams[macro.value] !== null) {
+                  {{ plan().caloriesByMacro[macro.value] }} kcal
+                  @if (shareOf(macro.value); as share) {
+                    · {{ share }}%
+                  }
+                }
+              </span>
+            </label>
+          }
         </div>
-        @if (hasMacroSplit()) {
-          <p class="ui-hint macro-total" [class.off]="macroTotal() !== 100">
-            Total: {{ macroTotal() }}% {{ macroTotal() === 100 ? '✓' : '(must be 100%)' }}
-            <button type="button" class="link-button" (click)="clearMacros()">Clear</button>
-          </p>
-        } @else {
-          <p class="ui-hint">Leave blank for no macro goal.</p>
+
+        @if (plan().status !== 'empty') {
+          <div class="calorie-bar" [class.over]="plan().status === 'over'" aria-hidden="true">
+            @for (segment of bar().segments; track segment.macro) {
+              <span
+                class="segment {{ segment.macro }}"
+                [class.previewed]="segment.previewed"
+                [style.width.%]="segment.width"
+              ></span>
+            }
+            @if (bar().goal; as goal) {
+              <span class="goal-marker" [style.left.%]="goal"></span>
+              @if (plan().status === 'over') {
+                <span class="overflow" [style.left.%]="goal"></span>
+              }
+            }
+          </div>
         }
+
+        <p class="plan-status {{ plan().status }}" role="status">
+          @switch (plan().status) {
+            @case ('over') {
+              ⚠ Your macros add up to {{ plan().enteredCalories.toLocaleString() }} kcal,
+              <strong>{{ plan().overshoot.toLocaleString() }} kcal over</strong> your
+              {{ plan().calories?.toLocaleString() }} kcal goal.
+            }
+            @case ('under') {
+              {{ plan().unassigned.toLocaleString() }} kcal of your goal isn't assigned to a macro
+              yet.
+            }
+            @case ('balanced') {
+              @if (plan().preview; as preview) {
+                @if (preview.field === 'calories') {
+                  ✓ Your macros add up to {{ preview.value.toLocaleString() }} kcal per day.
+                } @else {
+                  ✓ {{ preview.value }} g of {{ preview.field === 'carbohydrates' ? 'carbs' : preview.field }}
+                  fills the rest of your calories.
+                }
+                <button type="button" class="link-button" (click)="acceptPreview()">
+                  Use {{ preview.value.toLocaleString() }}
+                </button>
+              } @else {
+                ✓ Your macros match your calorie goal.
+              }
+            }
+            @case ('partial') {
+              Fill in the remaining values.
+            }
+            @default {
+              Leave this blank if you don't track calories.
+            }
+          }
+          @if (plan().status !== 'empty') {
+            <button type="button" class="link-button" (click)="clearGoals()">Clear goals</button>
+          }
+        </p>
       </fieldset>
 
       @if (error(); as message) {

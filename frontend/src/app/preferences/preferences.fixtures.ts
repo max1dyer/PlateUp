@@ -6,7 +6,7 @@ export function preferences(overrides: Partial<UserPreferences> = {}): UserPrefe
     defaultServings: 2,
     dietaryRestrictions: [],
     dailyCalories: null,
-    macroSplit: null,
+    macroGoals: { protein: null, carbohydrates: null, fat: null },
     dailyTargets: { calories: null, protein: null, carbohydrates: null, fat: null },
     ...overrides,
   };

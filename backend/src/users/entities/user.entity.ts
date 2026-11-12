@@ -5,7 +5,7 @@ import {
   requireText,
 } from '../../common/domain/guards';
 import { DomainValidationError } from '../../common/errors/domain-validation.error';
-import { UserPreferences, UserPreferencesProps } from './user-preferences';
+import { UserPreferences, UserPreferencesChanges } from './user-preferences';
 
 export const MAX_USERNAME_LENGTH = 30;
 export const MAX_DISPLAY_NAME_LENGTH = 50;
@@ -66,7 +66,7 @@ export class User extends BaseEntity<UserSnapshot> {
     return this.prefs;
   }
 
-  public updatePreferences(changes: Partial<UserPreferencesProps>): void {
+  public updatePreferences(changes: UserPreferencesChanges): void {
     this.prefs = this.prefs.with(changes);
     this.touch();
   }

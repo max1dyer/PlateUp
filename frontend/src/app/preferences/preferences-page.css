@@ -48,8 +48,114 @@ legend {
   gap: 8px;
 }
 
-.macro-total.off {
+/* Macro colours, shared by the field swatches and the calorie bar. */
+.protein {
+  --macro-color: #c8743a;
+}
+
+.carbohydrates {
+  --macro-color: #e1b84a;
+}
+
+.fat {
+  --macro-color: #7fa86a;
+}
+
+.field-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--macro-color);
+}
+
+.auto-badge {
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #e8e2d6;
+  color: #5c5546;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.auto input::placeholder {
+  color: #8a7f6a;
+  font-style: italic;
+}
+
+.macro-kcal {
+  min-height: 1.2em;
+}
+
+input.over {
+  border-color: #b3261e;
+  box-shadow: 0 0 0 2px rgb(179 38 30 / 20%);
+}
+
+.calorie-bar {
+  position: relative;
+  display: flex;
+  height: 14px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #ece6da;
+}
+
+.segment {
+  height: 100%;
+  background: var(--macro-color);
+  transition: width 150ms ease;
+}
+
+.segment.previewed {
+  background: repeating-linear-gradient(
+    45deg,
+    var(--macro-color) 0 4px,
+    color-mix(in srgb, var(--macro-color) 45%, white) 4px 8px
+  );
+}
+
+.goal-marker {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #3a3a3a;
+}
+
+.overflow {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(
+    -45deg,
+    rgb(179 38 30 / 75%) 0 4px,
+    rgb(179 38 30 / 35%) 4px 8px
+  );
+}
+
+.plan-status {
+  margin: 0;
+  font-size: 14px;
+}
+
+.plan-status.over {
   color: #b3261e;
+}
+
+.plan-status.balanced {
+  color: #3d6b2c;
+}
+
+.plan-status .link-button {
+  margin-left: 6px;
 }
 
 .link-button {
@@ -65,4 +171,13 @@ legend {
   margin: 0;
   color: #6b6b6b;
   font-size: 12px;
+}
+
+.inline input {
+  flex: 1;
+  min-width: 0;
+}
+
+.inline input.narrow {
+  flex: none;
 }

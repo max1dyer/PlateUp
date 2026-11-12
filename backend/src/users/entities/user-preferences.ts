@@ -7,16 +7,17 @@ export const DEFAULT_SERVINGS = 2;
 export const MAX_SERVINGS = 50;
 export const MIN_DAILY_CALORIES = 500;
 export const MAX_DAILY_CALORIES = 10000;
+/** Most grams per day accepted for any one macro. */
+export const MAX_MACRO_GRAMS = 1000;
 
-/** Energy per gram of each macronutrient, used to turn a calorie split into grams. */
-const KCAL_PER_GRAM = { protein: 4, carbohydrates: 4, fat: 9 } as const;
+/** Energy per gram of each macronutrient. */
+export const KCAL_PER_GRAM = { protein: 4, carbohydrates: 4, fat: 9 } as const;
 
-/** Share of daily calories from each macronutrient, in whole percent totalling 100. */
-export interface MacroSplit {
-  protein: number;
-  carbohydrates: number;
-  fat: number;
-}
+export type Macro = keyof typeof KCAL_PER_GRAM;
+const MACROS = Object.keys(KCAL_PER_GRAM) as Macro[];
+
+/** Grams per day of each macronutrient; null means no goal for it. */
+export type MacroGoals = Record<Macro, number | null>;
 
 /** The user-editable preference fields. */
 export interface UserPreferencesProps {
@@ -26,11 +27,20 @@ export interface UserPreferencesProps {
   dietaryRestrictions: DietaryRestriction[];
   /** Daily calorie goal, or null for none. */
   dailyCalories: number | null;
-  /** How the daily calories split into macros, or null for no macro goal. */
-  macroSplit: MacroSplit | null;
+  /** Daily gram goal for each macro; each may be null independently. */
+  macroGoals: MacroGoals;
 }
 
-/** Daily targets derived from the goals; a field is null when its goal is not set. */
+/** A partial edit; `macroGoals` may name only the macros that change. */
+export type UserPreferencesChanges = Partial<Omit<UserPreferencesProps, 'macroGoals'>> & {
+  macroGoals?: Partial<MacroGoals>;
+};
+
+/**
+ * The goals in effect each day. Each field is the user's own goal when set;
+ * otherwise it is filled in from the others when they determine it (see
+ * `deriveDailyTargets`), and null when they do not.
+ */
 export interface DailyTargets {
   calories: number | null;
   /** Grams per day. */
@@ -44,15 +54,40 @@ export interface UserPreferencesJson extends UserPreferencesProps {
 }
 
 /**
+ * Fills in the one goal the others determine:
+ * - no calorie goal but all three macros set: calories are their total energy;
+ * - a calorie goal and exactly one macro unset: that macro gets the calories
+ *   left over (rounded down to whole grams), or 0 if the others already use
+ *   them up.
+ * Anything else is returned as given. A calorie goal smaller than the macros'
+ * energy is kept as is; the preferences page warns about the overshoot.
+ */
+export function deriveDailyTargets(calories: number | null, macros: MacroGoals): DailyTargets {
+  const unset = MACROS.filter((macro) => macros[macro] === null);
+  const macroCalories = MACROS.reduce(
+    (total, macro) => total + (macros[macro] ?? 0) * KCAL_PER_GRAM[macro],
+    0,
+  );
+  const targets: DailyTargets = { calories, ...macros };
+  if (calories === null && unset.length === 0) {
+    targets.calories = macroCalories;
+  } else if (calories !== null && unset.length === 1) {
+    const [missing] = unset;
+    targets[missing] = Math.max(0, Math.floor((calories - macroCalories) / KCAL_PER_GRAM[missing]));
+  }
+  return targets;
+}
+
+/**
  * A user's personal settings (UC10): default servings, dietary restrictions,
- * and calorie and macro goals. Immutable value object; `with()` returns a
- * validated copy.
+ * and a daily calorie goal with gram goals per macro. Immutable value object;
+ * `with()` returns a validated copy.
  */
 export class UserPreferences {
   public readonly defaultServings: number;
   public readonly dietaryRestrictions: readonly DietaryRestriction[];
   public readonly dailyCalories: number | null;
-  public readonly macroSplit: Readonly<MacroSplit> | null;
+  public readonly macroGoals: Readonly<MacroGoals>;
 
   constructor(props: UserPreferencesProps) {
     this.defaultServings = requireIntegerInRange(
@@ -71,8 +106,7 @@ export class UserPreferences {
             MAX_DAILY_CALORIES,
             'Daily calories',
           );
-    this.macroSplit =
-      props.macroSplit === null ? null : UserPreferences.validateSplit(props.macroSplit);
+    this.macroGoals = UserPreferences.validateMacroGoals(props.macroGoals);
   }
 
   /** What a new account starts with: default servings, no restrictions, no goals. */
@@ -81,29 +115,23 @@ export class UserPreferences {
       defaultServings: DEFAULT_SERVINGS,
       dietaryRestrictions: [],
       dailyCalories: null,
-      macroSplit: null,
+      macroGoals: { protein: null, carbohydrates: null, fat: null },
     });
   }
 
   /** A copy with `changes` applied; the result is validated as a whole. */
-  public with(changes: Partial<UserPreferencesProps>): UserPreferences {
-    return new UserPreferences({ ...this.toProps(), ...changes });
+  public with(changes: UserPreferencesChanges): UserPreferences {
+    const current = this.toProps();
+    return new UserPreferences({
+      ...current,
+      ...changes,
+      macroGoals: { ...current.macroGoals, ...changes.macroGoals },
+    });
   }
 
-  /** Daily calories, and grams of each macro when a split is set too. */
+  /** The goals in effect, including the one the others determine. */
   public get dailyTargets(): DailyTargets {
-    const calories = this.dailyCalories;
-    const split = this.macroSplit;
-    const grams = (macro: keyof MacroSplit): number | null =>
-      calories === null || split === null
-        ? null
-        : Math.round((calories * split[macro]) / 100 / KCAL_PER_GRAM[macro]);
-    return {
-      calories,
-      protein: grams('protein'),
-      carbohydrates: grams('carbohydrates'),
-      fat: grams('fat'),
-    };
+    return deriveDailyTargets(this.dailyCalories, this.macroGoals);
   }
 
   public toJSON(): UserPreferencesJson {
@@ -115,7 +143,7 @@ export class UserPreferences {
       defaultServings: this.defaultServings,
       dietaryRestrictions: [...this.dietaryRestrictions],
       dailyCalories: this.dailyCalories,
-      macroSplit: this.macroSplit === null ? null : { ...this.macroSplit },
+      macroGoals: { ...this.macroGoals },
     };
   }
 
@@ -128,16 +156,21 @@ export class UserPreferences {
     return Object.values(DietaryRestriction).filter((value) => restrictions.includes(value));
   }
 
-  /** Spec 3.1: macro splits that do not total 100% are rejected. */
-  private static validateSplit(split: MacroSplit): MacroSplit {
-    const checked = {
-      protein: requireIntegerInRange(split.protein, 0, 100, 'Protein %'),
-      carbohydrates: requireIntegerInRange(split.carbohydrates, 0, 100, 'Carbohydrates %'),
-      fat: requireIntegerInRange(split.fat, 0, 100, 'Fat %'),
-    };
-    if (checked.protein + checked.carbohydrates + checked.fat !== 100) {
-      throw new DomainValidationError('Protein, carbohydrates, and fat must add up to 100%.');
+  private static validateMacroGoals(goals: MacroGoals): MacroGoals {
+    if (typeof goals !== 'object' || goals === null) {
+      throw new DomainValidationError('Macro goals must be an object.');
     }
-    return checked;
+    const label: Record<Macro, string> = {
+      protein: 'Protein',
+      carbohydrates: 'Carbohydrates',
+      fat: 'Fat',
+    };
+    const grams = (macro: Macro): number | null => {
+      const value = goals[macro] ?? null;
+      return value === null
+        ? null
+        : requireIntegerInRange(value, 0, MAX_MACRO_GRAMS, `${label[macro]} (g)`);
+    };
+    return { protein: grams('protein'), carbohydrates: grams('carbohydrates'), fat: grams('fat') };
   }
 }

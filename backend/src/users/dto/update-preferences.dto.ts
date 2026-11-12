@@ -1,10 +1,13 @@
 import { DietaryRestriction } from '../../common/domain/dietary-restriction';
-import { MacroSplit } from '../entities/user-preferences';
+import { MacroGoals } from '../entities/user-preferences';
 
-/** Body of `PATCH /users/me/preferences`; omitted fields stay unchanged, `null` clears a goal. */
+/**
+ * Body of `PATCH /users/me/preferences`. Omitted fields stay unchanged and
+ * `null` clears a goal; `macroGoals` may name only the macros that change.
+ */
 export class UpdatePreferencesDto {
   public readonly defaultServings?: number;
   public readonly dietaryRestrictions?: DietaryRestriction[];
   public readonly dailyCalories?: number | null;
-  public readonly macroSplit?: MacroSplit | null;
+  public readonly macroGoals?: Partial<MacroGoals>;
 }

@@ -96,7 +96,7 @@ These are the major classes for CRC cards and the class diagram. Paths are relat
 | `ContactMessage`, `ContactService`, `ContactController`, `ContactMessageRepository`                        | contact feature       | `contact/`                                 |
 | `DemoDataSeeder`, `SeedModule` (TEMPORARY: sample data loaded at startup)                                  | seed data             | `seed/`                                    |
 
-DTOs (`CreateRecipeDto`, `LogInDto`, `AddRecipeToListDto`, ...) are plain request shapes in each feature's `dto/` folder and are not part of the diagram. `guessCategory()` (`common/domain/ingredient-category.ts`) is a pure function that files generated grocery items under a store section. `dietaryConflicts()` and the `DietaryRestriction` enum (`common/domain/dietary-restriction.ts`) are pure keyword rules that estimate which dietary restrictions a recipe's ingredients break; `Recipe` exposes the result as `dietaryConflicts` and `suits()`.
+DTOs (`CreateRecipeDto`, `LogInDto`, `AddRecipeToListDto`, ...) are plain request shapes in each feature's `dto/` folder and are not part of the diagram. `guessCategory()` (`common/domain/ingredient-category.ts`) is a pure function that files generated grocery items under a store section. `dietaryConflicts()` and the `DietaryRestriction` enum (`common/domain/dietary-restriction.ts`) are pure keyword rules that estimate which dietary restrictions a recipe's ingredients break; `Recipe` exposes the result as `dietaryConflicts` and `suits()`. `deriveDailyTargets()` (`users/entities/user-preferences.ts`) fills in the one daily goal the others determine (total calories from three gram goals, or the last macro's grams from the calorie goal); the frontend's `planMacros()` (`preferences/macro-plan.ts`) applies the same rule to preview it on the Preferences page and to flag macros that overshoot the calorie goal.
 
 Frontend classes (paths relative to `frontend/src/app/`):
 
@@ -163,7 +163,7 @@ classDiagram
     +defaultServings: number
     +dietaryRestrictions: DietaryRestriction[]
     +dailyCalories: number | null
-    +macroSplit: MacroSplit | null
+    +macroGoals: MacroGoals
     +dailyTargets: DailyTargets
     +defaults()$ UserPreferences
     +with(changes) UserPreferences
