@@ -56,7 +56,7 @@
 
       <div class="ui-card green">
         <span class="ui-label">Photo</span>
-        @if (form.controls.thumbnailUrl.value; as photo) {
+        @if (photo(); as photo) {
           <img class="preview" [src]="photo" alt="Recipe photo preview" />
           <button type="button" class="ui-button plain" (click)="removePhoto()">
             Remove photo
