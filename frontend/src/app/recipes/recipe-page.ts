@@ -6,7 +6,13 @@ import { Observable, catchError, forkJoin, map, of, switchMap } from 'rxjs';
 import { errorMessage } from '../core/api';
 import { SessionService } from '../core/session.service';
 import { ToastService } from '../core/toast.service';
-import { formatQuantity, scaleQuantity } from '../grocery-list/grocery-list-format';
+import {
+  formatQuantity,
+  isSameIngredient,
+  scaleQuantity,
+} from '../grocery-list/grocery-list-format';
+import { PantryItem } from '../pantry/pantry.models';
+import { PantryService } from '../pantry/pantry.service';
 import { UsersService } from '../users/users.service';
 import { AddToGroceryPanel } from './add-to-grocery-panel';
 import { Recipe, RecipeIngredient } from './recipe.models';
@@ -37,7 +43,6 @@ export class RecipePage {
   protected readonly recipe = signal<Recipe | null>(null);
   protected readonly loadError = signal(false);
   protected readonly servings = signal(1);
-  protected readonly addingToGrocery = signal(false);
   protected readonly confirmingDelete = signal(false);
   /** Display names of the author and reviewers, by user id. */
   private readonly names = signal<ReadonlyMap<string, string>>(new Map());
@@ -45,18 +50,13 @@ export class RecipePage {
   protected readonly maxServings = MAX_SERVINGS;
   protected readonly formatQuantity = formatQuantity;
 
-  /** Ingredients the user has marked as already being in their pantry. */
+  /**
+   * Ingredients marked as already in the pantry. They start from the user's
+   * real pantry and can be toggled; adding to grocery leaves them off the list.
+   */
   protected readonly pantryIngredients = signal<ReadonlySet<string>>(new Set());
 
   protected readonly pantryCount = computed(() => this.pantryIngredients().size);
-
-  protected readonly missingIngredients = computed(() =>
-    this.scaledIngredients().filter((ingredient) => !this.pantryIngredients().has(ingredient.name)),
-  );
-
-  protected readonly missingCount = computed(() => this.missingIngredients().length);
-
-  protected readonly ingredientsToAdd = signal<RecipeIngredient[]>([]);
 
   protected readonly isAuthor = computed(() => this.recipe()?.authorId === this.session.userId());
   protected readonly myReview = computed(
@@ -87,6 +87,7 @@ export class RecipePage {
     private readonly session: SessionService,
     private readonly toasts: ToastService,
     private readonly router: Router,
+    private readonly pantry: PantryService,
   ) {
     route.paramMap
       .pipe(
@@ -94,7 +95,7 @@ export class RecipePage {
         switchMap((recipeId) => {
           this.recipe.set(null);
           this.loadError.set(false);
-          this.addingToGrocery.set(false);
+          this.pantryIngredients.set(new Set());
           return this.recipes.getRecipe(recipeId).pipe(catchError(() => of(null)));
         }),
         switchMap((recipe) =>
@@ -108,6 +109,7 @@ export class RecipePage {
           this.names.set(loaded.names);
           this.servings.set(loaded.recipe.servings);
           this.recipe.set(loaded.recipe);
+          this.markOwnedIngredients(loaded.recipe);
         }
       });
   }
@@ -183,13 +185,16 @@ export class RecipePage {
     return this.pantryIngredients().has(ingredientName);
   }
 
-  protected addMissingToGrocery(): void {
-    this.ingredientsToAdd.set(this.missingIngredients());
-    this.addingToGrocery.set(true);
-  }
-
-  protected addAllToGrocery(): void {
-    this.ingredientsToAdd.set(this.scaledIngredients());
-    this.addingToGrocery.set(true);
+  /** Pre-marks the ingredients the user's pantry already holds. Failing to load it is not an error. */
+  private markOwnedIngredients(recipe: Recipe): void {
+    this.pantry
+      .getItems()
+      .pipe(catchError(() => of<PantryItem[]>([])))
+      .subscribe((items) => {
+        const owned = recipe.ingredients
+          .map((ingredient) => ingredient.name)
+          .filter((name) => items.some((item) => isSameIngredient(item.name, name)));
+        this.pantryIngredients.set(new Set(owned));
+      });
   }
 }

@@ -158,34 +158,11 @@
       </section>
 
       <!-- Add to grocery list -->
-      @if (addingToGrocery()) {
-          <app-add-to-grocery-panel
-            [recipe]="recipe"
-            [servings]="servings()"
-            [ingredients]="ingredientsToAdd()"
-            [addWholeRecipe]="ingredientsToAdd().length === recipe.ingredients.length"
-            (closed)="addingToGrocery.set(false)"
-          />
-      } @else {
-        <div class="grocery-actions">
-          <button
-            class="action-button grocery-button"
-            type="button"
-            (click)="addMissingToGrocery()"
-            [disabled]="missingCount() === 0"
-          >
-            Add {{ missingCount() }} to Grocery ({{ servings() }} {{ servings() === 1 ? 'serving' : 'servings' }})
-          </button>
-        
-          <button
-            class="action-button grocery-button"
-            type="button"
-            (click)="addAllToGrocery()"
-          >
-            Add all to Grocery ({{ servings() }} {{ servings() === 1 ? 'serving' : 'servings' }})
-          </button>
-        </div>
-      }
+      <app-add-to-grocery-panel
+        [recipe]="recipe"
+        [servings]="servings()"
+        [owned]="pantryIngredients()"
+      />
 
       <!-- Cooking instructions -->
       <section class="steps-section">

@@ -295,22 +295,6 @@
   color: var(--color-text-muted);
 }
 
-.grocery-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin: 12px auto;
-}
-
-.grocery-actions .action-button {
-  margin: 0;
-}
-
-.grocery-actions .action-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
 .pantry-status {
   display: flex;
   align-items: center;
@@ -330,22 +314,6 @@
 
 .pantry-status.in-pantry {
   color: var(--color-text-muted);
-}
-
-/* Orange button */
-
-.action-button {
-  display: block;
-  width: 100%;
-  margin: 12px auto;
-  min-height: 44px;
-  padding: 6px 10px;
-  border: none;
-  border-radius: var(--radius);
-  background: var(--color-primary);
-  color: var(--color-on-color);
-  font-size: 20px;
-  cursor: pointer;
 }
 
 /* Steps */

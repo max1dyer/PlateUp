@@ -1,9 +1,8 @@
 .panel {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  height: auto;
-  overflow: visible;
+  gap: 8px;
+  margin: 12px 0;
 }
 
 .ui-label {
@@ -12,43 +11,43 @@
   gap: 6px;
 }
 
-.ui-field {
-  width: 100%;
-}
-
-.heading {
-  margin: 0;
-  font-size: 22px;
-  font-weight: 400;
-}
-
-.pantry {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin: 0;
-  padding: 8px 12px;
-  border: 1px solid var(--color-checkbox-border);
-  border-radius: var(--radius);
-}
-
-.pantry-heading {
-  padding: 0 4px;
-  font-size: 18px;
-}
-
-.pantry-item {
+.list-row {
   display: flex;
   align-items: center;
+  gap: 10px;
+}
+
+.list-row .ui-field {
+  flex: 1;
+  min-width: 0;
+}
+
+.view-link {
+  flex-shrink: 0;
+}
+
+.grocery-actions {
+  display: flex;
+  flex-direction: column;
   gap: 8px;
+}
+
+/* Orange button */
+
+.action-button {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  padding: 6px 10px;
+  border: none;
+  border-radius: var(--radius);
+  background: var(--color-primary);
+  color: var(--color-on-color);
+  font-size: 20px;
   cursor: pointer;
 }
 
-.pantry-name {
-  flex: 1;
-}
-
-.pantry-amounts {
-  color: var(--color-text-muted);
-  font-size: 15px;
+.action-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
