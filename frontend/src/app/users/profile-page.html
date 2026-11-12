@@ -23,7 +23,7 @@
         </p>
         @if (isMe()) {
           <div class="ui-row">
-            <button type="button" class="ui-button" (click)="editing.set(true)">
+            <button type="button" class="ui-button edit" (click)="editing.set(true)">
               ✏️ Edit profile
             </button>
             <a class="ui-button" routerLink="/preferences">⚙️ Preferences</a>
@@ -41,13 +41,15 @@
           <a class="more" routerLink="/recipes/new">+ Upload</a>
         }
       </div>
-      @for (recipe of data.recipes; track recipe.id; let index = $index) {
-        <app-recipe-card [recipe]="recipe" [green]="index % 2 === 1" />
-      } @empty {
-        <p class="ui-status">
-          {{ isMe() ? "You haven't uploaded any recipes yet." : 'No public recipes yet.' }}
-        </p>
-      }
+      <div class="ui-card-grid">
+        @for (recipe of data.recipes; track recipe.id; let index = $index) {
+          <app-recipe-card [recipe]="recipe" [green]="index % 2 === 1" />
+        } @empty {
+          <p class="ui-status ui-span-all">
+            {{ isMe() ? "You haven't uploaded any recipes yet." : 'No public recipes yet.' }}
+          </p>
+        }
+      </div>
     </section>
 
     @if (isMe()) {

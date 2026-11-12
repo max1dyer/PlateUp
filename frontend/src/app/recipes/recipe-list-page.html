@@ -93,7 +93,7 @@
       <button type="button" class="ui-button primary" (click)="load()">Try again</button>
     </div>
   } @else {
-    <ul class="cards">
+    <ul class="ui-card-grid">
       @for (recipe of shown(); track recipe.id; let index = $index) {
         <li>
           <app-recipe-card
@@ -103,7 +103,7 @@
           />
         </li>
       } @empty {
-        <li class="ui-card">
+        <li class="ui-card ui-span-all">
           @if (recipes().length === 0) {
             <p class="ui-status">No recipes yet. Be the first to upload one!</p>
           } @else if (search().trim() === '' && tag() === null && hiddenByDiet() > 0) {

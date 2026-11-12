@@ -109,13 +109,23 @@
   color: var(--color-on-color);
 }
 
-.cards {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
+/* Desktop: search box and controls share one row. */
+@media (min-width: 768px) {
+  .filters {
+    flex-direction: row;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .filters > .ui-field {
+    flex: 1;
+  }
+
+  .controls {
+    flex: none;
+    align-items: center;
+    gap: 14px;
+  }
 }
 
 .diet-toggle {

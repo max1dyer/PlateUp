@@ -17,7 +17,7 @@ export interface InfoPageData {
   selector: 'app-info-page',
   imports: [RouterLink],
   template: `
-    <div class="ui-page">
+    <div class="ui-page reading">
       <h1 class="ui-title">{{ page()?.title }}</h1>
       @for (paragraph of page()?.paragraphs; track $index) {
         <p class="text">{{ paragraph }}</p>
