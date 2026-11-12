@@ -177,9 +177,14 @@
       }
       <div class="ui-row">
         <button type="submit" class="ui-button primary" [disabled]="saving()">
-          Save preferences
+          {{ saving() ? 'Saving…' : 'Save preferences' }}
         </button>
         <a class="ui-button plain" routerLink="/profile">Back to profile</a>
+        <span class="save-state" role="status" aria-live="polite">
+          @if (saved()) {
+            <span class="saved">✓ Saved</span>
+          }
+        </span>
       </div>
     </form>
   }

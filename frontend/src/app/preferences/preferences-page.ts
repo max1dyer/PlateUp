@@ -1,5 +1,5 @@
 import { Component, OnInit, computed, signal } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { errorMessage } from '../core/api';
@@ -53,6 +53,8 @@ export class PreferencesPage implements OnInit {
   protected readonly loading = signal(true);
   protected readonly loadError = signal(false);
   protected readonly saving = signal(false);
+  /** True after a successful save, until the user changes something again. */
+  protected readonly saved = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly restrictions = signal<ReadonlySet<DietaryRestriction>>(new Set());
 
@@ -100,7 +102,9 @@ export class PreferencesPage implements OnInit {
   constructor(
     private readonly preferences: PreferencesService,
     private readonly toasts: ToastService,
-  ) {}
+  ) {
+    this.form.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => this.saved.set(false));
+  }
 
   public ngOnInit(): void {
     this.load();
@@ -124,6 +128,7 @@ export class PreferencesPage implements OnInit {
   }
 
   protected toggle(restriction: DietaryRestriction): void {
+    this.saved.set(false);
     this.restrictions.update((current) => {
       const next = new Set(current);
       if (!next.delete(restriction)) {
@@ -164,12 +169,16 @@ export class PreferencesPage implements OnInit {
 
   protected save(): void {
     this.saving.set(true);
+    this.saved.set(false);
     this.error.set(null);
     this.preferences.update(this.changes()).subscribe({
       next: (preferences) => {
         this.saving.set(false);
-        this.fill(preferences);
+        // Confirm first, so the message shows even if redisplaying the reply fails.
         this.toasts.success('Your preferences have been saved.');
+        this.fill(preferences);
+        // After fill(), whose form update would otherwise clear it.
+        this.saved.set(true);
       },
       error: (error: unknown) => {
         this.saving.set(false);

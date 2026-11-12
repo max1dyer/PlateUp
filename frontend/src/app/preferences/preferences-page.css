@@ -181,3 +181,21 @@ input.over {
 .inline input.narrow {
   flex: none;
 }
+
+.save-state {
+  display: inline-flex;
+  align-items: center;
+}
+
+.saved {
+  color: #3d6b2c;
+  font-weight: 600;
+  animation: saved-in 200ms ease-out;
+}
+
+@keyframes saved-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}

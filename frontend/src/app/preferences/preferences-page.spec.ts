@@ -6,6 +6,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { preferences } from './preferences.fixtures';
 import { PreferencesPage } from './preferences-page';
 import { PreferencesService } from './preferences.service';
+import { ToastService } from '../core/toast.service';
 
 describe('PreferencesPage', () => {
   const service = { load: vi.fn(), update: vi.fn() };
@@ -76,6 +77,25 @@ describe('PreferencesPage', () => {
       dailyCalories: 2000,
       macroGoals: { protein: 150, carbohydrates: 200, fat: null },
     });
+  });
+
+  it('confirms a save with a toast and an inline "Saved" that clears on the next change', async () => {
+    service.load.mockReturnValue(of(preferences()));
+    service.update.mockReturnValue(of(preferences({ defaultServings: 3 })));
+    const page = await render();
+    const toasts = TestBed.inject(ToastService);
+
+    (page.querySelector('button[type="submit"]') as HTMLButtonElement).click();
+    await TestBed.inject(ApplicationRef).whenStable();
+
+    expect(toasts.toasts().map((toast) => toast.message)).toContain(
+      'Your preferences have been saved.',
+    );
+    expect(page.querySelector('.saved')?.textContent).toContain('Saved');
+
+    type(input(page, 'default-servings'), '4');
+    await TestBed.inject(ApplicationRef).whenStable();
+    expect(page.querySelector('.saved')).toBeNull();
   });
 
   it('previews the missing macro and can copy the preview into the field', async () => {
