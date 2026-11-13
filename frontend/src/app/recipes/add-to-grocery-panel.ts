@@ -1,113 +1,78 @@
-import { Component, OnInit, computed, input, output, signal } from '@angular/core';
+import { Component, OnInit, computed, input, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
-import { Observable, catchError, concatMap, forkJoin, from, last, map, of, switchMap } from 'rxjs';
+import { RouterLink } from '@angular/router';
+import { Observable, map, of, startWith, switchMap } from 'rxjs';
 
 import { errorMessage } from '../core/api';
 import { ToastService } from '../core/toast.service';
-import {
-  formatQuantity,
-  isSameIngredient,
-  scaleQuantity,
-} from '../grocery-list/grocery-list-format';
-import { GroceryList, Quantity } from '../grocery-list/grocery-list.models';
+import { GroceryList } from '../grocery-list/grocery-list.models';
 import { GroceryListsService } from '../grocery-list/grocery-lists.service';
-import { PantryItem } from '../pantry/pantry.models';
-import { PantryService } from '../pantry/pantry.service';
-import { Recipe, RecipeIngredient } from './recipe.models';
+import { Recipe } from './recipe.models';
 
 /** Value of the list picker that means "make a new list". */
 export const NEW_LIST = 'new';
 
-/** A recipe ingredient the user already has in their pantry. */
-export interface PantryMatch {
-  name: string;
-  needed: Quantity;
-  have: Quantity;
-}
+/** Name offered for a new list. */
+export const DEFAULT_LIST_NAME = 'Groceries';
 
+/**
+ * The recipe page's grocery control: the target list is picked up front, and
+ * one button adds the ingredients not marked as owned (scaled to `servings`)
+ * to it, leaving the user on the recipe (UC6).
+ */
 @Component({
   selector: 'app-add-to-grocery-panel',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, RouterLink],
   templateUrl: './add-to-grocery-panel.html',
   styleUrl: './add-to-grocery-panel.css',
 })
 export class AddToGroceryPanel implements OnInit {
   public readonly recipe = input.required<Recipe>();
   public readonly servings = input.required<number>();
-  public readonly closed = output<void>();
-  public readonly ingredients = input.required<RecipeIngredient[]>();
-  public readonly addWholeRecipe = input(false);
+  /** Ingredient names the user has (or marked as having), which are left off the list. */
+  public readonly owned = input<ReadonlySet<string>>(new Set());
 
   protected readonly newList = NEW_LIST;
-  protected readonly formatQuantity = formatQuantity;
-
   protected readonly lists = signal<GroceryList[]>([]);
-  protected readonly pantryItems = signal<PantryItem[]>([]);
-  protected readonly addAnyway = signal<ReadonlySet<string>>(new Set());
-
   protected readonly loading = signal(true);
   protected readonly saving = signal(false);
   protected readonly error = signal<string | null>(null);
 
-  protected readonly pantryMatches = computed<PantryMatch[]>(() => {
-    const recipe = this.recipe();
-    const factor = this.servings() / recipe.servings;
-
-    return recipe.ingredients.flatMap((ingredient) => {
-      const owned = this.pantryItems().find((item) => isSameIngredient(item.name, ingredient.name));
-
-      return owned
-        ? [
-            {
-              name: ingredient.name,
-              needed: scaleQuantity(ingredient.quantity, factor),
-              have: owned.quantity,
-            },
-          ]
-        : [];
-    });
-  });
-
-  /** Ingredients that should be omitted because they are already in the pantry. */
-  protected readonly skipped = computed(() =>
-    this.pantryMatches()
-      .map((match) => match.name)
-      .filter((name) => !this.addAnyway().has(name)),
-  );
-
-  protected readonly addCount = computed(() => {
-    return this.recipe().ingredients.length - this.skipped().length;
-  });
-
   protected readonly form = new FormGroup({
     listId: new FormControl(NEW_LIST, { nonNullable: true }),
-    newListName: new FormControl('', { nonNullable: true }),
+    newListName: new FormControl(DEFAULT_LIST_NAME, { nonNullable: true }),
   });
+
+  /** The picked list id as a signal, so the template updates without zone.js. */
+  protected readonly listId = toSignal(
+    this.form.controls.listId.valueChanges.pipe(startWith(this.form.controls.listId.value)),
+    { requireSync: true },
+  );
+
+  /** Recipe ingredients marked as owned, which are left off the list. */
+  private readonly ownedNames = computed(() =>
+    this.recipe()
+      .ingredients.map((ingredient) => ingredient.name)
+      .filter((name) => this.owned().has(name)),
+  );
+
+  protected readonly missingCount = computed(
+    () => this.recipe().ingredients.length - this.ownedNames().length,
+  );
 
   constructor(
     private readonly groceryLists: GroceryListsService,
-    private readonly pantry: PantryService,
     private readonly toasts: ToastService,
-    private readonly router: Router,
   ) {}
 
   public ngOnInit(): void {
-    this.form.controls.newListName.setValue(this.recipe().title);
-
-    forkJoin({
-      lists: this.groceryLists.getLists(),
-      // If the pantry lookup fails, continue by adding all ingredients.
-      pantry: this.pantry.getItems().pipe(catchError(() => of<PantryItem[]>([]))),
-    }).subscribe({
-      next: ({ lists, pantry }) => {
+    this.groceryLists.getLists().subscribe({
+      next: (lists) => {
         this.lists.set(lists);
-        this.pantryItems.set(pantry);
-
         if (lists.length > 0) {
           this.form.controls.listId.setValue(lists[0].id);
         }
-
         this.loading.set(false);
       },
       error: (error: unknown) => {
@@ -117,96 +82,55 @@ export class AddToGroceryPanel implements OnInit {
     });
   }
 
-  protected isAddingAnyway(name: string): boolean {
-    return this.addAnyway().has(name);
-  }
-
-  protected toggleAddAnyway(name: string): void {
-    this.addAnyway.update((names) => {
-      const next = new Set(names);
-
-      if (next.has(name)) {
-        next.delete(name);
-      } else {
-        next.add(name);
-      }
-
-      return next;
-    });
-
-    this.error.set(null);
-  }
-
-  protected add(): void {
+  /**
+   * Adds every ingredient not marked as owned through the backend's recipe
+   * endpoint, which scales, categorizes, and merges them into the list.
+   */
+  protected addMissing(): void {
+    const excluded = this.ownedNames();
     const { listId, newListName } = this.form.getRawValue();
-
-    if (this.addCount() === 0) {
-      this.error.set('Everything is already in your pantry. Tick an item to add it anyway.');
-      return;
-    }
-
-    if (listId === NEW_LIST && newListName.trim().length === 0) {
+    const name = newListName.trim();
+    if (listId === NEW_LIST && name.length === 0) {
       this.error.set('Name the new list.');
       return;
     }
 
-    const targetId: Observable<string> =
+    const count = this.recipe().ingredients.length - excluded.length;
+    const target: Observable<string> =
       listId === NEW_LIST
-        ? this.groceryLists.createList(newListName).pipe(map((list) => list.id))
+        ? this.groceryLists.createList(name).pipe(map((list) => list.id))
         : of(listId);
-
-    const skipped = this.skipped();
-
-    // For the partial-ingredient flow, exclude pantry matches unless
-    // the user checked "add anyway".
-    const ingredientsToAdd = this.ingredients().filter(
-      (ingredient) => !skipped.some((name) => isSameIngredient(name, ingredient.name)),
-    );
-
-    if (!this.addWholeRecipe() && ingredientsToAdd.length === 0) {
-      this.error.set('Everything is already in your pantry. Tick an item to add it anyway.');
-      return;
-    }
-
-    const count = this.addWholeRecipe() ? this.addCount() : ingredientsToAdd.length;
 
     this.saving.set(true);
     this.error.set(null);
-
-    targetId
+    target
       .pipe(
-        switchMap((id) => {
-          if (this.addWholeRecipe()) {
-            return this.groceryLists.addRecipe(id, this.recipe().id, this.servings(), skipped);
-          }
-
-          return from(ingredientsToAdd).pipe(
-            concatMap((ingredient) =>
-              this.groceryLists.addItem(id, {
-                name: ingredient.name,
-                quantity: ingredient.quantity,
-              }),
-            ),
-            last(),
-          );
-        }),
+        switchMap((id) =>
+          this.groceryLists.addRecipe(id, this.recipe().id, this.servings(), excluded),
+        ),
       )
       .subscribe({
         next: (list) => {
           this.saving.set(false);
-
-          const pantryNote = skipped.length > 0 ? ` (${skipped.length} already in pantry)` : '';
-
-          this.toasts.success(`Added ${count} ingredients to ${list.name}${pantryNote}`);
-
-          void this.router.navigate(['/grocery'], {
-            queryParams: { list: list.id },
-          });
+          this.remember(list);
+          this.toasts.success(
+            `Added ${count} ${count === 1 ? 'ingredient' : 'ingredients'} to ${list.name}`,
+          );
         },
         error: (error: unknown) => {
           this.saving.set(false);
           this.error.set(errorMessage(error));
         },
       });
+  }
+
+  /** Keeps the picker current: a new list joins it and stays selected for the next add. */
+  private remember(list: GroceryList): void {
+    this.lists.update((lists) =>
+      lists.some((existing) => existing.id === list.id)
+        ? lists.map((existing) => (existing.id === list.id ? list : existing))
+        : [...lists, list],
+    );
+    this.form.setValue({ listId: list.id, newListName: DEFAULT_LIST_NAME });
   }
 }

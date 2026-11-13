@@ -4,6 +4,8 @@ import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/route
 import { of, throwError } from 'rxjs';
 import { SessionService } from '../core/session.service';
 import { GroceryListsService } from '../grocery-list/grocery-lists.service';
+import { pantryItem } from '../pantry/pantry.fixtures';
+import { PantryService } from '../pantry/pantry.service';
 import { preferences } from '../preferences/preferences.fixtures';
 import { UserPreferences } from '../preferences/preferences.models';
 import { PreferencesService } from '../preferences/preferences.service';
@@ -17,6 +19,7 @@ describe('RecipePage', () => {
   const recipesService = { getRecipe: vi.fn(), deleteRecipe: vi.fn(), reviewRecipe: vi.fn() };
   const usersService = { getUser: vi.fn(), saveRecipe: vi.fn(), unsaveRecipe: vi.fn() };
   const groceryLists = { getLists: vi.fn(), createList: vi.fn(), addRecipe: vi.fn() };
+  const pantry = { getItems: vi.fn() };
   const preferencesService = {
     preferences: signal<UserPreferences | null>(null),
     load: vi.fn(),
@@ -40,6 +43,7 @@ describe('RecipePage', () => {
         { provide: RecipesService, useValue: recipesService },
         { provide: UsersService, useValue: usersService },
         { provide: GroceryListsService, useValue: groceryLists },
+        { provide: PantryService, useValue: pantry },
         { provide: PreferencesService, useValue: preferencesService },
       ],
     }).compileComponents();
@@ -57,6 +61,8 @@ describe('RecipePage', () => {
   beforeEach(() => {
     vi.resetAllMocks();
     localStorage.clear();
+    groceryLists.getLists.mockReturnValue(of([]));
+    pantry.getItems.mockReturnValue(of([]));
     usePreferences(null);
   });
 
@@ -129,6 +135,34 @@ describe('RecipePage', () => {
     expect(text(page, '.stepper output')).toEqual(['4']);
     expect(text(page, '.ingredient-quantity')).toEqual(['3 lb', '2 cups']);
     expect(text(page, '.grocery-button')[0]).toContain('4 servings');
+  });
+
+  it('pre-marks ingredients already in the pantry and counts the rest as missing', async () => {
+    recipesService.getRecipe.mockReturnValue(of(recipe()));
+    usersService.getUser.mockReturnValue(of({ displayName: 'Alice Cook' }));
+    pantry.getItems.mockReturnValue(of([pantryItem({ name: ' rice ' })]));
+
+    const page = await render();
+
+    expect(text(page, '.pantry-status')).toEqual(['X', '✓']);
+    expect(text(page, '.section-heading span')[0]).toBe('1 of 2 in your pantry');
+    expect(text(page, '.grocery-button')[0]).toContain('Add 1 to Grocery');
+
+    (page.querySelector('[aria-label="Mark Rice as missing"]') as HTMLButtonElement).click();
+    await TestBed.inject(ApplicationRef).whenStable();
+
+    expect(text(page, '.grocery-button')[0]).toContain('Add 2 to Grocery');
+  });
+
+  it('still shows the recipe if the pantry cannot be loaded', async () => {
+    recipesService.getRecipe.mockReturnValue(of(recipe()));
+    usersService.getUser.mockReturnValue(of({ displayName: 'Alice Cook' }));
+    pantry.getItems.mockReturnValue(throwError(() => new Error('offline')));
+
+    const page = await render();
+
+    expect(text(page, '.pantry-status')).toEqual(['X', 'X']);
+    expect(text(page, '.grocery-button')[0]).toContain('Add 2 to Grocery');
   });
 
   it("opens at the user's preferred servings and can reset to the recipe's own", async () => {
