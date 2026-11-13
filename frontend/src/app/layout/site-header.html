@@ -1,38 +1,46 @@
 <header class="site-header">
   <nav class="inner" aria-label="Main">
-    <a routerLink="/home" class="logo-link" [style.--left]="leftPercent(14)">
+    <a routerLink="/home" class="logo-link" (click)="closeMenu()">
       <img src="logo.png" alt="PlateUp home" class="logo" />
     </a>
-    @for (link of links; track link.path) {
-      <a
-        class="nav-link"
-        [routerLink]="link.path"
-        routerLinkActive="active"
-        ariaCurrentWhenActive="page"
-        [style.--left]="leftPercent(link.left)"
-        [style.--top.px]="link.top"
-        >{{ link.label }}</a
-      >
-    }
-    @if (session.isSignedIn()) {
-      <button
-        type="button"
-        class="nav-link account"
-        [style.--left]="leftPercent(account.left)"
-        [style.--top.px]="account.top"
-        (click)="logOut()"
-      >
-        Log out
-      </button>
-    } @else {
-      <a
-        class="nav-link account"
-        routerLink="/login"
-        routerLinkActive="active"
-        [style.--left]="leftPercent(account.left)"
-        [style.--top.px]="account.top"
-        >Log in</a
-      >
-    }
+
+    <button
+      type="button"
+      class="menu-toggle"
+      aria-controls="site-menu"
+      aria-label="Toggle navigation menu"
+      [attr.aria-expanded]="menuOpen()"
+      (click)="toggleMenu()"
+    >
+      <span class="bar"></span>
+      <span class="bar"></span>
+      <span class="bar"></span>
+    </button>
+
+    <div id="site-menu" class="menu" [class.open]="menuOpen()">
+      @for (link of links; track link.path) {
+        <a
+          class="nav-link"
+          [routerLink]="link.path"
+          routerLinkActive="active"
+          ariaCurrentWhenActive="page"
+          (click)="closeMenu()"
+          >{{ link.label }}</a
+        >
+      }
+      @if (session.isSignedIn()) {
+        <button type="button" class="nav-link account" (click)="logOut()">
+          Log out
+        </button>
+      } @else {
+        <a
+          class="nav-link account"
+          routerLink="/login"
+          routerLinkActive="active"
+          (click)="closeMenu()"
+          >Log in</a
+        >
+      }
+    </div>
   </nav>
 </header>
