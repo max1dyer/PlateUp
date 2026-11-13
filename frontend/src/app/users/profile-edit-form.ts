@@ -1,5 +1,7 @@
 import { Component, OnInit, input, output, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
+import { startWith } from 'rxjs';
 import { errorMessage } from '../core/api';
 import { readImageFile } from '../core/image-file';
 import { SessionService } from '../core/session.service';
@@ -28,6 +30,17 @@ export class ProfileEditForm implements OnInit {
     bio: new FormControl('', { nonNullable: true }),
     profilePictureUrl: new FormControl('', { nonNullable: true }),
   });
+
+  /**
+   * The picture as a signal. The app is zoneless, so the FileReader callback
+   * that sets the control would not otherwise re-render the preview.
+   */
+  protected readonly picture = toSignal(
+    this.form.controls.profilePictureUrl.valueChanges.pipe(
+      startWith(this.form.controls.profilePictureUrl.value),
+    ),
+    { requireSync: true },
+  );
 
   constructor(
     private readonly users: UsersService,

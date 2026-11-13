@@ -1,7 +1,8 @@
 import { Component, OnInit, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { FormArray, FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { Observable } from 'rxjs';
+import { Observable, startWith } from 'rxjs';
 import { errorMessage } from '../core/api';
 import { readImageFile } from '../core/image-file';
 import { ToastService } from '../core/toast.service';
@@ -65,6 +66,17 @@ export class RecipeFormPage implements OnInit {
     fat: new FormControl<number | null>(0),
     carbohydrates: new FormControl<number | null>(0),
   });
+
+  /**
+   * The photo as a signal. The app is zoneless, so the FileReader callback
+   * that sets the control would not otherwise re-render the preview.
+   */
+  protected readonly photo = toSignal(
+    this.form.controls.thumbnailUrl.valueChanges.pipe(
+      startWith(this.form.controls.thumbnailUrl.value),
+    ),
+    { requireSync: true },
+  );
 
   constructor(
     private readonly recipes: RecipesService,
