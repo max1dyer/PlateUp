@@ -1,6 +1,6 @@
 <form class="ui-card" [formGroup]="form" (ngSubmit)="save()">
   <div class="picture">
-    @if (form.controls.profilePictureUrl.value; as picture) {
+    @if (picture(); as picture) {
       <img class="avatar" [src]="picture" alt="Profile picture preview" />
     } @else {
       <div class="avatar empty" aria-hidden="true">🙂</div>
@@ -15,7 +15,7 @@
           (change)="onPictureChosen($event)"
         />
       </label>
-      @if (form.controls.profilePictureUrl.value) {
+      @if (picture()) {
         <button type="button" class="ui-button plain" (click)="removePicture()">Remove</button>
       }
     </div>

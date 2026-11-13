@@ -78,6 +78,22 @@ describe('RecipeFormPage', () => {
     expect(service.createRecipe).not.toHaveBeenCalled();
   });
 
+  it('previews a chosen photo as soon as it is read', async () => {
+    const { fixture, page } = await render();
+
+    const input = page.querySelector('input[type=file]') as HTMLInputElement;
+    const photo = new File(['png'], 'dish.png', { type: 'image/png' });
+    Object.defineProperty(input, 'files', { value: [photo] });
+    input.dispatchEvent(new Event('change'));
+
+    // No manual detectChanges: the app is zoneless, so the preview must
+    // re-render on its own once the file has been read.
+    await vi.waitFor(async () => {
+      await fixture.whenStable();
+      expect(page.querySelector('img.preview')?.getAttribute('src')).toMatch(/^data:image\/png/);
+    });
+  });
+
   it('adds and removes ingredient and step rows', async () => {
     const { fixture, page } = await render();
     const buttons = (): HTMLButtonElement[] => [...page.querySelectorAll('button')];

@@ -1,3 +1,4 @@
+import { DietaryRestriction, restrictionLabel } from '../preferences/preferences.models';
 import { Recipe } from './recipe.models';
 
 /** Every tag used by `recipes`, without repeats (ignoring case), sorted. */
@@ -72,5 +73,35 @@ export function filterRecipes(
       ...recipe.ingredients.map((ingredient) => ingredient.name),
     ];
     return haystack.some((text) => text.toLowerCase().includes(needle));
+  });
+}
+
+/** Which of `restrictions` the recipe breaks, in the order given. */
+export function dietConflictsOf(
+  recipe: Recipe,
+  restrictions: readonly DietaryRestriction[],
+): DietaryRestriction[] {
+  return restrictions.filter((restriction) => recipe.dietaryConflicts[restriction] !== undefined);
+}
+
+/** Recipes that break none of `restrictions`. */
+export function filterByDiet(
+  recipes: readonly Recipe[],
+  restrictions: readonly DietaryRestriction[],
+): Recipe[] {
+  return recipes.filter((recipe) => dietConflictsOf(recipe, restrictions).length === 0);
+}
+
+/**
+ * Short warnings for a recipe card, e.g. "Not dairy-free (Milk, Butter)",
+ * one per restriction in `restrictions` that the recipe breaks.
+ */
+export function dietWarnings(
+  recipe: Recipe,
+  restrictions: readonly DietaryRestriction[],
+): string[] {
+  return dietConflictsOf(recipe, restrictions).map((restriction) => {
+    const ingredients = recipe.dietaryConflicts[restriction] ?? [];
+    return `Not ${restrictionLabel(restriction).toLowerCase()} (${ingredients.join(', ')})`;
   });
 }

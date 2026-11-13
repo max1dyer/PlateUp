@@ -13,8 +13,11 @@ import {
 } from '../grocery-list/grocery-list-format';
 import { PantryItem } from '../pantry/pantry.models';
 import { PantryService } from '../pantry/pantry.service';
+import { DIETARY_DISCLAIMER } from '../preferences/preferences.models';
+import { PreferencesService } from '../preferences/preferences.service';
 import { UsersService } from '../users/users.service';
 import { AddToGroceryPanel } from './add-to-grocery-panel';
+import { dietWarnings } from './recipe-filter';
 import { Recipe, RecipeIngredient } from './recipe.models';
 import { RecipesService } from './recipes.service';
 import { ReviewForm } from './review-form';
@@ -28,9 +31,16 @@ export const MAX_SERVINGS = 50;
 
 type NameEntry = [userId: string, displayName: string];
 
+/** One "share of your daily goal" figure, e.g. { label: 'protein', percent: 30 }. */
+export interface GoalShare {
+  label: string;
+  percent: number;
+}
+
 /**
  * Full view of one recipe (`/recipes/:recipeId`, UC18): ingredients scaled to
- * the chosen servings, steps, and reviews. From here the user can save it,
+ * the chosen servings (starting at the user's preferred servings, UC10),
+ * dietary warnings, nutrition against the user's daily goals, steps, and reviews. From here the user can save it,
  * add it to a grocery list, review it, or (as its author) edit or delete it.
  */
 @Component({
@@ -48,6 +58,32 @@ export class RecipePage {
   private readonly names = signal<ReadonlyMap<string, string>>(new Map());
 
   protected readonly maxServings = MAX_SERVINGS;
+  protected readonly disclaimer = DIETARY_DISCLAIMER;
+
+  /** Warnings for each of the user's dietary restrictions this recipe breaks. */
+  protected readonly dietWarnings = computed(() => {
+    const recipe = this.recipe();
+    const restrictions = this.preferences.preferences()?.dietaryRestrictions ?? [];
+    return recipe ? dietWarnings(recipe, restrictions) : [];
+  });
+
+  /** What one serving contributes to each daily goal the user has set. */
+  protected readonly goalShares = computed<GoalShare[]>(() => {
+    const nutrition = this.recipe()?.nutrition;
+    const targets = this.preferences.preferences()?.dailyTargets;
+    if (!nutrition || !targets) {
+      return [];
+    }
+    const shares: [string, number, number | null][] = [
+      ['calories', nutrition.calories, targets.calories],
+      ['protein', nutrition.protein, targets.protein],
+      ['carbs', nutrition.carbohydrates, targets.carbohydrates],
+      ['fat', nutrition.fat, targets.fat],
+    ];
+    return shares
+      .filter((share): share is [string, number, number] => share[2] !== null && share[2] > 0)
+      .map(([label, amount, target]) => ({ label, percent: Math.round((amount / target) * 100) }));
+  });
   protected readonly formatQuantity = formatQuantity;
 
   /**
@@ -88,6 +124,7 @@ export class RecipePage {
     private readonly toasts: ToastService,
     private readonly router: Router,
     private readonly pantry: PantryService,
+    private readonly preferences: PreferencesService,
   ) {
     route.paramMap
       .pipe(
@@ -99,7 +136,12 @@ export class RecipePage {
           return this.recipes.getRecipe(recipeId).pipe(catchError(() => of(null)));
         }),
         switchMap((recipe) =>
-          recipe ? this.lookUpNames(recipe).pipe(map((names) => ({ recipe, names }))) : of(null),
+          recipe
+            ? forkJoin({
+                names: this.lookUpNames(recipe),
+                preferences: this.preferences.load(),
+              }).pipe(map(({ names, preferences }) => ({ recipe, names, preferences })))
+            : of(null),
         ),
         takeUntilDestroyed(),
       )
@@ -107,7 +149,8 @@ export class RecipePage {
         this.loadError.set(loaded === null);
         if (loaded) {
           this.names.set(loaded.names);
-          this.servings.set(loaded.recipe.servings);
+          // Open at the user's preferred servings; without preferences, as written.
+          this.servings.set(loaded.preferences?.defaultServings ?? loaded.recipe.servings);
           this.recipe.set(loaded.recipe);
           this.markOwnedIngredients(loaded.recipe);
         }

@@ -1,4 +1,4 @@
-import { ApplicationRef } from '@angular/core';
+import { ApplicationRef, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
@@ -6,6 +6,9 @@ import { SessionService } from '../core/session.service';
 import { GroceryListsService } from '../grocery-list/grocery-lists.service';
 import { pantryItem } from '../pantry/pantry.fixtures';
 import { PantryService } from '../pantry/pantry.service';
+import { preferences } from '../preferences/preferences.fixtures';
+import { UserPreferences } from '../preferences/preferences.models';
+import { PreferencesService } from '../preferences/preferences.service';
 import { user } from '../users/user.fixtures';
 import { UsersService } from '../users/users.service';
 import { recipe, recipeReview } from './recipe.fixtures';
@@ -17,6 +20,15 @@ describe('RecipePage', () => {
   const usersService = { getUser: vi.fn(), saveRecipe: vi.fn(), unsaveRecipe: vi.fn() };
   const groceryLists = { getLists: vi.fn(), createList: vi.fn(), addRecipe: vi.fn() };
   const pantry = { getItems: vi.fn() };
+  const preferencesService = {
+    preferences: signal<UserPreferences | null>(null),
+    load: vi.fn(),
+  };
+  /** Makes the mock behave as if `prefs` were loaded from the backend. */
+  const usePreferences = (prefs: UserPreferences | null): void => {
+    preferencesService.preferences.set(prefs);
+    preferencesService.load.mockReturnValue(of(prefs));
+  };
   const ME = 'me-1';
 
   async function render(): Promise<HTMLElement> {
@@ -32,6 +44,7 @@ describe('RecipePage', () => {
         { provide: UsersService, useValue: usersService },
         { provide: GroceryListsService, useValue: groceryLists },
         { provide: PantryService, useValue: pantry },
+        { provide: PreferencesService, useValue: preferencesService },
       ],
     }).compileComponents();
     TestBed.inject(SessionService).setUser(user({ id: ME }));
@@ -50,6 +63,7 @@ describe('RecipePage', () => {
     localStorage.clear();
     groceryLists.getLists.mockReturnValue(of([]));
     pantry.getItems.mockReturnValue(of([]));
+    usePreferences(null);
   });
 
   it('loads the recipe from the route id and shows its content', async () => {
@@ -149,6 +163,61 @@ describe('RecipePage', () => {
 
     expect(text(page, '.pantry-status')).toEqual(['X', 'X']);
     expect(text(page, '.grocery-button')[0]).toContain('Add 2 to Grocery');
+  });
+
+  it("opens at the user's preferred servings and can reset to the recipe's own", async () => {
+    usePreferences(preferences({ defaultServings: 4 }));
+    recipesService.getRecipe.mockReturnValue(of(recipe({ servings: 2 })));
+    usersService.getUser.mockReturnValue(of({ displayName: 'Alice Cook' }));
+    const page = await render();
+
+    expect(text(page, '.stepper output')).toEqual(['4']);
+    expect(text(page, '.ingredient-quantity')).toEqual(['3 lb', '2 cups']);
+    expect(text(page, '.scaled-note')[0]).toContain('original 2 servings');
+
+    (page.querySelector('.scaled-note .link-button') as HTMLButtonElement).click();
+    await TestBed.inject(ApplicationRef).whenStable();
+    expect(text(page, '.stepper output')).toEqual(['2']);
+  });
+
+  it("warns when the recipe breaks the user's dietary restrictions", async () => {
+    usePreferences(preferences({ dietaryRestrictions: ['dairy-free', 'nut-free'] }));
+    recipesService.getRecipe.mockReturnValue(
+      of(recipe({ dietaryConflicts: { 'dairy-free': ['Butter'], vegan: ['Butter'] } })),
+    );
+    usersService.getUser.mockReturnValue(of({ displayName: 'Alice Cook' }));
+
+    const page = await render();
+
+    expect(text(page, '.diet-warning li')).toEqual(['Not dairy-free (Butter)']);
+    expect(page.querySelector('.diet-disclaimer')?.textContent).toContain('not medical');
+  });
+
+  it('shows no dietary warning when the recipe fits', async () => {
+    usePreferences(preferences({ dietaryRestrictions: ['vegetarian'] }));
+    recipesService.getRecipe.mockReturnValue(of(recipe({ dietaryConflicts: { vegan: ['Milk'] } })));
+    usersService.getUser.mockReturnValue(of({ displayName: 'Alice Cook' }));
+
+    const page = await render();
+
+    expect(page.querySelector('.diet-warning')).toBeNull();
+  });
+
+  it("shows each serving's share of the user's daily goals", async () => {
+    usePreferences(
+      preferences({
+        dailyTargets: { calories: 2000, protein: 150, carbohydrates: 200, fat: null },
+      }),
+    );
+    recipesService.getRecipe.mockReturnValue(
+      of(recipe({ nutrition: { calories: 500, protein: 45, fat: 10, carbohydrates: 60 } })),
+    );
+    usersService.getUser.mockReturnValue(of({ displayName: 'Alice Cook' }));
+
+    const page = await render();
+
+    const shares = text(page, '.goal-shares')[0].replace(/\s+/g, ' ');
+    expect(shares).toBe('Of your daily goals: 25% calories · 30% protein · 30% carbs');
   });
 
   it('shows Edit and Delete, and no review form, to the author', async () => {

@@ -1,0 +1,191 @@
+<div class="ui-page">
+  <section class="intro">
+    <h1 class="ui-title">Preferences</h1>
+    <p class="ui-subtitle">Tailor recipes to how you cook and eat.</p>
+  </section>
+
+  @if (loading()) {
+    <p class="ui-status">Loading preferences…</p>
+  } @else if (loadError()) {
+    <div class="ui-card">
+      <p class="ui-status">We couldn't load your preferences. Make sure the backend is running.</p>
+      <button type="button" class="ui-button primary" (click)="load()">Try again</button>
+    </div>
+  } @else {
+    <form class="preferences" [formGroup]="form" (ngSubmit)="save()">
+      <fieldset class="ui-card">
+        <legend class="ui-heading">Serving size</legend>
+        <label class="ui-label">
+          Open recipes at
+          <span class="inline">
+            <input
+              id="default-servings"
+              class="ui-field narrow"
+              type="number"
+              min="1"
+              [attr.max]="maxServings"
+              step="1"
+              formControlName="defaultServings"
+            />
+            servings
+          </span>
+          <span class="ui-hint">You can still change servings on any recipe.</span>
+        </label>
+      </fieldset>
+
+      <fieldset class="ui-card green">
+        <legend class="ui-heading">Dietary restrictions</legend>
+        <p class="ui-hint">Recipes that don't fit are hidden from the feed, or flagged with ⚠.</p>
+        <div class="restrictions">
+          @for (option of restrictionOptions; track option.value) {
+            <label class="restriction">
+              <input
+                type="checkbox"
+                [value]="option.value"
+                [checked]="isChecked(option.value)"
+                (change)="toggle(option.value)"
+              />
+              {{ option.label }}
+            </label>
+          }
+        </div>
+        <p class="disclaimer">{{ disclaimer }}</p>
+      </fieldset>
+
+      <fieldset class="ui-card goals">
+        <legend class="ui-heading">Daily goals</legend>
+        <label class="ui-label" [class.auto]="previewFor('calories') !== null">
+          <span class="field-name">
+            Calories per day
+            @if (previewFor('calories') !== null) {
+              <span class="auto-badge">auto</span>
+            }
+          </span>
+          <span class="inline">
+            <input
+              id="daily-calories"
+              class="ui-field"
+              [class.over]="plan().status === 'over'"
+              type="number"
+              [attr.min]="minCalories"
+              [attr.max]="maxCalories"
+              step="50"
+              [placeholder]="previewFor('calories') ?? 'No goal'"
+              formControlName="dailyCalories"
+            />
+            kcal
+          </span>
+        </label>
+
+        <div class="macros">
+          @for (macro of macros; track macro.value) {
+            <label
+              class="ui-label macro {{ macro.value }}"
+              [class.auto]="previewFor(macro.value) !== null"
+            >
+              <span class="field-name">
+                <span class="swatch" aria-hidden="true"></span>
+                {{ macro.label }}
+                @if (previewFor(macro.value) !== null) {
+                  <span class="auto-badge">auto</span>
+                }
+              </span>
+              <span class="inline">
+                <input
+                  [id]="'macro-' + macro.value"
+                  class="ui-field"
+                  type="number"
+                  min="0"
+                  [attr.max]="maxGrams"
+                  step="1"
+                  [placeholder]="previewFor(macro.value) ?? '—'"
+                  [formControlName]="macro.value"
+                />
+                g
+              </span>
+              <span class="ui-hint macro-kcal">
+                @if (plan().grams[macro.value] !== null) {
+                  {{ plan().caloriesByMacro[macro.value] }} kcal
+                  @if (shareOf(macro.value); as share) {
+                    · {{ share }}%
+                  }
+                }
+              </span>
+            </label>
+          }
+        </div>
+
+        @if (plan().status !== 'empty') {
+          <div class="calorie-bar" [class.over]="plan().status === 'over'" aria-hidden="true">
+            @for (segment of bar().segments; track segment.macro) {
+              <span
+                class="segment {{ segment.macro }}"
+                [class.previewed]="segment.previewed"
+                [style.width.%]="segment.width"
+              ></span>
+            }
+            @if (bar().goal; as goal) {
+              <span class="goal-marker" [style.left.%]="goal"></span>
+              @if (plan().status === 'over') {
+                <span class="overflow" [style.left.%]="goal"></span>
+              }
+            }
+          </div>
+        }
+
+        <p class="plan-status {{ plan().status }}" role="status">
+          @switch (plan().status) {
+            @case ('over') {
+              ⚠ Your macros add up to {{ plan().enteredCalories.toLocaleString() }} kcal,
+              <strong>{{ plan().overshoot.toLocaleString() }} kcal over</strong> your
+              {{ plan().calories?.toLocaleString() }} kcal goal.
+            }
+            @case ('under') {
+              {{ plan().unassigned.toLocaleString() }} kcal of your goal isn't assigned to a macro
+              yet.
+            }
+            @case ('balanced') {
+              @if (plan().preview; as preview) {
+                @if (preview.field === 'calories') {
+                  ✓ Your macros add up to {{ preview.value.toLocaleString() }} kcal per day.
+                } @else {
+                  ✓ {{ preview.value }} g of {{ preview.field === 'carbohydrates' ? 'carbs' : preview.field }}
+                  fills the rest of your calories.
+                }
+                <button type="button" class="link-button" (click)="acceptPreview()">
+                  Use {{ preview.value.toLocaleString() }}
+                </button>
+              } @else {
+                ✓ Your macros match your calorie goal.
+              }
+            }
+            @case ('partial') {
+              Fill in the remaining values.
+            }
+            @default {
+              Leave this blank if you don't track calories.
+            }
+          }
+          @if (plan().status !== 'empty') {
+            <button type="button" class="link-button" (click)="clearGoals()">Clear goals</button>
+          }
+        </p>
+      </fieldset>
+
+      @if (error(); as message) {
+        <p class="ui-error" role="alert">{{ message }}</p>
+      }
+      <div class="ui-row">
+        <button type="submit" class="ui-button primary" [disabled]="saving()">
+          {{ saving() ? 'Saving…' : 'Save preferences' }}
+        </button>
+        <a class="ui-button plain" routerLink="/profile">Back to profile</a>
+        <span class="save-state" role="status" aria-live="polite">
+          @if (saved()) {
+            <span class="saved">✓ Saved</span>
+          }
+        </span>
+      </div>
+    </form>
+  }
+</div>
