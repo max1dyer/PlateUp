@@ -1,4 +1,5 @@
 import { DomainValidationError } from '../../common/errors/domain-validation.error';
+import { DietaryRestriction } from '../../common/domain/dietary-restriction';
 import { User } from './user.entity';
 
 describe('User', () => {
@@ -21,6 +22,16 @@ describe('User', () => {
 
     expect(user.displayName).toBe('Peter Jones');
     expect(user.toJSON().bio).toBe('');
+  });
+
+  it('updatePreferences changes preferences but keeps them out of the public JSON', () => {
+    const user = new User('peter', profile);
+
+    user.updatePreferences({ dietaryRestrictions: [DietaryRestriction.DairyFree] });
+
+    expect(user.preferences.dietaryRestrictions).toEqual([DietaryRestriction.DairyFree]);
+    expect(user.toJSON()).not.toHaveProperty('preferences');
+    expect(user.toJSON()).not.toHaveProperty('dietaryRestrictions');
   });
 
   it('saves and unsaves recipes without duplicates', () => {

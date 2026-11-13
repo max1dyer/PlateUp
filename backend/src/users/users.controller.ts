@@ -3,8 +3,10 @@ import { CurrentUserId } from '../common/decorators/current-user-id.decorator';
 import { Recipe } from '../recipes/entities/recipe.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { LogInDto } from './dto/log-in.dto';
+import { UpdatePreferencesDto } from './dto/update-preferences.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from './entities/user.entity';
+import { UserPreferences } from './entities/user-preferences';
 import { UsersService } from './users.service';
 
 @Controller('users')
@@ -32,6 +34,20 @@ export class UsersController {
   @Patch('me')
   public updateMe(@CurrentUserId() userId: string, @Body() dto: UpdateUserDto): Promise<User> {
     return this.usersService.updateProfile(userId, dto);
+  }
+
+  /** Private to the signed-in user, so it is not part of the public profile. */
+  @Get('me/preferences')
+  public getPreferences(@CurrentUserId() userId: string): Promise<UserPreferences> {
+    return this.usersService.getPreferences(userId);
+  }
+
+  @Patch('me/preferences')
+  public updatePreferences(
+    @CurrentUserId() userId: string,
+    @Body() dto: UpdatePreferencesDto,
+  ): Promise<UserPreferences> {
+    return this.usersService.updatePreferences(userId, dto);
   }
 
   @Get('me/saved-recipes')

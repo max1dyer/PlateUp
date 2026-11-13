@@ -5,6 +5,7 @@ import { GroceryListPage } from './grocery-list/grocery-list-page';
 import { HomePage } from './home/home-page';
 import { InfoPage, InfoPageData } from './info/info-page';
 import { PantryPage } from './pantry/pantry-page';
+import { PreferencesPage } from './preferences/preferences-page';
 import { RecipeFormPage } from './recipes/recipe-form-page';
 import { RecipeListPage } from './recipes/recipe-list-page';
 import { RecipePage } from './recipes/recipe-page';
@@ -73,6 +74,7 @@ export const routes: Routes = [
         title: 'Planner | PlateUp!',
       },
       { path: 'profile', component: ProfilePage, title: 'Profile | PlateUp!' },
+      { path: 'preferences', component: PreferencesPage, title: 'Preferences | PlateUp!' },
       { path: 'users/:userId', component: ProfilePage, title: 'Profile | PlateUp!' },
       { path: '', pathMatch: 'full', redirectTo: 'home' },
     ],

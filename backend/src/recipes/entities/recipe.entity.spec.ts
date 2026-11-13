@@ -1,3 +1,4 @@
+import { DietaryRestriction } from '../../common/domain/dietary-restriction';
 import { DomainValidationError } from '../../common/errors/domain-validation.error';
 import { Quantity, Unit } from '../../common/domain/quantity';
 import { RecipeIngredient } from './recipe-ingredient';
@@ -66,6 +67,22 @@ describe('Recipe', () => {
       reviews: [],
     });
     expect(typeof json.id).toBe('string');
+  });
+
+  it('reports which ingredients break which dietary restrictions', () => {
+    const recipe = new Recipe(
+      'author',
+      details({
+        ingredients: [
+          new RecipeIngredient('Oats', new Quantity(1, Unit.Cup)),
+          new RecipeIngredient('Milk', new Quantity(1, Unit.Cup)),
+        ],
+      }),
+    );
+
+    expect(recipe.toJSON().dietaryConflicts[DietaryRestriction.DairyFree]).toEqual(['Milk']);
+    expect(recipe.suits([DietaryRestriction.Vegetarian])).toBe(true);
+    expect(recipe.suits([DietaryRestriction.Vegetarian, DietaryRestriction.DairyFree])).toBe(false);
   });
 
   it('trims tags and drops case-insensitive duplicates', () => {

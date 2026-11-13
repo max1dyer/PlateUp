@@ -22,9 +22,12 @@
           {{ user.bio || (isMe() ? 'Add a bio so people know what you cook.' : 'No bio yet.') }}
         </p>
         @if (isMe()) {
-          <button type="button" class="ui-button edit" (click)="editing.set(true)">
-            ✏️ Edit profile
-          </button>
+          <div class="ui-row">
+            <button type="button" class="ui-button edit" (click)="editing.set(true)">
+              ✏️ Edit profile
+            </button>
+            <a class="ui-button" routerLink="/preferences">⚙️ Preferences</a>
+          </div>
         }
       }
     }
