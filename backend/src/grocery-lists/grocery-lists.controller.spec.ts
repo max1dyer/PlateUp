@@ -12,6 +12,7 @@ describe('GroceryListsController', () => {
     remove: jest.fn(),
     addItem: jest.fn(),
     addRecipe: jest.fn(),
+    addPlannerWeek: jest.fn(),
     updateItem: jest.fn(),
     removeItem: jest.fn(),
     removePurchasedItems: jest.fn(),
@@ -70,5 +71,13 @@ describe('GroceryListsController', () => {
 
     expect(service.moveItemToPantry).toHaveBeenCalledWith('alice', 'l1', 'i1');
     expect(service.movePurchasedToPantry).toHaveBeenCalledWith('alice', 'l1');
+  });
+
+  it('addPlannerWeek delegates the date range and pantry choice', async () => {
+    const dto = { from: '2026-09-21', to: '2026-09-27', usePantry: false };
+
+    await controller.addPlannerWeek('alice', 'l1', dto);
+
+    expect(service.addPlannerWeek).toHaveBeenCalledWith('alice', 'l1', dto);
   });
 });

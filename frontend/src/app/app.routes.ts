@@ -5,6 +5,7 @@ import { GroceryListPage } from './grocery-list/grocery-list-page/grocery-list-p
 import { HomePage } from './home/home-page/home-page';
 import { InfoPage, InfoPageData } from './info/info-page/info-page';
 import { PantryPage } from './pantry/pantry-page/pantry-page';
+import { PlannerPage } from './planner/planner-page/planner-page';
 import { PreferencesPage } from './preferences/preferences-page/preferences-page';
 import { RecipeFormPage } from './recipes/recipe-form-page/recipe-form-page';
 import { RecipeListPage } from './recipes/recipe-list-page/recipe-list-page';
@@ -38,16 +39,6 @@ const ABOUT: InfoPageData = {
   ],
 };
 
-/** Placeholder text for the planner page until the meal planner is built. */
-const PLANNER: InfoPageData = {
-  title: 'Meal Planner',
-  paragraphs: [
-    'The weekly meal planner is coming in the Beta release. You will be able to put ' +
-      'recipes on days of the week and build one grocery list for the whole week.',
-    'For now, open a recipe and use “Add all to Grocery” to shop for it.',
-  ],
-};
-
 /**
  * Every page of the app. Login, About, and Contact are open to everyone; the rest sit under
  * `signedInGuard`, which sends visitors who are not signed in to the login page first.
@@ -72,12 +63,7 @@ export const routes: Routes = [
       { path: 'saved', component: SavedRecipesPage, title: 'Saved | PlateUp!' },
       { path: 'pantry', component: PantryPage, title: 'Pantry | PlateUp!' },
       { path: 'grocery', component: GroceryListPage, title: 'Grocery | PlateUp!' },
-      {
-        path: 'planner',
-        component: InfoPage,
-        data: { page: PLANNER },
-        title: 'Planner | PlateUp!',
-      },
+      { path: 'planner', component: PlannerPage, title: 'Planner | PlateUp!' },
       { path: 'profile', component: ProfilePage, title: 'Profile | PlateUp!' },
       { path: 'preferences', component: PreferencesPage, title: 'Preferences | PlateUp!' },
       { path: 'users/:userId', component: ProfilePage, title: 'Profile | PlateUp!' },

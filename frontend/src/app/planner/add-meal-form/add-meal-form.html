@@ -1,0 +1,76 @@
+<section class="ui-card add-meal" aria-label="Plan a meal">
+  <div class="header">
+    <h3 class="heading">Plan a meal</h3>
+    <button type="button" class="ui-button plain" (click)="closed.emit()">Close</button>
+  </div>
+
+  @if (chosen(); as recipe) {
+    <!-- Step 2: meal time and servings for the chosen recipe -->
+    <div class="chosen">
+      <span class="chosen-title">{{ recipe.title }}</span>
+      <button type="button" class="link" (click)="chosen.set(null)">Change</button>
+    </div>
+    <form class="details" [formGroup]="form" (ngSubmit)="submit()">
+      <div class="fields">
+        <label class="ui-label">
+          Meal
+          <select class="ui-field" formControlName="slot">
+            @for (slot of slots; track slot.value) {
+              <option [value]="slot.value">{{ slot.label }}</option>
+            }
+          </select>
+        </label>
+        <label class="ui-label">
+          Servings
+          <input
+            class="ui-field"
+            type="number"
+            min="1"
+            [max]="maxServings"
+            step="1"
+            formControlName="servings"
+          />
+        </label>
+      </div>
+      <button type="submit" class="ui-button primary" [disabled]="saving()">Add to planner</button>
+    </form>
+  } @else {
+    <!-- Step 1: search recipes by name or ingredient -->
+    <input
+      class="ui-field"
+      type="search"
+      placeholder="Search by recipe name or ingredient"
+      aria-label="Search recipes"
+      [value]="search()"
+      (input)="onSearch($event)"
+    />
+    @if (loading()) {
+      <p class="ui-status">Loading recipes…</p>
+    } @else {
+      <ul class="results">
+        @for (recipe of results(); track recipe.id) {
+          <li>
+            <button type="button" class="result" (click)="choose(recipe)">
+              <span class="result-title">{{ recipe.title }}</span>
+              <span class="ui-hint">
+                {{ recipe.prepTimeMinutes }} min · {{ recipe.nutrition.calories }} kcal per serving
+              </span>
+            </button>
+          </li>
+        } @empty {
+          <li class="ui-status">
+            @if (recipes().length === 0) {
+              No recipes yet. Upload one to plan it.
+            } @else {
+              No recipes match “{{ search() }}”. Try a different recipe name or ingredient.
+            }
+          </li>
+        }
+      </ul>
+    }
+  }
+
+  @if (error(); as message) {
+    <p class="ui-error" role="alert">{{ message }}</p>
+  }
+</section>

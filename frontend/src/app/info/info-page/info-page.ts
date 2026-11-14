@@ -10,8 +10,8 @@ export interface InfoPageData {
 }
 
 /**
- * A simple text page whose content comes from route data: About
- * and placeholders for features scheduled for a later release (the Planner).
+ * A simple text page whose content comes from route data (the About page),
+ * also usable as a placeholder for features scheduled for a later release.
  */
 @Component({
   selector: 'app-info-page',
