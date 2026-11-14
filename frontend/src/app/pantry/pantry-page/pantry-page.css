@@ -22,3 +22,42 @@
   border-radius: var(--radius);
   background: var(--color-secondary);
 }
+
+.date {
+  width: auto;
+}
+
+/* Expiration alert */
+.expiry-alert {
+  border-left: 6px solid var(--color-primary);
+}
+
+.alert-title {
+  margin: 0;
+  font-size: 19px;
+  line-height: 120%;
+}
+
+.alert-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 17px;
+}
+
+.alert-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.marker {
+  color: var(--color-primary);
+}
+
+.marker.expired {
+  color: var(--color-error);
+}

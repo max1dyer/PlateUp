@@ -4,6 +4,23 @@
     <p class="ui-subtitle">Keep track of what you already have at home.</p>
   </section>
 
+  <!-- Expiration alert (UC15): expired and soon-to-expire items, most urgent first -->
+  @if (alert(); as alert) {
+    <section class="ui-card expiry-alert" role="alert">
+      <p class="alert-title">⚠ {{ alert }}</p>
+      <ul class="alert-list">
+        @for (entry of expiring(); track entry.item.id) {
+          <li>
+            <span>{{ entry.item.name }}</span>
+            <span class="marker" [class.expired]="entry.status.state === 'expired'">
+              {{ entry.status.label }}
+            </span>
+          </li>
+        }
+      </ul>
+    </section>
+  }
+
   <form class="ui-card add" [formGroup]="form" (ngSubmit)="add()">
     <label class="ui-label">
       Ingredient
@@ -25,6 +42,10 @@
       </select>
       <button type="submit" class="ui-button primary" [disabled]="saving()">+ Add</button>
     </div>
+    <label class="ui-label expires">
+      Expires (optional)
+      <input class="ui-field date" type="date" formControlName="expiresOn" />
+    </label>
     @if (addError(); as message) {
       <p class="ui-error" role="alert">{{ message }}</p>
     }

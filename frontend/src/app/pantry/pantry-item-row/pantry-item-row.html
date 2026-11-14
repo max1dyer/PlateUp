@@ -6,7 +6,17 @@
       [attr.aria-label]="'Edit ' + item().name"
       (click)="startEditing()"
     >
-      <span class="name">{{ item().name }}</span>
+      <span class="text">
+        <span class="name">{{ item().name }}</span>
+        @if (item().expiresOn; as expiresOn) {
+          <span class="expiry {{ expiry().state }}">
+            Expires {{ toLocalDate(expiresOn) | date: 'MMM d' }}
+            @if (expiry().label) {
+              · {{ expiry().label }}
+            }
+          </span>
+        }
+      </span>
       <span class="quantity">{{ formatQuantity(item().quantity) }}</span>
     </button>
     <button
@@ -37,6 +47,10 @@
         }
       </select>
     </div>
+    <label class="ui-label">
+      Expires (optional)
+      <input class="ui-field date" type="date" formControlName="expiresOn" />
+    </label>
     <div class="ui-row">
       <button type="submit" class="ui-button primary" [disabled]="saving()">Save</button>
       <button type="button" class="ui-button plain" (click)="editing.set(false)">Cancel</button>
