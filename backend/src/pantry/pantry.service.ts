@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { requireCalendarDateOrNull } from '../common/domain/calendar-date';
 import { Quantity } from '../common/domain/quantity';
 import { DomainValidationError } from '../common/errors/domain-validation.error';
 import { CreatePantryItemDto } from './dto/create-pantry-item.dto';
@@ -22,7 +23,8 @@ export class PantryService {
   /**
    * Adds an ingredient. A pantry holds one item per ingredient, so if the owner
    * already has it the amount is combined into that item (which is returned
-   * instead); an amount in a unit that can't be combined is refused.
+   * instead, keeping the earlier expiration date); an amount in a unit that
+   * can't be combined is refused.
    */
   public async add(ownerId: string, dto: CreatePantryItemDto): Promise<PantryItem> {
     const quantity = new Quantity(dto.quantity.amount, dto.quantity.unit);
@@ -34,13 +36,18 @@ export class PantryService {
             'Add it in a compatible unit, or edit the existing item.',
         );
       }
-      existing.addQuantity(quantity);
+      existing.addQuantity(quantity, dto.expiresOn ?? null);
       return this.pantryItems.save(existing);
     }
-    return this.pantryItems.save(new PantryItem(ownerId, dto.name, quantity));
+    return this.pantryItems.save(
+      new PantryItem(ownerId, dto.name, quantity, dto.expiresOn ?? null),
+    );
   }
 
-  /** Renaming to another item's ingredient is refused, to keep one item per ingredient. */
+  /**
+   * Edits an item's name, amount, or expiration date. Renaming to another
+   * item's ingredient is refused, to keep one item per ingredient.
+   */
   public async update(
     ownerId: string,
     itemId: string,
@@ -49,6 +56,11 @@ export class PantryService {
     const item = await this.findOwned(ownerId, itemId);
     const quantity =
       dto.quantity === undefined ? undefined : new Quantity(dto.quantity.amount, dto.quantity.unit);
+    // Check the date before changing anything, so a bad date leaves the item untouched.
+    const expiresOn =
+      dto.expiresOn === undefined
+        ? undefined
+        : requireCalendarDateOrNull(dto.expiresOn, 'Expiration date');
     if (dto.name !== undefined) {
       const other = await this.findOwnedNamed(ownerId, dto.name);
       if (other && other.id !== item.id) {
@@ -60,6 +72,9 @@ export class PantryService {
     }
     if (quantity !== undefined) {
       item.setQuantity(quantity);
+    }
+    if (expiresOn !== undefined) {
+      item.setExpiresOn(expiresOn);
     }
     return this.pantryItems.save(item);
   }
