@@ -1,8 +1,10 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
+import { today } from '../../core/calendar-date';
 import { SessionService } from '../../core/session.service';
 import { GroceryListsService } from '../../grocery-list/grocery-lists.service';
+import { expiryAlert } from '../../pantry/pantry-expiry';
 import { PantryService } from '../../pantry/pantry.service';
 import { RecipeCard } from '../../recipes/recipe-card/recipe-card';
 import { Recipe } from '../../recipes/recipe.models';
@@ -19,7 +21,10 @@ interface Shortcut {
 /** How many of the newest recipes the home page shows. */
 const NEWEST_COUNT = 3;
 
-/** Landing page after signing in: shortcuts to each feature and the newest recipes. */
+/**
+ * Landing page after signing in: shortcuts to each feature, the newest
+ * recipes, and an alert when pantry items are expiring (UC15).
+ */
 @Component({
   selector: 'app-home-page',
   imports: [RouterLink, RecipeCard],
@@ -31,6 +36,8 @@ export class HomePage implements OnInit {
   protected readonly newest = signal<Recipe[]>([]);
   /** Pantry and grocery totals for the shortcut tiles; null until both have loaded. */
   protected readonly counts = signal<{ pantry: number; groceryItems: number } | null>(null);
+  /** Summary of expired or soon-to-expire pantry items, or null when there are none. */
+  protected readonly expiryAlert = signal<string | null>(null);
 
   /** The feature tiles, in display order. */
   protected readonly shortcuts: readonly Shortcut[] = [
@@ -47,7 +54,7 @@ export class HomePage implements OnInit {
     private readonly groceryLists: GroceryListsService,
   ) {}
 
-  /** Loads the newest recipes and the pantry and grocery counts in parallel. */
+  /** Loads the newest recipes, the pantry and grocery counts, and the expiry alert in parallel. */
   public ngOnInit(): void {
     this.recipes
       .getRecipes()
@@ -61,14 +68,16 @@ export class HomePage implements OnInit {
     // Wait for both requests so the two counts appear together. The grocery count is items still to
     // buy, across every list.
     forkJoin({ pantry: this.pantry.getItems(), lists: this.groceryLists.getLists() }).subscribe(
-      ({ pantry, lists }) =>
+      ({ pantry, lists }) => {
         this.counts.set({
           pantry: pantry.length,
           groceryItems: lists.reduce(
             (total, list) => total + list.items.filter((item) => !item.purchased).length,
             0,
           ),
-        }),
+        });
+        this.expiryAlert.set(expiryAlert(pantry, today()));
+      },
     );
   }
 }
