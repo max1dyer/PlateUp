@@ -12,6 +12,7 @@ import { PreferenceChanges, UserPreferences } from './preferences.models';
 @Injectable({ providedIn: 'root' })
 export class PreferencesService {
   private readonly baseUrl = `${API_PREFIX}/users/me/preferences`;
+  /** The last preferences loaded, tagged with whose they are so a user switch is noticed. */
   private readonly loaded = signal<{ userId: string; preferences: UserPreferences } | null>(null);
 
   /** The current user's preferences, or null until loaded (or after switching users). */
@@ -40,12 +41,14 @@ export class PreferencesService {
     );
   }
 
+  /** `PATCH /users/me/preferences`: saves changes and caches the result for other pages. */
   public update(changes: PreferenceChanges): Observable<UserPreferences> {
     return this.http
       .patch<UserPreferences>(this.baseUrl, changes)
       .pipe(tap((preferences) => this.remember(preferences)));
   }
 
+  /** Caches preferences for the signed-in user (ignored if no one is signed in). */
   private remember(preferences: UserPreferences): void {
     const userId = this.session.userId();
     if (userId !== null) {

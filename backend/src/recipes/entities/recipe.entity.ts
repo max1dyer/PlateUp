@@ -10,6 +10,7 @@ import { OwnedEntity } from '../../common/domain/owned.entity';
 import { RecipeIngredient } from './recipe-ingredient';
 import { RecipeReview } from './recipe-review';
 
+/** Who can see a recipe: everyone, or only its author. */
 export enum RecipeVisibility {
   Public = 'public',
   Private = 'private',
@@ -38,6 +39,7 @@ export interface RecipeDetails {
   tags: string[];
 }
 
+/** Everything a recipe serializes to: its details plus derived review and diet information. */
 export interface RecipeSnapshot extends RecipeDetails {
   authorId: string;
   /** Average star rating to one decimal place, or null before the first review. */
@@ -57,15 +59,18 @@ export class Recipe extends OwnedEntity<RecipeSnapshot> {
   /** Keyed by reviewer, so each user has at most one review. */
   private readonly reviewsByUser = new Map<string, RecipeReview>();
 
+  /** @throws DomainValidationError if any of the details are invalid (see `validate`). */
   constructor(authorId: string, details: RecipeDetails) {
     super(authorId);
     this.details = Recipe.validate(details);
   }
 
+  /** The author's user id (an alias for `ownerId`). */
   public get authorId(): string {
     return this.ownerId;
   }
 
+  // Read-only views of the recipe's details.
   public get title(): string {
     return this.details.title;
   }
@@ -90,10 +95,12 @@ export class Recipe extends OwnedEntity<RecipeSnapshot> {
     return this.details.tags;
   }
 
+  /** A copy of every review, one per reviewer. */
   public get reviews(): RecipeReview[] {
     return [...this.reviewsByUser.values()];
   }
 
+  /** How many users have reviewed this recipe. */
   public get numRatings(): number {
     return this.reviewsByUser.size;
   }
@@ -103,6 +110,7 @@ export class Recipe extends OwnedEntity<RecipeSnapshot> {
     if (this.reviewsByUser.size === 0) {
       return null;
     }
+    // Multiply by 10, round, then divide to keep one decimal place.
     const total = this.reviews.reduce((sum, review) => sum + review.rating, 0);
     return Math.round((total / this.reviewsByUser.size) * 10) / 10;
   }
@@ -138,16 +146,21 @@ export class Recipe extends OwnedEntity<RecipeSnapshot> {
     return restrictions.every((restriction) => conflicts[restriction] === undefined);
   }
 
+  /** Public recipes are visible to everyone; private ones only to their author. */
   public isVisibleTo(userId: string): boolean {
     return this.details.visibility === RecipeVisibility.Public || this.isOwnedBy(userId);
   }
 
   /** The ingredient list scaled to `servings` (used to generate grocery lists). */
   public ingredientsFor(servings: number): RecipeIngredient[] {
+    // The ratio of the wanted servings to the servings the recipe was written for.
     const factor = requirePositiveInteger(servings, 'Servings') / this.details.servings;
     return this.details.ingredients.map((ingredient) => ingredient.scale(factor));
   }
 
+  /**
+   * The recipe-specific fields for `toJSON()`, including the derived rating and dietary conflicts.
+   */
   protected snapshot(): RecipeSnapshot {
     return {
       authorId: this.ownerId,
@@ -159,6 +172,11 @@ export class Recipe extends OwnedEntity<RecipeSnapshot> {
     };
   }
 
+  /**
+   * Checks every field and returns a cleaned-up copy (trimmed text, de-duplicated tags).
+   *
+   * @throws DomainValidationError naming the first invalid field.
+   */
   private static validate(details: RecipeDetails): RecipeDetails {
     if (details.ingredients.length === 0) {
       throw new DomainValidationError('A recipe needs at least one ingredient.');

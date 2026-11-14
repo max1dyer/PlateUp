@@ -16,10 +16,12 @@ export class RecipesService {
     return this.http.get<Recipe[]>(this.baseUrl);
   }
 
+  /** `GET /recipes/:recipeId`: one recipe (404 if missing or someone else's private recipe). */
   public getRecipe(recipeId: string): Observable<Recipe> {
     return this.http.get<Recipe>(`${this.baseUrl}/${recipeId}`);
   }
 
+  /** `POST /recipes`: publishes a new recipe by the signed-in user. */
   public createRecipe(recipe: NewRecipe): Observable<Recipe> {
     return this.http.post<Recipe>(this.baseUrl, recipe);
   }
@@ -29,6 +31,7 @@ export class RecipesService {
     return this.http.patch<Recipe>(`${this.baseUrl}/${recipeId}`, changes);
   }
 
+  /** `DELETE /recipes/:recipeId`: deletes a recipe (author only). */
   public deleteRecipe(recipeId: string): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${recipeId}`);
   }

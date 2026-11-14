@@ -88,6 +88,10 @@ export class DemoDataSeeder implements OnApplicationBootstrap {
     private readonly recipesService: RecipesService,
   ) {}
 
+  /**
+   * Nest lifecycle hook, run once after every module has started: creates the demo users, their
+   * recipes, and one review.
+   */
   public async onApplicationBootstrap(): Promise<void> {
     const author = await this.usersService.register({
       username: 'demo-chef',
@@ -100,6 +104,7 @@ export class DemoDataSeeder implements OnApplicationBootstrap {
     });
 
     const recipes = [];
+    // Created one at a time so the recipes keep the order they are listed in.
     for (const dto of DEMO_RECIPES) {
       recipes.push(await this.recipesService.create(author.id, dto));
     }

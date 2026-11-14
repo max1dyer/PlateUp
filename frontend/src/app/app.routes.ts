@@ -1,17 +1,17 @@
 import { Routes } from '@angular/router';
-import { ContactPage } from './contact/contact-page';
+import { ContactPage } from './contact/contact-page/contact-page';
 import { signedInGuard } from './core/signed-in.guard';
-import { GroceryListPage } from './grocery-list/grocery-list-page';
-import { HomePage } from './home/home-page';
-import { InfoPage, InfoPageData } from './info/info-page';
-import { PantryPage } from './pantry/pantry-page';
-import { PreferencesPage } from './preferences/preferences-page';
-import { RecipeFormPage } from './recipes/recipe-form-page';
-import { RecipeListPage } from './recipes/recipe-list-page';
-import { RecipePage } from './recipes/recipe-page';
-import { SavedRecipesPage } from './recipes/saved-recipes-page';
-import { LoginPage } from './users/login-page';
-import { ProfilePage } from './users/profile-page';
+import { GroceryListPage } from './grocery-list/grocery-list-page/grocery-list-page';
+import { HomePage } from './home/home-page/home-page';
+import { InfoPage, InfoPageData } from './info/info-page/info-page';
+import { PantryPage } from './pantry/pantry-page/pantry-page';
+import { PreferencesPage } from './preferences/preferences-page/preferences-page';
+import { RecipeFormPage } from './recipes/recipe-form-page/recipe-form-page';
+import { RecipeListPage } from './recipes/recipe-list-page/recipe-list-page';
+import { RecipePage } from './recipes/recipe-page/recipe-page';
+import { SavedRecipesPage } from './recipes/saved-recipes-page/saved-recipes-page';
+import { LoginPage } from './users/login-page/login-page';
+import { ProfilePage } from './users/profile-page/profile-page';
 
 /** Text for the about page. */
 const ABOUT: InfoPageData = {
@@ -38,6 +38,7 @@ const ABOUT: InfoPageData = {
   ],
 };
 
+/** Placeholder text for the planner page until the meal planner is built. */
 const PLANNER: InfoPageData = {
   title: 'Meal Planner',
   paragraphs: [
@@ -47,6 +48,10 @@ const PLANNER: InfoPageData = {
   ],
 };
 
+/**
+ * Every page of the app. Login, About, and Contact are open to everyone; the rest sit under
+ * `signedInGuard`, which sends visitors who are not signed in to the login page first.
+ */
 export const routes: Routes = [
   { path: 'login', component: LoginPage, title: 'Log in | PlateUp!' },
   { path: 'about', component: InfoPage, data: { page: ABOUT }, title: 'About | PlateUp!' },
@@ -76,8 +81,10 @@ export const routes: Routes = [
       { path: 'profile', component: ProfilePage, title: 'Profile | PlateUp!' },
       { path: 'preferences', component: PreferencesPage, title: 'Preferences | PlateUp!' },
       { path: 'users/:userId', component: ProfilePage, title: 'Profile | PlateUp!' },
+      // Signed-in visitors to the bare address land on the home page.
       { path: '', pathMatch: 'full', redirectTo: 'home' },
     ],
   },
+  // Unknown addresses fall back to the home page (which still requires sign-in).
   { path: '**', redirectTo: 'home' },
 ];

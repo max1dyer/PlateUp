@@ -13,6 +13,7 @@ export interface NewGroceryEntry {
   category?: IngredientCategory;
 }
 
+/** The fields a grocery list serializes to. */
 export interface GroceryListSnapshot {
   ownerId: string;
   name: string;
@@ -22,17 +23,21 @@ export interface GroceryListSnapshot {
 /** Aggregate root for a user's shopping list and its items. */
 export class GroceryList extends OwnedEntity<GroceryListSnapshot> {
   private listName: string;
+  /** The list's items keyed by id; a Map keeps them in the order they were added. */
   private readonly itemsById = new Map<string, GroceryListItem>();
 
+  /** @throws DomainValidationError if the name is blank. */
   constructor(ownerId: string, name: string) {
     super(ownerId);
     this.listName = requireText(name, 'Grocery list name');
   }
 
+  /** The list's display name, e.g. "Weekly shop". */
   public get name(): string {
     return this.listName;
   }
 
+  /** A copy of the items, in the order they were added. */
   public get items(): GroceryListItem[] {
     return [...this.itemsById.values()];
   }
@@ -42,6 +47,7 @@ export class GroceryList extends OwnedEntity<GroceryListSnapshot> {
     return this.itemsById.get(itemId);
   }
 
+  /** Renames the list; the name may not be blank. */
   public rename(name: string): void {
     this.listName = requireText(name, 'Grocery list name');
     this.touch();
@@ -82,8 +88,10 @@ export class GroceryList extends OwnedEntity<GroceryListSnapshot> {
    * one is in a unit that can't be combined, nothing is added (UC6).
    */
   public addItems(entries: readonly NewGroceryEntry[]): GroceryListItem[] {
+    // Validate every entry before changing anything, so a refused entry leaves the list untouched.
     entries.forEach((entry, index) => {
       const existing = this.findItemNamed(entry.name);
+      // Two entries in the same batch can also clash with each other.
       const earlier = entries
         .slice(0, index)
         .find((other) => isSameIngredient(other.name, entry.name));
@@ -142,14 +150,17 @@ export class GroceryList extends OwnedEntity<GroceryListSnapshot> {
     return purchased.length;
   }
 
+  /** The list-specific fields for `toJSON()`. */
   protected snapshot(): GroceryListSnapshot {
     return { ownerId: this.ownerId, name: this.listName, items: this.items };
   }
 
+  /** True if two amounts can be summed: either is missing, or their units are compatible. */
   private static canCombine(a: Quantity | null, b: Quantity | null): boolean {
     return a === null || b === null || a.isCompatibleWith(b);
   }
 
+  /** The item for the same ingredient as `name` (case and spacing ignored), if any. */
   private findItemNamed(name: string): GroceryListItem | undefined {
     return this.items.find((item) => item.isNamed(name));
   }

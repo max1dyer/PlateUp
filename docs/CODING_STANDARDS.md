@@ -94,8 +94,10 @@ if (!recipe) throw new NotFoundException(`Recipe ${recipeId} not found.`);
 We use [TSDoc](https://tsdoc.org/) (`/** ... */`) comments.
 
 - **Every exported class** has a TSDoc comment that states its responsibility in one or two sentences. These comments are the basis for our CRC cards.
-- **Public methods** get a TSDoc comment when the name alone does not explain the behaviour, side effects, or thrown errors (e.g. merging rules, "returns false if not found"). Do not restate the method name.
-- **Inline comments** explain _why_, not _what_.
+- **Every function and method** (public or private, including HTTP route handlers) gets a TSDoc comment above it. Say what it does from the caller's point of view: behaviour, side effects, and thrown errors (e.g. merging rules, "returns false if not found", `@throws NotFoundException ...`). Controller handlers name their route (`` `GET /recipes/:recipeId`: ... ``). Do not just restate the method name.
+- **State fields** (signals, inputs, outputs, private collections) get a short comment when their meaning is not obvious from the name.
+- **Inline comments** explain _why_, not _what_. Add one above any non-obvious step: a merge rule, a unit conversion, an RxJS chain, or a guard against an edge case.
+- **Templates and stylesheets**: larger `.html` and `.css` files are split into sections with a short `<!-- -->` or `/* */` heading.
 - **Design patterns** are annotated on the participating class with a `@pattern` tag naming the pattern and the class's role. Every pattern in [`DESIGN.md`](DESIGN.md#design-patterns) must have at least one annotation in the source:
 
   ```ts
@@ -144,6 +146,7 @@ Each feature folder contains `<feature>.module.ts`, `.controller.ts`, `.service.
 ## 7. Frontend Standards (Angular)
 
 - **Standalone components** with signals for component state (`signal`, `computed`).
+- **Folder layout.** Each feature folder keeps its service, models, helpers, and fixtures at the top level, and gives every component its own subfolder with the same name (`recipes/recipe-page/recipe-page.{ts,html,css,spec.ts}`). App-wide services go in `core/`; page chrome in `layout/`.
 - **Small components.** Keep each component focused on one UI element. Split it when the template or class grows unwieldy _(review)_.
 - **No direct DOM manipulation.** Do not use `document.getElementById()` and similar calls. Use template binding and the built-in control flow (`@if`, `@for`).
 - **Service layer.** Components never call `fetch()` or `XMLHttpRequest`. They inject a feature service (e.g. `GroceryListsService`) that uses `HttpClient`. API URLs start with `/api`, which the dev server proxies to the backend.

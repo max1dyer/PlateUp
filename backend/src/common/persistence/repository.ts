@@ -10,8 +10,11 @@ import { BaseEntity } from '../domain/base.entity';
  *   injection tokens; each module binds a concrete implementation.
  */
 export abstract class Repository<T extends BaseEntity<object>> {
+  /** Every stored entity. */
   public abstract findAll(): Promise<T[]>;
+  /** The entity with this id, or null if there is none. */
   public abstract findById(id: string): Promise<T | null>;
+  /** Inserts a new entity or replaces the stored one with the same id. */
   public abstract save(entity: T): Promise<T>;
   /** Returns false if nothing with that id existed. */
   public abstract delete(id: string): Promise<boolean>;

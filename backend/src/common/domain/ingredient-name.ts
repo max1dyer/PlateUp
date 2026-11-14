@@ -9,6 +9,7 @@ export function isSameIngredient(a: string, b: string): boolean {
   return first.length > 0 && first === normalize(b);
 }
 
+/** Lower-cases, trims, and collapses runs of whitespace; non-strings become ''. */
 function normalize(name: string): string {
   return typeof name === 'string' ? name.trim().replace(/\s+/g, ' ').toLowerCase() : '';
 }

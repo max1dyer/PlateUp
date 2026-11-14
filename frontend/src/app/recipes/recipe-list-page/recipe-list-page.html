@@ -1,0 +1,134 @@
+<div class="ui-page">
+  <section class="intro">
+    <h1 class="ui-title">Recipes</h1>
+    <p class="ui-subtitle">Find something to cook, or share your own.</p>
+  </section>
+
+  <a class="ui-button primary wide" routerLink="/recipes/new">+ Upload a recipe</a>
+
+  <!-- Search box, Filters dropdown (diet and tags), and sort menu -->
+  <div class="filters">
+    <label class="ui-visually-hidden" for="recipe-search">Search recipes</label>
+    <input
+      id="recipe-search"
+      class="ui-field"
+      type="search"
+      placeholder="Search by name, tag, or ingredient"
+      [value]="search()"
+      (input)="onSearch($event)"
+    />
+    <div class="controls">
+      <details class="filter-menu">
+        <summary class="ui-button">
+          Filters
+          @if (tag() !== null) {
+            <span class="badge">1</span>
+          }
+        </summary>
+        <div class="filter-panel">
+          <p class="panel-heading">Dietary preferences</p>
+          @if (restrictions().length > 0) {
+            <label class="diet-toggle">
+              <input
+                id="hide-unsuitable"
+                type="checkbox"
+                [checked]="hideUnsuitable()"
+                (change)="onHideUnsuitable($event)"
+              />
+              Hide recipes that aren't {{ restrictionLabels() }}
+            </label>
+          } @else {
+            <p class="panel-note">
+              No dietary restrictions set.
+              <a routerLink="/preferences">Set them in Preferences</a>
+            </p>
+          }
+          <p class="panel-note disclaimer">{{ disclaimer }}</p>
+
+          @if (tags().length > 0) {
+            <p class="panel-heading">Tags</p>
+            <div class="tag-filter" role="group" aria-label="Filter by tag">
+              @for (option of tags(); track option) {
+                <button
+                  type="button"
+                  class="tag"
+                  [class.active]="tag() === option"
+                  [attr.aria-pressed]="tag() === option"
+                  (click)="toggleTag(option)"
+                >
+                  {{ option }}
+                </button>
+              }
+            </div>
+            @if (tag() !== null) {
+              <button type="button" class="clear" (click)="tag.set(null)">Clear tag</button>
+            }
+          }
+        </div>
+      </details>
+
+      <label class="sort">
+        <span>Sort by</span>
+        <select id="recipe-sort" class="ui-field" [value]="sort()" (change)="onSort($event)">
+          @for (option of sortOptions; track option.value) {
+            <option [value]="option.value">{{ option.label }}</option>
+          }
+        </select>
+      </label>
+    </div>
+  </div>
+
+  <!-- Note about recipes hidden by the dietary filter -->
+  @if (hiddenByDiet() > 0) {
+    <p class="diet-note">
+      {{ hiddenByDiet() }} {{ hiddenByDiet() === 1 ? 'recipe is' : 'recipes are' }} hidden by your
+      dietary preferences.
+      <button type="button" class="clear" (click)="hideUnsuitable.set(false)">Show them</button>
+    </p>
+  }
+
+  @if (loading()) {
+    <p class="ui-status">Loading recipes…</p>
+  } @else if (loadError()) {
+    <div class="ui-card">
+      <p class="ui-status">We couldn't load recipes. Make sure the backend is running.</p>
+      <button type="button" class="ui-button primary" (click)="load()">Try again</button>
+    </div>
+  } @else {
+    <!-- Recipe cards; the empty state explains why nothing is shown -->
+    <ul class="ui-card-grid">
+      @for (recipe of shown(); track recipe.id; let index = $index) {
+        <li>
+          <app-recipe-card
+            [recipe]="recipe"
+            [green]="index % 2 === 1"
+            [warnings]="warningsFor(recipe)"
+          />
+        </li>
+      } @empty {
+        <li class="ui-card ui-span-all">
+          @if (recipes().length === 0) {
+            <p class="ui-status">No recipes yet. Be the first to upload one!</p>
+          } @else if (search().trim() === '' && tag() === null && hiddenByDiet() > 0) {
+            <p class="ui-status">
+              There are no recipes that fit your dietary preferences right now. Try removing a
+              restriction in your <a routerLink="/preferences">preferences</a>.
+            </p>
+            <button type="button" class="ui-button" (click)="hideUnsuitable.set(false)">
+              Show all recipes
+            </button>
+          } @else {
+            <p class="ui-status">No recipes match your search.</p>
+            @if (hiddenByDiet() > 0) {
+              <p class="ui-status">
+                Try removing a dietary restriction in your
+                <a routerLink="/preferences">preferences</a>.
+              </p>
+            }
+            <button type="button" class="ui-button" (click)="clearFilters()">Clear filters</button>
+          }
+        </li>
+      }
+    </ul>
+  }
+</div>

@@ -5,6 +5,7 @@ import { Quantity } from '../../common/domain/quantity';
 export class RecipeIngredient {
   public readonly name: string;
 
+  /** @throws DomainValidationError if the name is blank. */
   constructor(
     name: string,
     public readonly quantity: Quantity,
@@ -12,6 +13,7 @@ export class RecipeIngredient {
     this.name = requireText(name, 'Ingredient name');
   }
 
+  /** Returns a copy with the amount multiplied by `factor` (e.g. 2 when doubling the servings). */
   public scale(factor: number): RecipeIngredient {
     return new RecipeIngredient(this.name, this.quantity.scale(factor));
   }

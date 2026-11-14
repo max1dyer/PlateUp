@@ -65,3 +65,5 @@ Testing conventions: service specs build a real Nest testing module with the in-
 ## Frontend architecture (`frontend/src`)
 
 Angular 22 with standalone components and signals. Tests run with Vitest (`vi.fn()`). The standard: components never call `fetch` or touch the DOM directly. HTTP goes through an injectable service per feature.
+
+Each feature folder (`recipes`, `pantry`, `grocery-list`, ...) keeps its service, models, helpers, and fixtures at the top level, and gives every component its own subfolder (`recipes/recipe-page/recipe-page.{ts,html,css,spec.ts}`). App-wide services live in `core/`; the header, footer, and toasts in `layout/`.

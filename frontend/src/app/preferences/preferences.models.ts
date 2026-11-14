@@ -21,6 +21,7 @@ export const DIETARY_RESTRICTIONS: readonly { value: DietaryRestriction; label: 
   { value: 'shellfish-free', label: 'Shellfish-free' },
 ];
 
+/** The display label for a restriction ("gluten-free" -> "Gluten-free"). */
 export function restrictionLabel(restriction: DietaryRestriction): string {
   return DIETARY_RESTRICTIONS.find((option) => option.value === restriction)?.label ?? restriction;
 }
@@ -28,6 +29,7 @@ export function restrictionLabel(restriction: DietaryRestriction): string {
 /** Energy per gram of each macronutrient (mirrors the backend). */
 export const KCAL_PER_GRAM = { protein: 4, carbohydrates: 4, fat: 9 } as const;
 
+/** The tracked macronutrients: protein, carbohydrates, and fat. */
 export type Macro = keyof typeof KCAL_PER_GRAM;
 
 /** Macros in display order, with their labels. */

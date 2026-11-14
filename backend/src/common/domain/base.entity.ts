@@ -23,16 +23,22 @@ export abstract class BaseEntity<TSnapshot extends object> {
   public readonly createdAt: Date;
   private lastUpdatedAt: Date;
 
+  /** Gives the new entity a random UUID and stamps its creation time. */
   protected constructor() {
     this.id = randomUUID();
     this.createdAt = new Date();
     this.lastUpdatedAt = this.createdAt;
   }
 
+  /** When this entity last changed (equal to `createdAt` until the first change). */
   public get updatedAt(): Date {
     return this.lastUpdatedAt;
   }
 
+  /**
+   * Template method: called by `JSON.stringify` (and so by Nest when a controller returns an
+   * entity). Merges the shared identity fields with the subclass's `snapshot()`.
+   */
   public toJSON(): EntityJson & TSnapshot {
     return {
       id: this.id,

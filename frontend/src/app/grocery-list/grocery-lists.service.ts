@@ -16,18 +16,22 @@ export class GroceryListsService {
 
   constructor(private readonly http: HttpClient) {}
 
+  /** `GET /grocery-lists`: all of the signed-in user's lists. */
   public getLists(): Observable<GroceryList[]> {
     return this.http.get<GroceryList[]>(this.baseUrl);
   }
 
+  /** `POST /grocery-lists`: creates an empty list. */
   public createList(name: string): Observable<GroceryList> {
     return this.http.post<GroceryList>(this.baseUrl, { name });
   }
 
+  /** `PATCH /grocery-lists/:listId`: renames a list. */
   public renameList(listId: string, name: string): Observable<GroceryList> {
     return this.http.patch<GroceryList>(`${this.baseUrl}/${listId}`, { name });
   }
 
+  /** `DELETE /grocery-lists/:listId`: deletes a list and its items. */
   public deleteList(listId: string): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${listId}`);
   }
@@ -49,10 +53,12 @@ export class GroceryListsService {
     });
   }
 
+  /** Adds one item; an ingredient already on the list is combined with it. */
   public addItem(listId: string, item: NewGroceryItem): Observable<GroceryList> {
     return this.http.post<GroceryList>(`${this.baseUrl}/${listId}/items`, item);
   }
 
+  /** Edits an item's name, amount, category, or checked state. */
   public updateItem(
     listId: string,
     itemId: string,
@@ -61,10 +67,12 @@ export class GroceryListsService {
     return this.http.patch<GroceryList>(`${this.baseUrl}/${listId}/items/${itemId}`, changes);
   }
 
+  /** Removes one item from the list. */
   public removeItem(listId: string, itemId: string): Observable<GroceryList> {
     return this.http.delete<GroceryList>(`${this.baseUrl}/${listId}/items/${itemId}`);
   }
 
+  /** "Remove Checked Items": removes every purchased item from the list. */
   public removePurchasedItems(listId: string): Observable<GroceryList> {
     return this.http.delete<GroceryList>(`${this.baseUrl}/${listId}/purchased-items`);
   }

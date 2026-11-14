@@ -11,6 +11,7 @@ export function recipeReview(overrides: Partial<RecipeReview> = {}): RecipeRevie
   };
 }
 
+/** Test data: a public two-serving recipe with no reviews; override any field as needed. */
 export function recipe(overrides: Partial<Recipe> = {}): Recipe {
   return {
     id: 'recipe-1',

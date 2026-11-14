@@ -23,6 +23,7 @@ interface RestrictionRule {
   exempt: readonly string[];
 }
 
+/** Ingredient keyword lists shared by several restrictions below. */
 const SHELLFISH = ['shrimp', 'prawn', 'crab', 'lobster', 'clam', 'mussel', 'oyster', 'scallop'];
 const FISH = ['fish', 'salmon', 'tuna', 'cod', 'tilapia', 'anchovy', 'anchovies', 'sardine'];
 const MEAT = [
@@ -84,6 +85,7 @@ const NON_DAIRY = [
   'cream of tartar',
 ];
 
+/** The matching rules for each restriction, built from the keyword lists above. */
 const RULES: Record<DietaryRestriction, RestrictionRule> = {
   [DietaryRestriction.Vegetarian]: {
     forbidden: [...MEAT, ...FISH, ...SHELLFISH],
@@ -171,6 +173,7 @@ const RULES: Record<DietaryRestriction, RestrictionRule> = {
   [DietaryRestriction.ShellfishFree]: { forbidden: SHELLFISH, safe: [], exempt: [] },
 };
 
+/** A `RestrictionRule` with its word lists turned into regular expressions. */
 interface CompiledRule {
   forbidden: RegExp;
   exempt: RegExp | null;
@@ -199,9 +202,12 @@ const COMPILED = new Map<DietaryRestriction, CompiledRule>(
 export function ingredientBreaks(restriction: DietaryRestriction, ingredientName: string): boolean {
   const rule = COMPILED.get(restriction) as CompiledRule;
   let name = ingredientName.toLowerCase();
+  // An exempt label ("vegan", "gluten-free", ...) clears the whole ingredient.
   if (rule.exempt?.test(name)) {
     return false;
   }
+  // Blank out safe phrases first so their words can't match, e.g. "peanut butter" no longer
+  // contains "butter".
   for (const phrase of rule.safe) {
     name = name.split(phrase).join(' ');
   }
@@ -225,6 +231,10 @@ export function dietaryConflicts(
   return conflicts;
 }
 
+/**
+ * Builds one regex matching any of `words` as a whole word, with an optional "s" or
+ * "es" plural. Returns null for an empty list so callers can skip the test.
+ */
 function wholeWords(words: readonly string[]): RegExp | null {
   if (words.length === 0) {
     return null;
@@ -233,6 +243,7 @@ function wholeWords(words: readonly string[]): RegExp | null {
   return new RegExp(`\\b(?:${alternatives})(?:s|es)?\\b`);
 }
 
+/** Escapes regex metacharacters so a keyword is matched literally. */
 function escapeRegExp(text: string): string {
   return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }

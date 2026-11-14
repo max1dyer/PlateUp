@@ -12,6 +12,7 @@ export class SavedRecipesService {
     private readonly session: SessionService,
   ) {}
 
+  /** True if the signed-in user has saved this recipe (false when signed out). */
   public isSaved(recipeId: string): boolean {
     return this.session.currentUser()?.savedRecipeIds.includes(recipeId) ?? false;
   }
@@ -21,6 +22,7 @@ export class SavedRecipesService {
     const request = this.isSaved(recipeId)
       ? this.users.unsaveRecipe(recipeId)
       : this.users.saveRecipe(recipeId);
+    // The response is the updated profile; storing it updates every save button at once.
     return request.pipe(tap((user) => this.session.setUser(user)));
   }
 }

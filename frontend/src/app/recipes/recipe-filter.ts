@@ -3,6 +3,7 @@ import { Recipe } from './recipe.models';
 
 /** Every tag used by `recipes`, without repeats (ignoring case), sorted. */
 export function tagsOf(recipes: readonly Recipe[]): string[] {
+  // Keep the first spelling seen for each tag, keyed case-insensitively.
   const byKey = new Map<string, string>();
   recipes
     .flatMap((recipe) => recipe.tags)
@@ -14,6 +15,7 @@ export function tagsOf(recipes: readonly Recipe[]): string[] {
   return [...byKey.values()].sort((a, b) => a.localeCompare(b));
 }
 
+/** The ways the recipe feed can be ordered. */
 export type RecipeSort =
   'newest' | 'rating' | 'popularity' | 'protein' | 'calories' | 'ingredients' | 'time' | 'steps';
 
@@ -45,6 +47,7 @@ const COMPARATORS: Record<RecipeSort, (a: Recipe, b: Recipe) => number> = {
 /** A sorted copy of `recipes`; ties are broken newest first. */
 export function sortRecipes(recipes: readonly Recipe[], sort: RecipeSort): Recipe[] {
   const compare = COMPARATORS[sort];
+  // Sort a copy so the caller's array is not reordered; `||` falls back to newest first on a tie.
   return [...recipes].sort((a, b) => compare(a, b) || COMPARATORS.newest(a, b));
 }
 
@@ -59,6 +62,7 @@ export function filterRecipes(
 ): Recipe[] {
   const needle = search.trim().toLowerCase();
   return recipes.filter((recipe) => {
+    // Tags compare ignoring case, matching how `tagsOf` merges them.
     const hasTag = tag === null || recipe.tags.some((t) => t.toLowerCase() === tag.toLowerCase());
     if (!hasTag) {
       return false;
@@ -66,6 +70,7 @@ export function filterRecipes(
     if (needle.length === 0) {
       return true;
     }
+    // Every piece of text the search box looks through.
     const haystack = [
       recipe.title,
       recipe.description,

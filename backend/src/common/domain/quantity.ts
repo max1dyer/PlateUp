@@ -1,6 +1,7 @@
 import { DomainValidationError } from '../errors/domain-validation.error';
 import { requireNonNegative } from './guards';
 
+/** Units an ingredient amount can be measured in. Values are the short labels sent over the API. */
 export enum Unit {
   Gram = 'g',
   Kilogram = 'kg',
@@ -30,6 +31,7 @@ export enum Dimension {
   Package = 'package',
 }
 
+/** How one unit relates to the others in its dimension. */
 interface UnitDefinition {
   dimension: Dimension;
   /** How many of the dimension's base unit (g, ml, piece) one of this unit is. */
@@ -66,9 +68,16 @@ const UNIT_DEFINITIONS: Record<Unit, UnitDefinition> = {
  * entered, scaled, converted, or summed, so very small amounts can round to 0.
  */
 export class Quantity {
+  /** The amount, already rounded to two decimal places. */
   public readonly amount: number;
+  /** The unit `amount` is measured in. */
   public readonly unit: Unit;
 
+  /**
+   * Creates a quantity, rejecting unknown units and negative or non-numeric amounts.
+   *
+   * @throws DomainValidationError if the unit or amount is invalid.
+   */
   constructor(amount: number, unit: Unit) {
     if (!Object.values(Unit).includes(unit)) {
       throw new DomainValidationError(`Unknown unit "${String(unit)}".`);
@@ -93,6 +102,7 @@ export class Quantity {
       throw new DomainValidationError(`Cannot convert ${this.unit} to ${String(unit)}.`);
     }
     return new Quantity(
+      // Convert to the dimension's base unit (g, ml, piece), then into the target unit.
       (this.amount * this.definition.toBase) / UNIT_DEFINITIONS[unit].toBase,
       unit,
     );
@@ -108,10 +118,14 @@ export class Quantity {
     return new Quantity(this.amount + otherInThisUnit, this.unit);
   }
 
+  /**
+   * True if both the amount and the unit are identical (no conversion: 1 kg does not equal 1000 g).
+   */
   public equals(other: Quantity): boolean {
     return this.amount === other.amount && this.unit === other.unit;
   }
 
+  /** The conversion data for this quantity's unit. */
   private get definition(): UnitDefinition {
     return UNIT_DEFINITIONS[this.unit];
   }
@@ -126,6 +140,7 @@ export class Quantity {
     return first.dimension !== Dimension.Package || a === b;
   }
 
+  /** Rounds to two decimal places. */
   private static round(amount: number): number {
     return Math.round(amount * 100) / 100;
   }

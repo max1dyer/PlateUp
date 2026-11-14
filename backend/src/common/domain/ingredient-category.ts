@@ -140,6 +140,7 @@ const CATEGORY_KEYWORDS: readonly [IngredientCategory, readonly string[]][] = [
  */
 export function guessCategory(name: string): IngredientCategory {
   const lower = name.toLowerCase();
+  // First matching section wins, so the order of `CATEGORY_KEYWORDS` decides ties.
   const match = CATEGORY_KEYWORDS.find(([, keywords]) =>
     keywords.some((keyword) => lower.includes(keyword)),
   );

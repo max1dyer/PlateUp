@@ -11,6 +11,7 @@ export class PantryService {
 
   constructor(private readonly http: HttpClient) {}
 
+  /** `GET /pantry`: every item in the user's pantry. */
   public getItems(): Observable<PantryItem[]> {
     return this.http.get<PantryItem[]>(this.baseUrl);
   }
@@ -20,10 +21,12 @@ export class PantryService {
     return this.http.post<PantryItem>(this.baseUrl, item);
   }
 
+  /** Renames an item or changes its amount. */
   public updateItem(itemId: string, changes: PantryItemChanges): Observable<PantryItem> {
     return this.http.patch<PantryItem>(`${this.baseUrl}/${itemId}`, changes);
   }
 
+  /** Removes an item from the pantry. */
   public removeItem(itemId: string): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${itemId}`);
   }

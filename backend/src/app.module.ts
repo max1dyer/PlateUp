@@ -10,6 +10,10 @@ import { RecipesModule } from './recipes/recipes.module';
 import { SeedModule } from './seed/seed.module';
 import { UsersModule } from './users/users.module';
 
+/**
+ * Root module. Pulls in every feature module and registers `DomainErrorFilter` globally (through
+ * the `APP_FILTER` token) so any `DomainValidationError` thrown by an entity becomes an HTTP 400.
+ */
 @Module({
   imports: [
     UsersModule,
