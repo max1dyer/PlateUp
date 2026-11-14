@@ -10,9 +10,10 @@
         <span class="name">{{ item().name }}</span>
         @if (item().expiresOn; as expiresOn) {
           <span class="expiry {{ expiry().state }}">
-            Expires {{ toLocalDate(expiresOn) | date: 'MMM d' }}
             @if (expiry().label) {
-              · {{ expiry().label }}
+              {{ expiry().label }} · {{ toLocalDate(expiresOn) | date: 'MMM d' }}
+            } @else {
+              Expires {{ toLocalDate(expiresOn) | date: 'MMM d' }}
             }
           </span>
         }
