@@ -131,4 +131,14 @@ describe('Quantity', () => {
       ).toBe(true);
     });
   });
+
+  it('minus subtracts a compatible amount in this unit, never going below zero', () => {
+    const needed = new Quantity(1, Unit.Kilogram);
+
+    expect(
+      needed.minus(new Quantity(250, Unit.Gram)).equals(new Quantity(0.75, Unit.Kilogram)),
+    ).toBe(true);
+    expect(needed.minus(new Quantity(3, Unit.Kilogram)).amount).toBe(0);
+    expect(() => needed.minus(new Quantity(1, Unit.Cup))).toThrow(DomainValidationError);
+  });
 });

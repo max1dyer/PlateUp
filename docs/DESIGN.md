@@ -226,6 +226,7 @@ classDiagram
     +amount: number
     +unit: Unit
     +scale(factor) Quantity
+    +minus(other) Quantity
     +equals(other) boolean
   }
 

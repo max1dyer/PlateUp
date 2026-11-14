@@ -119,6 +119,21 @@ export class Quantity {
   }
 
   /**
+   * Returns how much is left after taking `other` away, in this quantity's
+   * unit. Never negative: taking away more than there is leaves zero.
+   *
+   * @throws DomainValidationError if the units can't be combined.
+   */
+  public minus(other: Quantity): Quantity {
+    if (!this.isCompatibleWith(other)) {
+      throw new DomainValidationError(`${other.unit} cannot be combined with ${this.unit}.`);
+    }
+    const otherInThisUnit =
+      (other.amount * UNIT_DEFINITIONS[other.unit].toBase) / this.definition.toBase;
+    return new Quantity(Math.max(0, this.amount - otherInThisUnit), this.unit);
+  }
+
+  /**
    * True if both the amount and the unit are identical (no conversion: 1 kg does not equal 1000 g).
    */
   public equals(other: Quantity): boolean {
