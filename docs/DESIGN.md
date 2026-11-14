@@ -111,7 +111,10 @@ Frontend classes (paths relative to `frontend/src/app/`). Services, models, and 
 | `PantryService`, `PantryPage`, `PantryItemRow`                                            | pantry           | `pantry/`                   |
 | `GroceryListsService`, `GroceryListPage`, `GroceryItemRow`, `AddItemsForm`                | grocery lists    | `grocery-list/`             |
 | `ContactService`, `ContactPage`                                                           | contact          | `contact/`                  |
+| `PlannerService`, `PlannerPage`, `PlannedMealCard`, `AddMealForm`                         | planner          | `planner/`                  |
 | `HomePage`, `InfoPage`, `SiteHeader`, `SiteFooter`, `ToastOutlet`                         | shell and layout | `home/`, `info/`, `layout/` |
+
+The planner's `planningRange()`, `weekDays()`, and `totalNutrition()` (`planner/planner-week.ts`) limit navigation to half a year either side of today, lay out a Monday-to-Sunday week, and total a day's calories and macros for every planned serving.
 
 ### Domain class diagram (draft)
 
