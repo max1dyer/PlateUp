@@ -94,6 +94,7 @@ These are the major classes for CRC cards and the class diagram. Paths are relat
 | `PantryItem`, `PantryService`, `PantryController`, `PantryItemRepository`                                  | pantry feature        | `pantry/`                                  |
 | `GroceryList`, `GroceryListItem`, `GroceryListsService`, `GroceryListsController`, `GroceryListRepository` | grocery-lists feature | `grocery-lists/`                           |
 | `ContactMessage`, `ContactService`, `ContactController`, `ContactMessageRepository`                        | contact feature       | `contact/`                                 |
+| `PlannedMeal`, `PlannerService`, `PlannerController`, `PlannedMealRepository`                              | planner feature       | `planner/`                                 |
 | `DemoDataSeeder`, `SeedModule` (TEMPORARY: sample data loaded at startup)                                  | seed data             | `seed/`                                    |
 
 DTOs (`CreateRecipeDto`, `LogInDto`, `AddRecipeToListDto`, ...) are plain request shapes in each feature's `dto/` folder and are not part of the diagram. `guessCategory()` (`common/domain/ingredient-category.ts`) is a pure function that files generated grocery items under a store section. `dietaryConflicts()` and the `DietaryRestriction` enum (`common/domain/dietary-restriction.ts`) are pure keyword rules that estimate which dietary restrictions a recipe's ingredients break; `Recipe` exposes the result as `dietaryConflicts` and `suits()`. `deriveDailyTargets()` (`users/entities/user-preferences.ts`) fills in the one daily goal the others determine (total calories from three gram goals, or the last macro's grams from the calorie goal); the frontend's `planMacros()` (`preferences/macro-plan.ts`) applies the same rule to preview it on the Preferences page and to flag macros that overshoot the calorie goal.
@@ -208,6 +209,15 @@ classDiagram
     +email: string
     +message: string
   }
+  class PlannedMeal {
+    +recipeId: string
+    -mealDate: string
+    -mealSlot: MealSlot
+    -mealServings: number
+    -isEaten: boolean
+    +isBetween(from, to) boolean
+    +update(changes) void
+  }
   class Quantity {
     <<value object>>
     +amount: number
@@ -223,10 +233,12 @@ classDiagram
   OwnedEntity <|-- Recipe
   OwnedEntity <|-- PantryItem
   OwnedEntity <|-- GroceryList
+  OwnedEntity <|-- PlannedMeal
   User "1" *-- "1" UserPreferences : preferences
   Recipe "1" *-- "1..*" RecipeIngredient : ingredients
   Recipe "1" *-- "0..*" RecipeReview : reviews
   GroceryList "1" *-- "0..*" GroceryListItem : items
+  PlannedMeal ..> Recipe : recipeId
   RecipeIngredient --> "1" Quantity
   PantryItem --> "1" Quantity
   GroceryListItem --> "0..1" Quantity
