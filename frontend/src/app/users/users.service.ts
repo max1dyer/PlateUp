@@ -12,6 +12,7 @@ export class UsersService {
 
   constructor(private readonly http: HttpClient) {}
 
+  /** `POST /users`: creates an account (409 if the username is taken). */
   public register(user: NewUser): Observable<User> {
     return this.http.post<User>(this.baseUrl, user);
   }
@@ -21,18 +22,22 @@ export class UsersService {
     return this.http.post<User>(`${this.baseUrl}/login`, { username });
   }
 
+  /** `GET /users/me`: the signed-in user's own profile. */
   public getMe(): Observable<User> {
     return this.http.get<User>(`${this.baseUrl}/me`);
   }
 
+  /** `PATCH /users/me`: edits the signed-in user's profile. */
   public updateMe(changes: ProfileChanges): Observable<User> {
     return this.http.patch<User>(`${this.baseUrl}/me`, changes);
   }
 
+  /** `GET /users/:userId`: anyone's public profile. */
   public getUser(userId: string): Observable<User> {
     return this.http.get<User>(`${this.baseUrl}/${userId}`);
   }
 
+  /** `GET /users/me/saved-recipes`: the saved recipes the user can still see. */
   public getSavedRecipes(): Observable<Recipe[]> {
     return this.http.get<Recipe[]>(`${this.baseUrl}/me/saved-recipes`);
   }
@@ -42,6 +47,7 @@ export class UsersService {
     return this.http.put<User>(`${this.baseUrl}/me/saved-recipes/${recipeId}`, {});
   }
 
+  /** Removes a recipe from the saved list; returns the updated profile. */
   public unsaveRecipe(recipeId: string): Observable<User> {
     return this.http.delete<User>(`${this.baseUrl}/me/saved-recipes/${recipeId}`);
   }

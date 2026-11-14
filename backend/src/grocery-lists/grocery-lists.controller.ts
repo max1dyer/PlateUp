@@ -9,15 +9,21 @@ import { MoveToPantryResult } from './dto/move-to-pantry-result';
 import { GroceryList } from './entities/grocery-list.entity';
 import { GroceryListsService } from './grocery-lists.service';
 
+/**
+ * HTTP routes under `/grocery-lists` for a user's shopping lists and their items, including adding
+ * a recipe's ingredients and moving purchased items to the pantry.
+ */
 @Controller('grocery-lists')
 export class GroceryListsController {
   constructor(private readonly groceryListsService: GroceryListsService) {}
 
+  /** `GET /grocery-lists`: all of the user's lists. */
   @Get()
   public findAll(@CurrentUserId() userId: string): Promise<GroceryList[]> {
     return this.groceryListsService.findAll(userId);
   }
 
+  /** `GET /grocery-lists/:listId`: one of the user's lists; 404 if it is not theirs. */
   @Get(':listId')
   public findOne(
     @CurrentUserId() userId: string,
@@ -26,6 +32,7 @@ export class GroceryListsController {
     return this.groceryListsService.findOne(userId, listId);
   }
 
+  /** `POST /grocery-lists`: creates an empty list. */
   @Post()
   public create(
     @CurrentUserId() userId: string,
@@ -34,6 +41,7 @@ export class GroceryListsController {
     return this.groceryListsService.create(userId, dto);
   }
 
+  /** `PATCH /grocery-lists/:listId`: renames a list. */
   @Patch(':listId')
   public rename(
     @CurrentUserId() userId: string,
@@ -43,12 +51,14 @@ export class GroceryListsController {
     return this.groceryListsService.rename(userId, listId, dto);
   }
 
+  /** `DELETE /grocery-lists/:listId`: deletes a list and responds 204 No Content. */
   @Delete(':listId')
   @HttpCode(204)
   public remove(@CurrentUserId() userId: string, @Param('listId') listId: string): Promise<void> {
     return this.groceryListsService.remove(userId, listId);
   }
 
+  /** `POST /grocery-lists/:listId/items`: adds an item, combining it with a matching line. */
   @Post(':listId/items')
   public addItem(
     @CurrentUserId() userId: string,
@@ -68,6 +78,10 @@ export class GroceryListsController {
     return this.groceryListsService.addRecipe(userId, listId, dto);
   }
 
+  /**
+   * `PATCH /grocery-lists/:listId/items/:itemId`: edits an item (name, amount, category, or
+   * checked).
+   */
   @Patch(':listId/items/:itemId')
   public updateItem(
     @CurrentUserId() userId: string,
@@ -78,6 +92,9 @@ export class GroceryListsController {
     return this.groceryListsService.updateItem(userId, listId, itemId, dto);
   }
 
+  /**
+   * `DELETE /grocery-lists/:listId/items/:itemId`: removes one item and returns the updated list.
+   */
   @Delete(':listId/items/:itemId')
   public removeItem(
     @CurrentUserId() userId: string,
@@ -108,6 +125,7 @@ export class GroceryListsController {
     return this.groceryListsService.movePurchasedToPantry(userId, listId);
   }
 
+  /** `DELETE /grocery-lists/:listId/purchased-items`: removes every checked item. */
   @Delete(':listId/purchased-items')
   public removePurchasedItems(
     @CurrentUserId() userId: string,

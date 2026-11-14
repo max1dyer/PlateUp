@@ -1,5 +1,6 @@
 import { requireIntegerInRange, requireText } from '../../common/domain/guards';
 
+/** Lowest and highest star ratings a review can give. */
 export const MIN_RATING = 1;
 export const MAX_RATING = 5;
 
@@ -9,6 +10,10 @@ export class RecipeReview {
   public readonly rating: number;
   public readonly comment: string;
 
+  /**
+   * @throws DomainValidationError if the reviewer id is blank or the rating is not a whole number
+   *   from 1 to 5.
+   */
   constructor(
     reviewerId: string,
     rating: number,
@@ -17,6 +22,7 @@ export class RecipeReview {
   ) {
     this.reviewerId = requireText(reviewerId, 'Reviewer');
     this.rating = requireIntegerInRange(rating, MIN_RATING, MAX_RATING, 'Rating');
+    // A missing comment is stored as an empty string.
     this.comment = typeof comment === 'string' ? comment.trim() : '';
   }
 }

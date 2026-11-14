@@ -14,6 +14,7 @@ export function groceryItem(overrides: Partial<GroceryListItem> = {}): GroceryLi
   };
 }
 
+/** Test data: a grocery list shaped like the backend's JSON, holding `items`. */
 export function groceryList(
   items: GroceryListItem[] = [],
   overrides: Partial<GroceryList> = {},

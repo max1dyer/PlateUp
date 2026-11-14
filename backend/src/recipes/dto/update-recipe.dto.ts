@@ -1,6 +1,10 @@
 import { NutritionInfo, RecipeVisibility } from '../entities/recipe.entity';
 import { RecipeIngredientDto } from './create-recipe.dto';
 
+/**
+ * Body of `PATCH /recipes/:recipeId`. Omitted fields stay unchanged; `thumbnailUrl: null` removes
+ * the photo.
+ */
 export class UpdateRecipeDto {
   public readonly title?: string;
   public readonly description?: string;

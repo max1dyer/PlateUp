@@ -1,0 +1,114 @@
+.site-header {
+  background: var(--color-primary);
+}
+
+/* ---------- Phone layout: logo + hamburger, links collapse below ---------- */
+.inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  max-width: var(--content-width);
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+.logo-link {
+  padding: 10px 0;
+}
+
+.logo {
+  display: block;
+  width: 41px;
+  height: 48px;
+  object-fit: contain;
+}
+
+.menu-toggle {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  width: 44px;
+  height: 44px;
+  margin-left: auto;
+  padding: 10px;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.bar {
+  display: block;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--color-on-color);
+}
+
+.menu {
+  display: none;
+  flex-basis: 100%;
+  flex-direction: column;
+  align-items: flex-start;
+  padding-bottom: 12px;
+}
+
+.menu.open {
+  display: flex;
+}
+
+.nav-link {
+  padding: 12px 0;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  font-size: 20px;
+  line-height: 1;
+  color: var(--color-on-color);
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.nav-link.active {
+  color: var(--color-text-strong);
+}
+
+.nav-link:hover {
+  text-decoration: underline;
+}
+
+/* ---------- Desktop layout: one row, account control on the right ---------- */
+@media (min-width: 765px) {
+  .inner {
+    flex-wrap: nowrap;
+    gap: 26px;
+    height: 76px;
+    padding: 0 32px;
+  }
+
+  .logo-link {
+    padding: 0;
+  }
+
+  .menu-toggle {
+    display: none;
+  }
+
+  .menu,
+  .menu.open {
+    display: flex;
+    flex: 1;
+    flex-direction: row;
+    align-items: center;
+    gap: 24px;
+    padding-bottom: 0;
+  }
+
+  .nav-link {
+    padding: 0;
+  }
+
+  .nav-link.account {
+    margin-left: auto;
+  }
+}

@@ -6,10 +6,15 @@ import { UpdatePantryItemDto } from './dto/update-pantry-item.dto';
 import { PantryItem } from './entities/pantry-item.entity';
 import { PantryItemRepository } from './repositories/pantry-item.repository';
 
+/**
+ * Use-case layer for the pantry: keeps one item per ingredient for each user and hides other users'
+ * items (reported as 404).
+ */
 @Injectable()
 export class PantryService {
   constructor(private readonly pantryItems: PantryItemRepository) {}
 
+  /** Every item in the user's pantry. */
   public findAll(ownerId: string): Promise<PantryItem[]> {
     return this.pantryItems.findByOwner(ownerId);
   }
@@ -59,11 +64,17 @@ export class PantryService {
     return this.pantryItems.save(item);
   }
 
+  /**
+   * Deletes one of the user's pantry items.
+   *
+   * @throws NotFoundException if it does not exist or belongs to someone else.
+   */
   public async remove(ownerId: string, itemId: string): Promise<void> {
     await this.findOwned(ownerId, itemId);
     await this.pantryItems.delete(itemId);
   }
 
+  /** Loads one of the user's items, reporting other users' items as not found. */
   private async findOwned(ownerId: string, itemId: string): Promise<PantryItem> {
     const item = await this.pantryItems.findById(itemId);
     if (!item || !item.isOwnedBy(ownerId)) {
@@ -72,6 +83,7 @@ export class PantryService {
     return item;
   }
 
+  /** The user's item for the same ingredient as `name` (case and spacing ignored), if any. */
   private async findOwnedNamed(ownerId: string, name: string): Promise<PantryItem | undefined> {
     const owned = await this.pantryItems.findByOwner(ownerId);
     return owned.find((item) => item.isNamed(name));

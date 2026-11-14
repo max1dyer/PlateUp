@@ -10,6 +10,7 @@ import { DomainValidationError } from '../errors/domain-validation.error';
  */
 @Catch(DomainValidationError)
 export class DomainErrorFilter implements ExceptionFilter<DomainValidationError> {
+  /** Writes the error's message as a standard Nest-style 400 JSON body. */
   public catch(error: DomainValidationError, host: ArgumentsHost): void {
     const response = host.switchToHttp().getResponse<Response>();
     response.status(HttpStatus.BAD_REQUEST).json({

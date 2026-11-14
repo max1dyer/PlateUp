@@ -7,10 +7,15 @@ import { RecipeIngredient } from './entities/recipe-ingredient';
 import { Recipe, RecipeDetails, RecipeVisibility } from './entities/recipe.entity';
 import { RecipeRepository } from './repositories/recipe.repository';
 
+/**
+ * Use-case layer for recipes: loads them from `RecipeRepository`, applies visibility and ownership
+ * rules, turns DTOs into domain objects, and saves the results.
+ */
 @Injectable()
 export class RecipesService {
   constructor(private readonly recipes: RecipeRepository) {}
 
+  /** Every public recipe plus `userId`'s own private ones. */
   public findAllVisibleTo(userId: string): Promise<Recipe[]> {
     return this.recipes.findVisibleTo(userId);
   }
@@ -30,6 +35,10 @@ export class RecipesService {
     return recipes.filter((recipe): recipe is Recipe => !!recipe && recipe.isVisibleTo(userId));
   }
 
+  /**
+   * Creates and stores a recipe by `authorId`. Missing optional fields default to an empty
+   * description, no photo, no tags, and public visibility.
+   */
   public async create(authorId: string, dto: CreateRecipeDto): Promise<Recipe> {
     const recipe = new Recipe(authorId, {
       title: dto.title,
@@ -46,8 +55,13 @@ export class RecipesService {
     return this.recipes.save(recipe);
   }
 
+  /**
+   * Applies a partial edit. Only the author may edit (403 otherwise; 404 if they cannot see it).
+   */
   public async update(recipeId: string, userId: string, dto: UpdateRecipeDto): Promise<Recipe> {
     const recipe = await this.findOwned(recipeId, userId);
+    // Ingredients arrive as DTOs and must become `RecipeIngredient`s; every other field passes
+    // through.
     const { ingredients, ...rest } = dto;
     const changes: Partial<RecipeDetails> = { ...rest };
     if (ingredients) {
@@ -64,11 +78,18 @@ export class RecipesService {
     return this.recipes.save(recipe);
   }
 
+  /** Deletes a recipe. Only the author may delete it. */
   public async remove(recipeId: string, userId: string): Promise<void> {
     await this.findOwned(recipeId, userId);
     await this.recipes.delete(recipeId);
   }
 
+  /**
+   * Loads a recipe the user can see and checks they wrote it.
+   *
+   * @throws NotFoundException if the recipe is missing or private to someone else.
+   * @throws ForbiddenException if the user can see it but is not the author.
+   */
   private async findOwned(recipeId: string, userId: string): Promise<Recipe> {
     const recipe = await this.findOne(recipeId, userId);
     if (!recipe.isOwnedBy(userId)) {
@@ -77,6 +98,7 @@ export class RecipesService {
     return recipe;
   }
 
+  /** Converts request ingredient lines into validated domain objects. */
   private toIngredients(dtos: RecipeIngredientDto[]): RecipeIngredient[] {
     return dtos.map(
       (dto) => new RecipeIngredient(dto.name, new Quantity(dto.quantity.amount, dto.quantity.unit)),

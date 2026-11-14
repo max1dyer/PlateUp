@@ -4,6 +4,7 @@ import { DomainValidationError } from '../../common/errors/domain-validation.err
 
 /** Servings new accounts start with (spec 3.4: "a default serving size of ~2"). */
 export const DEFAULT_SERVINGS = 2;
+/** Limits for the default servings (at most) and the daily calorie goal (range). */
 export const MAX_SERVINGS = 50;
 export const MIN_DAILY_CALORIES = 500;
 export const MAX_DAILY_CALORIES = 10000;
@@ -13,7 +14,9 @@ export const MAX_MACRO_GRAMS = 1000;
 /** Energy per gram of each macronutrient. */
 export const KCAL_PER_GRAM = { protein: 4, carbohydrates: 4, fat: 9 } as const;
 
+/** The tracked macronutrients: protein, carbohydrates, and fat. */
 export type Macro = keyof typeof KCAL_PER_GRAM;
+/** Every macro name, for looping over the goals. */
 const MACROS = Object.keys(KCAL_PER_GRAM) as Macro[];
 
 /** Grams per day of each macronutrient; null means no goal for it. */
@@ -49,6 +52,7 @@ export interface DailyTargets {
   fat: number | null;
 }
 
+/** What preferences serialize to: the saved goals plus the targets derived from them. */
 export interface UserPreferencesJson extends UserPreferencesProps {
   dailyTargets: DailyTargets;
 }
@@ -64,14 +68,17 @@ export interface UserPreferencesJson extends UserPreferencesProps {
  */
 export function deriveDailyTargets(calories: number | null, macros: MacroGoals): DailyTargets {
   const unset = MACROS.filter((macro) => macros[macro] === null);
+  // Energy already accounted for by the macros that have a goal.
   const macroCalories = MACROS.reduce(
     (total, macro) => total + (macros[macro] ?? 0) * KCAL_PER_GRAM[macro],
     0,
   );
   const targets: DailyTargets = { calories, ...macros };
   if (calories === null && unset.length === 0) {
+    // Only calories are missing: they follow from the three macro goals.
     targets.calories = macroCalories;
   } else if (calories !== null && unset.length === 1) {
+    // One macro is missing: give it whatever calories the other two leave.
     const [missing] = unset;
     targets[missing] = Math.max(0, Math.floor((calories - macroCalories) / KCAL_PER_GRAM[missing]));
   }
@@ -89,6 +96,7 @@ export class UserPreferences {
   public readonly dailyCalories: number | null;
   public readonly macroGoals: Readonly<MacroGoals>;
 
+  /** @throws DomainValidationError if any value is out of range or not recognised. */
   constructor(props: UserPreferencesProps) {
     this.defaultServings = requireIntegerInRange(
       props.defaultServings,
@@ -125,6 +133,7 @@ export class UserPreferences {
     return new UserPreferences({
       ...current,
       ...changes,
+      // Merge macro goals separately so changing one macro keeps the other two.
       macroGoals: { ...current.macroGoals, ...changes.macroGoals },
     });
   }
@@ -134,10 +143,12 @@ export class UserPreferences {
     return deriveDailyTargets(this.dailyCalories, this.macroGoals);
   }
 
+  /** Serializes the saved preferences together with the derived `dailyTargets`. */
   public toJSON(): UserPreferencesJson {
     return { ...this.toProps(), dailyTargets: this.dailyTargets };
   }
 
+  /** A plain, mutable copy of the current values (used to build an edited copy). */
   private toProps(): UserPreferencesProps {
     return {
       defaultServings: this.defaultServings,
@@ -153,9 +164,14 @@ export class UserPreferences {
       throw new DomainValidationError('Dietary restrictions must be a list.');
     }
     restrictions.forEach((value) => requireOneOf(value, DietaryRestriction, 'dietary restriction'));
+    // Filtering the enum (rather than the input) removes duplicates and sorts into display order.
     return Object.values(DietaryRestriction).filter((value) => restrictions.includes(value));
   }
 
+  /**
+   * Checks each macro goal is null or a whole number of grams from 0 to `MAX_MACRO_GRAMS`. A macro
+   * left out of `goals` is treated as null.
+   */
   private static validateMacroGoals(goals: MacroGoals): MacroGoals {
     if (typeof goals !== 'object' || goals === null) {
       throw new DomainValidationError('Macro goals must be an object.');

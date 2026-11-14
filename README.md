@@ -37,7 +37,21 @@ NestJS backend and Angular frontend: TypeScript classes, decorators, dependency 
   - `dto/`: request body classes (e.g. `CreateRecipeDto`).
   - `repositories/`: an abstract repository (the DI token services depend on) plus its in-memory implementation.
 
-Current feature modules: `users`, `recipes`, `pantry`, `grocery-lists`. Shared building blocks live in `common/`.
+Current feature modules: `users`, `recipes`, `pantry`, `grocery-lists`, `contact`. Shared building blocks live in `common/`, and `seed/` loads demo data on startup.
+
+```
+backend/src/
+  main.ts, app.module.ts      entry point and root module
+  common/                     shared base classes, value objects, guards, errors, persistence
+  <feature>/
+    <feature>.module.ts       wires the controller, service, and repository binding
+    <feature>.controller.ts   HTTP routes
+    <feature>.service.ts      use cases
+    entities/                 domain classes and their rules
+    dto/                      request body shapes
+    repositories/             abstract repository + in-memory implementation
+    testing/                  test data builders (optional)
+```
 
 Design:
 
@@ -61,16 +75,29 @@ npx nest generate service recipes
 
 **Frontend (`frontend/src`)**
 
-- `app/`
-  - `*.ts`: component classes to define variables, state, and functions for the UI.
-  - `*.html`: html layout for the component, reading variables from the `.ts` class.
-  - `*.css`: local css file that applies only to the specific component.
-  - `*.spec.ts`: Vitest unit test for this component (run through `ng test`).
+- `app/`: the root `App` component, `app.routes.ts` (every page), and `app.config.ts` (app-wide providers).
+  - `core/`: app-wide services, the HTTP interceptor, the route guard, and small helpers.
+  - `layout/`: the header, footer, and toast messages shown on every page.
+  - One folder per feature (`recipes/`, `pantry/`, `grocery-list/`, `preferences/`, `users/`, `contact/`, `home/`, `info/`), laid out the same way:
+
+    ```
+    recipes/
+      recipes.service.ts        HTTP calls for the feature (components never call HTTP directly)
+      recipe.models.ts          interfaces matching the backend's JSON
+      recipe-filter.ts          plain helper functions, when the feature has any
+      recipe.fixtures.ts        test data builders
+      recipe-page/              one folder per component:
+        recipe-page.ts            component class: state and event handlers
+        recipe-page.html          template, reading from the class
+        recipe-page.css           styles that apply only to this component
+        recipe-page.spec.ts       Vitest unit test (run through `ng test`)
+    ```
+
 - `index.html`: single page, raw html file the server sends to the browser.
   - Angular injects the application into this.
 - `main.ts`: frontend entry point, loads the Angular code into `index.html`.
 - `styles.css`: global stylesheet.
 
-New encapsulated components for UI pieces can be made with: `npx ng generate component recipes`
+New encapsulated components for UI pieces can be made inside a feature folder with: `npx ng generate component recipes/recipe-card`
 
-- Makes a new `src/app/recipes/` folder.
+- Makes a new `src/app/recipes/recipe-card/` folder holding the component's `.ts`, `.html`, `.css`, and `.spec.ts`.

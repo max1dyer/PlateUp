@@ -11,6 +11,7 @@ export class ContactService {
 
   constructor(private readonly http: HttpClient) {}
 
+  /** `POST /contact-messages`: sends a visitor's message to the team. */
   public send(message: NewContactMessage): Observable<ContactMessage> {
     return this.http.post<ContactMessage>(this.baseUrl, message);
   }

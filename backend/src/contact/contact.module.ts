@@ -4,6 +4,7 @@ import { ContactService } from './contact.service';
 import { ContactMessageRepository } from './repositories/contact-message.repository';
 import { InMemoryContactMessageRepository } from './repositories/in-memory-contact-message.repository';
 
+/** Contact feature: the public contact-form route, its service, and storage binding. */
 @Module({
   controllers: [ContactController],
   providers: [

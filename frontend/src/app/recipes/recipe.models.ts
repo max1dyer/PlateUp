@@ -1,6 +1,7 @@
 import { Quantity } from '../grocery-list/grocery-list.models';
 import { DietaryRestriction } from '../preferences/preferences.models';
 
+/** One line of a recipe's ingredient list. */
 export interface RecipeIngredient {
   name: string;
   quantity: Quantity;
@@ -14,6 +15,7 @@ export interface Nutrition {
   carbohydrates: number;
 }
 
+/** One user's review of a recipe. */
 export interface RecipeReview {
   reviewerId: string;
   /** Whole stars from 1 to 5. */

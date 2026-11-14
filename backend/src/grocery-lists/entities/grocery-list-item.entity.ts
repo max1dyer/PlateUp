@@ -4,6 +4,7 @@ import { IngredientCategory } from '../../common/domain/ingredient-category';
 import { isSameIngredient } from '../../common/domain/ingredient-name';
 import { Quantity } from '../../common/domain/quantity';
 
+/** The fields a grocery item serializes to. */
 export interface GroceryListItemSnapshot {
   name: string;
   quantity: Quantity | null;
@@ -24,6 +25,7 @@ export class GroceryListItem extends BaseEntity<GroceryListItemSnapshot> {
   private itemCategory: IngredientCategory;
   private isPurchased = false;
 
+  /** @throws DomainValidationError if the name is blank or the category is unknown. */
   constructor(
     name: string,
     quantity: Quantity | null = null,
@@ -35,6 +37,7 @@ export class GroceryListItem extends BaseEntity<GroceryListItemSnapshot> {
     this.itemCategory = requireOneOf(category, IngredientCategory, 'category');
   }
 
+  // Read-only views of the item's state; changes go through the methods below.
   public get name(): string {
     return this.itemName;
   }
@@ -73,6 +76,7 @@ export class GroceryListItem extends BaseEntity<GroceryListItemSnapshot> {
     if (quantity !== null) {
       this.itemQuantity = this.itemQuantity === null ? quantity : this.itemQuantity.plus(quantity);
     }
+    // Taking it out of the cart reminds the shopper to buy the extra amount.
     this.isPurchased = false;
     this.touch();
   }
@@ -90,15 +94,18 @@ export class GroceryListItem extends BaseEntity<GroceryListItemSnapshot> {
         ? this.isPurchased
         : requireBoolean(changes.purchased, 'Purchased');
 
+    // Everything above validated, so apply the changes together.
     this.itemName = name;
     this.itemCategory = category;
     this.isPurchased = purchased;
     if (changes.quantity !== undefined) {
+      // Quantity is not re-validated here: it is already a `Quantity` (or null to clear it).
       this.itemQuantity = changes.quantity;
     }
     this.touch();
   }
 
+  /** The item-specific fields for `toJSON()`. */
   protected snapshot(): GroceryListItemSnapshot {
     return {
       name: this.itemName,

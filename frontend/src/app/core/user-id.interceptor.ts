@@ -13,6 +13,7 @@ import { SessionService } from './session.service';
  */
 export const userIdInterceptor: HttpInterceptorFn = (request, next) => {
   const userId = inject(SessionService).userId();
+  // Leave other hosts' requests alone, and send nothing when no one is signed in.
   if (!request.url.startsWith(`${API_PREFIX}/`) || userId === null) {
     return next(request);
   }

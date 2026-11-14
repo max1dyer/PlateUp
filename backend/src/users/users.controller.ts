@@ -9,10 +9,15 @@ import { User } from './entities/user.entity';
 import { UserPreferences } from './entities/user-preferences';
 import { UsersService } from './users.service';
 
+/**
+ * HTTP routes under `/users` for accounts, profiles, preferences, and saved recipes. Routes under
+ * `me` act on the signed-in user (from the `x-user-id` header).
+ */
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
+  /** `POST /users`: creates an account; 409 if the username is taken. */
   @Post()
   public register(@Body() dto: CreateUserDto): Promise<User> {
     return this.usersService.register(dto);
@@ -26,11 +31,13 @@ export class UsersController {
   }
 
   // `me` routes are declared before `:userId` so "me" is not treated as an id.
+  /** `GET /users/me`: the signed-in user's own profile. */
   @Get('me')
   public findMe(@CurrentUserId() userId: string): Promise<User> {
     return this.usersService.findOne(userId);
   }
 
+  /** `PATCH /users/me`: edits the signed-in user's profile. */
   @Patch('me')
   public updateMe(@CurrentUserId() userId: string, @Body() dto: UpdateUserDto): Promise<User> {
     return this.usersService.updateProfile(userId, dto);
@@ -42,6 +49,7 @@ export class UsersController {
     return this.usersService.getPreferences(userId);
   }
 
+  /** `PATCH /users/me/preferences`: edits the signed-in user's preferences. */
   @Patch('me/preferences')
   public updatePreferences(
     @CurrentUserId() userId: string,
@@ -50,11 +58,13 @@ export class UsersController {
     return this.usersService.updatePreferences(userId, dto);
   }
 
+  /** `GET /users/me/saved-recipes`: the saved recipes the user can still see. */
   @Get('me/saved-recipes')
   public getSavedRecipes(@CurrentUserId() userId: string): Promise<Recipe[]> {
     return this.usersService.getSavedRecipes(userId);
   }
 
+  /** `PUT /users/me/saved-recipes/:recipeId`: saves a recipe; 404 if the user cannot see it. */
   @Put('me/saved-recipes/:recipeId')
   public saveRecipe(
     @CurrentUserId() userId: string,
@@ -63,6 +73,7 @@ export class UsersController {
     return this.usersService.saveRecipe(userId, recipeId);
   }
 
+  /** `DELETE /users/me/saved-recipes/:recipeId`: removes a recipe from the saved list. */
   @Delete('me/saved-recipes/:recipeId')
   public unsaveRecipe(
     @CurrentUserId() userId: string,
@@ -71,6 +82,7 @@ export class UsersController {
     return this.usersService.unsaveRecipe(userId, recipeId);
   }
 
+  /** `GET /users/:userId`: anyone's public profile. */
   @Get(':userId')
   public findOne(@Param('userId') userId: string): Promise<User> {
     return this.usersService.findOne(userId);

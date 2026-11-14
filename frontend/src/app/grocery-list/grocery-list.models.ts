@@ -68,11 +68,13 @@ export const CATEGORIES: readonly { value: IngredientCategory; label: string }[]
   { value: 'other', label: 'Other' },
 ];
 
+/** An amount and unit, as the backend's `Quantity` value object serializes. */
 export interface Quantity {
   amount: number;
   unit: Unit;
 }
 
+/** One line on a grocery list, as returned by the backend. */
 export interface GroceryListItem {
   id: string;
   createdAt: string;
@@ -83,6 +85,7 @@ export interface GroceryListItem {
   purchased: boolean;
 }
 
+/** A grocery list with its items, as returned by `GET /grocery-lists`. */
 export interface GroceryList {
   id: string;
   createdAt: string;

@@ -13,6 +13,7 @@ const BALANCE_TOLERANCE = KCAL_PER_GRAM.fat;
  */
 export type MacroPlanStatus = 'empty' | 'partial' | 'balanced' | 'under' | 'over';
 
+/** Everything the goals form needs to show for the current calorie and macro entries. */
 export interface MacroPlan {
   status: MacroPlanStatus;
   /** The value an empty field would get, shown as a preview; null when none. */
@@ -40,7 +41,9 @@ export interface MacroPlan {
  *   left over, rounded down to whole grams (0 if there are none left).
  */
 export function planMacros(calories: number | null, macros: MacroGoals): MacroPlan {
+  // Macros the user left blank.
   const unset = MACROS.map((macro) => macro.value).filter((macro) => macros[macro] === null);
+  // Total calories from a set of gram goals (blank macros count as 0 g).
   const energy = (grams: MacroGoals): number =>
     MACROS.reduce((total, { value }) => total + (grams[value] ?? 0) * KCAL_PER_GRAM[value], 0);
   const enteredCalories = energy(macros);
@@ -48,6 +51,7 @@ export function planMacros(calories: number | null, macros: MacroGoals): MacroPl
   let preview: MacroPlan['preview'] = null;
   let total = calories;
 
+  // Same two derivation rules as the backend (see the doc comment above).
   if (calories === null && unset.length === 0) {
     total = enteredCalories;
     preview = { field: 'calories', value: enteredCalories };
@@ -63,6 +67,8 @@ export function planMacros(calories: number | null, macros: MacroGoals): MacroPl
     carbohydrates: (grams.carbohydrates ?? 0) * KCAL_PER_GRAM.carbohydrates,
     fat: (grams.fat ?? 0) * KCAL_PER_GRAM.fat,
   };
+  // How far the entered macros exceed the calorie goal, and how much of the goal is left unassigned
+  // once all three macros are set (ignoring leftovers under one gram of fat).
   const overshoot = calories === null ? 0 : Math.max(0, enteredCalories - calories);
   const leftover = calories === null ? 0 : calories - energy(grams);
   const unassigned =
@@ -80,6 +86,7 @@ export function planMacros(calories: number | null, macros: MacroGoals): MacroPl
   };
 }
 
+/** Picks the overall status; an overshoot takes priority over everything but an empty form. */
 function statusOf(
   calories: number | null,
   unsetCount: number,

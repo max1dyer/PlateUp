@@ -1,0 +1,216 @@
+<div class="ui-page reading">
+  <section class="intro">
+    <h1 class="ui-title">{{ editing() ? 'Edit Recipe' : 'Upload a Recipe' }}</h1>
+    <p class="ui-subtitle">
+      {{ editing() ? 'Changes are saved when you press Save.' : 'Share something you cook.' }}
+    </p>
+  </section>
+
+  @if (loading()) {
+    <p class="ui-status">Loading recipe…</p>
+  } @else {
+    <!-- Validation happens in submit() and on the backend, so the browser's own checks are off. -->
+    <form class="recipe-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <!-- Basic details: title, description, servings, time, tags, and visibility -->
+      <div class="ui-card">
+        <label class="ui-label">
+          Title
+          <input class="ui-field" formControlName="title" placeholder="e.g. Chicken Stir Fry" />
+        </label>
+        <label class="ui-label">
+          Description
+          <textarea
+            class="ui-field"
+            rows="3"
+            formControlName="description"
+            placeholder="What makes it good?"
+          ></textarea>
+        </label>
+        <div class="grid">
+          <label class="ui-label">
+            Servings
+            <input class="ui-field" type="number" min="1" step="1" formControlName="servings" />
+          </label>
+          <label class="ui-label">
+            Time (minutes)
+            <input
+              class="ui-field"
+              type="number"
+              min="0"
+              step="1"
+              formControlName="prepTimeMinutes"
+            />
+          </label>
+        </div>
+        <label class="ui-label">
+          Tags
+          <input class="ui-field" formControlName="tags" placeholder="Italian, Quick, Vegetarian" />
+          <span class="ui-hint">Separate tags with commas.</span>
+        </label>
+        <label class="ui-label">
+          Who can see it
+          <select class="ui-field" formControlName="visibility">
+            <option value="public">Everyone (public)</option>
+            <option value="private">Only me (private)</option>
+          </select>
+        </label>
+      </div>
+
+      <!-- Photo: upload a file or paste an image address -->
+      <div class="ui-card green">
+        <span class="ui-label">Photo</span>
+        @if (photo(); as photo) {
+          <img class="preview" [src]="photo" alt="Recipe photo preview" />
+          <button type="button" class="ui-button plain" (click)="removePhoto()">
+            Remove photo
+          </button>
+        } @else {
+          <label class="ui-button upload">
+            📷 Choose a photo
+            <input
+              class="ui-visually-hidden"
+              type="file"
+              accept="image/png,image/jpeg,image/gif,image/webp"
+              (change)="onPhotoChosen($event)"
+            />
+          </label>
+          <label class="ui-label">
+            <span class="ui-hint">…or paste an image address</span>
+            <input class="ui-field" formControlName="thumbnailUrl" placeholder="https://…" />
+          </label>
+        }
+      </div>
+
+      <!-- Ingredient rows (name, amount, unit); the last row cannot be removed -->
+      <div class="ui-card" formArrayName="ingredients">
+        <h2 class="ui-heading">Ingredients</h2>
+        @for (row of ingredients.controls; track row; let index = $index) {
+          <div class="ingredient" [formGroupName]="index">
+            <input
+              class="ui-field name"
+              formControlName="name"
+              placeholder="Ingredient"
+              [attr.aria-label]="'Ingredient ' + (index + 1)"
+            />
+            <input
+              class="ui-field amount"
+              type="number"
+              min="0"
+              step="any"
+              formControlName="amount"
+              placeholder="Amt"
+              [attr.aria-label]="'Amount of ingredient ' + (index + 1)"
+            />
+            <select
+              class="ui-field unit"
+              formControlName="unit"
+              [attr.aria-label]="'Unit of ingredient ' + (index + 1)"
+            >
+              @for (unit of units; track unit) {
+                <option [value]="unit">{{ unit }}</option>
+              }
+            </select>
+            <button
+              type="button"
+              class="remove"
+              [attr.aria-label]="'Remove ingredient ' + (index + 1)"
+              [disabled]="ingredients.length === 1"
+              (click)="removeIngredient(index)"
+            >
+              ×
+            </button>
+          </div>
+        }
+        <button type="button" class="ui-button" (click)="addIngredient()">+ Add ingredient</button>
+      </div>
+
+      <!-- Method steps, which can be reordered with the arrow buttons -->
+      <div class="ui-card green" formArrayName="steps">
+        <h2 class="ui-heading">Steps</h2>
+        @for (
+          step of steps.controls;
+          track step;
+          let index = $index, first = $first, last = $last
+        ) {
+          <div class="step">
+            <span class="number">{{ index + 1 }}.</span>
+            <textarea
+              class="ui-field"
+              rows="2"
+              [formControlName]="index"
+              [attr.aria-label]="'Step ' + (index + 1)"
+            ></textarea>
+            <div class="step-tools">
+              <button
+                type="button"
+                class="remove"
+                [attr.aria-label]="'Move step ' + (index + 1) + ' up'"
+                [disabled]="first"
+                (click)="moveStep(index, -1)"
+              >
+                ↑
+              </button>
+              <button
+                type="button"
+                class="remove"
+                [attr.aria-label]="'Move step ' + (index + 1) + ' down'"
+                [disabled]="last"
+                (click)="moveStep(index, 1)"
+              >
+                ↓
+              </button>
+              <button
+                type="button"
+                class="remove"
+                [attr.aria-label]="'Remove step ' + (index + 1)"
+                [disabled]="steps.length === 1"
+                (click)="removeStep(index)"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+        }
+        <button type="button" class="ui-button" (click)="addStep()">+ Add step</button>
+      </div>
+
+      <div class="ui-card">
+        <!-- Nutrition per serving -->
+        <h2 class="ui-heading">Nutrition per serving</h2>
+        <div class="grid nutrition-grid">
+          <label class="ui-label">
+            Calories
+            <input class="ui-field" type="number" min="0" formControlName="calories" />
+          </label>
+          <label class="ui-label">
+            Protein (g)
+            <input class="ui-field" type="number" min="0" formControlName="protein" />
+          </label>
+          <label class="ui-label">
+            Carbs (g)
+            <input class="ui-field" type="number" min="0" formControlName="carbohydrates" />
+          </label>
+          <label class="ui-label">
+            Fat (g)
+            <input class="ui-field" type="number" min="0" formControlName="fat" />
+          </label>
+        </div>
+      </div>
+
+      @if (error(); as message) {
+        <p class="ui-error" role="alert">{{ message }}</p>
+      }
+      <!-- Submit and cancel -->
+      <div class="ui-row">
+        <button type="submit" class="ui-button primary wide" [disabled]="saving()">
+          {{ editing() ? 'Save changes' : 'Upload recipe' }}
+        </button>
+        <a
+          class="ui-button plain cancel"
+          [routerLink]="editing() ? ['/recipes', editing()!.id] : '/recipes'"
+          >Cancel</a
+        >
+      </div>
+    </form>
+  }
+</div>

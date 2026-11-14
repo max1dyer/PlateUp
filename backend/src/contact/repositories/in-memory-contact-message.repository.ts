@@ -3,6 +3,7 @@ import { InMemoryRepository } from '../../common/persistence/in-memory.repositor
 import { ContactMessage } from '../entities/contact-message.entity';
 import { ContactMessageRepository } from './contact-message.repository';
 
+/** `ContactMessageRepository` backed by an in-memory map (data is lost on restart). */
 @Injectable()
 export class InMemoryContactMessageRepository
   extends InMemoryRepository<ContactMessage>

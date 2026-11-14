@@ -12,6 +12,7 @@ import { SessionService } from './session.service';
  */
 @Injectable({ providedIn: 'root' })
 export class AuthService {
+  /** The in-flight or finished session restore, shared so the profile is fetched only once. */
   private restored$: Observable<User | null> | null = null;
 
   constructor(
@@ -31,6 +32,8 @@ export class AuthService {
     if (this.session.userId() === null) {
       return of(null);
     }
+    // Start the request only on the first call; `shareReplay(1)` replays its result to later
+    // callers.
     this.restored$ ??= this.users.getMe().pipe(
       tap((user) => this.session.setUser(user)),
       catchError(() => {
@@ -42,19 +45,23 @@ export class AuthService {
     return this.restored$;
   }
 
+  /** Signs in an existing user by username and starts their session. */
   public logIn(username: string): Observable<User> {
     return this.users.logIn(username).pipe(tap((user) => this.startSession(user)));
   }
 
+  /** Creates an account and signs straight into it. */
   public register(user: NewUser): Observable<User> {
     return this.users.register(user).pipe(tap((created) => this.startSession(created)));
   }
 
+  /** Ends the session and forgets the remembered user. */
   public logOut(): void {
     this.restored$ = null;
     this.session.clear();
   }
 
+  /** Remembers `user` as signed in and drops any earlier restore so it cannot overwrite them. */
   private startSession(user: User): void {
     this.restored$ = null;
     this.session.setUser(user);

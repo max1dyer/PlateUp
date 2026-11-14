@@ -8,6 +8,7 @@ export const USER_ID_HEADER = 'x-user-id';
 
 /** The backend's error message if it sent one, otherwise a general one. */
 export function errorMessage(error: unknown): string {
+  // Nest error bodies look like `{ statusCode, error, message }`; use `message` when present.
   if (error instanceof HttpErrorResponse && typeof error.error?.message === 'string') {
     return error.error.message;
   }

@@ -6,6 +6,7 @@ import {
   Unit,
 } from './grocery-list.models';
 
+/** One store section of the grocery list and the items in it. */
 export interface CategoryGroup {
   category: IngredientCategory;
   label: string;
@@ -51,6 +52,7 @@ export function formatQuantity(quantity: Quantity | null): string {
   if (quantity.unit === 'piece') {
     return amount;
   }
+  // Only units listed in `PLURALS` change form; others ("g", "lb") read the same either way.
   const unit = quantity.amount > 1 ? (PLURALS[quantity.unit] ?? quantity.unit) : quantity.unit;
   return `${amount} ${unit}`;
 }
@@ -60,8 +62,13 @@ export function scaleQuantity(quantity: Quantity, factor: number): Quantity {
   return { amount: Math.round(quantity.amount * factor * 100) / 100, unit: quantity.unit };
 }
 
+/**
+ * Writes an amount as a whole number, a mixed fraction ("1 1/2"), or a decimal when no common
+ * fraction fits.
+ */
 function formatAmount(amount: number): string {
   const whole = Math.floor(amount);
+  // Round the fractional part to two decimals so it can be matched against `FRACTIONS`.
   const remainder = Math.round((amount - whole) * 100) / 100;
   if (remainder === 0) {
     return String(whole);
@@ -82,6 +89,7 @@ export function isSameIngredient(a: string, b: string): boolean {
   return first.length > 0 && first === normalizeName(b);
 }
 
+/** Lower-cases, trims, and collapses runs of whitespace. */
 function normalizeName(name: string): string {
   return name.trim().replace(/\s+/g, ' ').toLowerCase();
 }
