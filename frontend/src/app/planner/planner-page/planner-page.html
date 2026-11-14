@@ -1,0 +1,166 @@
+<div class="ui-page reading">
+  <section class="intro">
+    <h1 class="ui-title">Your Planner</h1>
+    <p class="ui-subtitle">A little planning. A lot of good food.</p>
+  </section>
+
+  <!-- Week strip: week navigation, a date picker, and one tab per day -->
+  <section class="ui-card week" aria-label="Week">
+    <div class="week-nav">
+      <button
+        type="button"
+        class="arrow"
+        aria-label="Previous week"
+        [disabled]="!canGoBack()"
+        (click)="shiftWeek(-1)"
+      >
+        ‹
+      </button>
+      <h2 class="week-title">{{ weekTitle() }}</h2>
+      <button
+        type="button"
+        class="arrow"
+        aria-label="Next week"
+        [disabled]="!canGoForward()"
+        (click)="shiftWeek(1)"
+      >
+        ›
+      </button>
+    </div>
+
+    <div class="days" role="tablist" aria-label="Days of the week">
+      @for (day of dayTabs(); track day.date) {
+        <button
+          type="button"
+          class="day"
+          role="tab"
+          [class.selected]="day.date === selected()"
+          [class.today]="day.date === today"
+          [attr.aria-selected]="day.date === selected()"
+          [disabled]="!day.inRange"
+          [attr.aria-label]="day.weekday + ' ' + day.dayOfMonth + ', ' + day.mealCount + ' meals'"
+          (click)="goTo(day.date)"
+        >
+          <span class="weekday">{{ day.weekday }}</span>
+          <span class="date-number">{{ day.dayOfMonth }}</span>
+          <span class="dot" [class.visible]="day.mealCount > 0" aria-hidden="true"></span>
+        </button>
+      }
+    </div>
+
+    <div class="week-footer">
+      <p class="week-summary">{{ loading() ? 'Loading this week…' : weekSummary() }}</p>
+      <div class="jump">
+        @if (selected() !== today) {
+          <button type="button" class="link" (click)="goTo(today)">Today</button>
+        }
+        <label class="ui-visually-hidden" for="planner-date">Go to date</label>
+        <input
+          id="planner-date"
+          class="ui-field date-picker"
+          type="date"
+          [min]="range.min"
+          [max]="range.max"
+          [value]="selected()"
+          (change)="onDatePicked($event)"
+        />
+      </div>
+    </div>
+  </section>
+
+  @if (loadError()) {
+    <div class="ui-card">
+      <p class="ui-status">We couldn't load your planner. Make sure the backend is running.</p>
+      <button type="button" class="ui-button primary" (click)="loadWeek()">Try again</button>
+    </div>
+  } @else if (!loading()) {
+    <!-- The selected day's nutrition (UC4) -->
+    <section class="ui-card green nutrition" aria-label="Nutrition">
+      <h2 class="ui-heading">{{ nutritionTitle() }}</h2>
+      <div class="kcal-row">
+        <span class="kcal">{{ planned().calories.toLocaleString() }} kcal</span>
+        @if (calorieGoal(); as goal) {
+          <span class="ui-hint">of {{ goal.toLocaleString() }} kcal goal</span>
+        }
+      </div>
+      @if (progress(); as bar) {
+        <div class="bar" aria-hidden="true">
+          <span class="bar-eaten" [style.width.%]="bar.eaten"></span>
+          <span class="bar-planned" [style.width.%]="bar.planned"></span>
+        </div>
+      }
+      <p class="kcal-detail">
+        {{ eatenCalories().toLocaleString() }} kcal eaten ·
+        {{ (planned().calories - eatenCalories()).toLocaleString() }} kcal still planned
+      </p>
+      @if (calorieGoal(); as goal) {
+        <p class="ui-hint">
+          @if (goal - planned().calories >= 0) {
+            {{ (goal - planned().calories).toLocaleString() }} kcal left to plan
+          } @else {
+            {{ (planned().calories - goal).toLocaleString() }} kcal over your goal
+          }
+        </p>
+      }
+      <div class="macro-tiles">
+        <div class="macro-tile">
+          <span class="macro-value">{{ planned().protein }} g</span>
+          <span>Protein</span>
+        </div>
+        <div class="macro-tile">
+          <span class="macro-value">{{ planned().carbohydrates }} g</span>
+          <span>Carbs</span>
+        </div>
+        <div class="macro-tile">
+          <span class="macro-value">{{ planned().fat }} g</span>
+          <span>Fat</span>
+        </div>
+      </div>
+      <p class="ui-hint">
+        Totals count every planned serving and use each recipe's nutrition estimates.
+      </p>
+    </section>
+
+    <!-- The selected day's meals, grouped by meal time -->
+    <section class="day-plan">
+      <h2 class="ui-heading">{{ dayTitle() }}</h2>
+      @for (group of slotGroups(); track group.slot; let groupIndex = $index) {
+        <div class="slot">
+          <div class="slot-heading">
+            <h3>{{ group.label }}</h3>
+            @if (group.meals.length > 0) {
+              <span>{{ group.calories.toLocaleString() }} kcal</span>
+            }
+          </div>
+          @for (meal of group.meals; track meal.id) {
+            <app-planned-meal-card
+              [meal]="meal"
+              [range]="range"
+              [today]="today"
+              [green]="groupIndex % 2 === 0"
+              (changed)="onChanged($event)"
+              (removed)="onRemoved($event)"
+            />
+          }
+          @if (addingTo() === group.slot) {
+            <app-add-meal-form
+              [date]="selected()"
+              [today]="today"
+              [slot]="group.slot"
+              [defaultServings]="preferencesServings()"
+              (planned)="onPlanned($event)"
+              (closed)="addingTo.set(null)"
+            />
+          } @else {
+            <button type="button" class="add-slot" (click)="addingTo.set(group.slot)">
+              @if (group.meals.length === 0) {
+                <span class="nothing">Nothing planned</span>
+              }
+              <span class="add-label">+ Add {{ group.label.toLowerCase() }}</span>
+            </button>
+          }
+        </div>
+      }
+    </section>
+  }
+</div>

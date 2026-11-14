@@ -1,0 +1,105 @@
+<article class="ui-card meal" [class.green]="green()" [class.eaten]="meal().eaten">
+  <!-- Recipe summary -->
+  <div class="summary">
+    @if (meal().recipe.thumbnailUrl; as photo) {
+      <img class="thumb" [src]="photo" alt="" />
+    } @else {
+      <span class="thumb placeholder" aria-hidden="true">🍽️</span>
+    }
+    <div class="text">
+      <a class="title" [routerLink]="['/recipes', meal().recipeId]">{{ meal().recipe.title }}</a>
+      <p class="meta">
+        {{ meal().servings }} {{ meal().servings === 1 ? 'serving' : 'servings' }} ·
+        {{ meal().recipe.prepTimeMinutes }} min
+      </p>
+    </div>
+    <button
+      type="button"
+      class="more"
+      [attr.aria-label]="'Edit ' + meal().recipe.title"
+      [attr.aria-expanded]="editing()"
+      (click)="editing() ? editing.set(false) : startEditing()"
+    >
+      ⋯
+    </button>
+  </div>
+
+  <p class="macros">
+    {{ nutrition().calories }} kcal · {{ nutrition().protein }} g protein ·
+    {{ nutrition().carbohydrates }} g carbs · {{ nutrition().fat }} g fat
+  </p>
+
+  <!-- Eaten status (UC4) -->
+  <div class="status-row">
+    @if (meal().eaten) {
+      <span class="status eaten-label">✓ Eaten</span>
+      <button type="button" class="link" [disabled]="saving()" (click)="toggleEaten()">Undo</button>
+    } @else {
+      <span class="status planned-label">Planned</span>
+      <button type="button" class="link" [disabled]="saving()" (click)="toggleEaten()">
+        Mark as eaten
+      </button>
+    }
+  </div>
+
+  <!-- Edit panel: move, change servings, or remove -->
+  @if (editing()) {
+    <form class="edit" [formGroup]="form" (ngSubmit)="save()">
+      <div class="fields">
+        <label class="ui-label">
+          Day
+          <input
+            class="ui-field"
+            type="date"
+            formControlName="date"
+            [min]="range().min"
+            [max]="range().max"
+          />
+        </label>
+        <label class="ui-label">
+          Meal
+          <select class="ui-field" formControlName="slot">
+            @for (slot of slots; track slot.value) {
+              <option [value]="slot.value">{{ slot.label }}</option>
+            }
+          </select>
+        </label>
+        <label class="ui-label">
+          Servings
+          <input
+            class="ui-field"
+            type="number"
+            min="1"
+            [max]="maxServings"
+            step="1"
+            formControlName="servings"
+          />
+        </label>
+      </div>
+      <div class="ui-row">
+        <button type="submit" class="ui-button primary" [disabled]="saving()">Save</button>
+        <button type="button" class="ui-button plain" (click)="editing.set(false)">Cancel</button>
+        @if (!confirmingRemove()) {
+          <button type="button" class="ui-button danger" (click)="confirmingRemove.set(true)">
+            Remove
+          </button>
+        }
+      </div>
+      @if (confirmingRemove()) {
+        <div class="ui-row confirm">
+          <span>Remove {{ meal().recipe.title }} from your planner?</span>
+          <button type="button" class="ui-button danger" [disabled]="saving()" (click)="remove()">
+            Yes, remove
+          </button>
+          <button type="button" class="ui-button plain" (click)="confirmingRemove.set(false)">
+            Keep it
+          </button>
+        </div>
+      }
+    </form>
+  }
+
+  @if (error(); as message) {
+    <p class="ui-error" role="alert">{{ message }}</p>
+  }
+</article>

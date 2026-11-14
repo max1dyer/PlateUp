@@ -1,0 +1,78 @@
+.add-meal {
+  gap: 10px;
+  border: 2px dashed var(--color-primary);
+  background: #ffffff;
+}
+
+.header,
+.chosen {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.heading {
+  margin: 0;
+  font-size: 23px;
+  font-weight: 400;
+}
+
+/* Search results */
+.results {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.result {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--color-card-green);
+  text-align: left;
+  cursor: pointer;
+}
+
+.result:hover,
+.result:focus-visible {
+  outline: 2px solid var(--color-secondary);
+}
+
+.result-title {
+  font-size: 19px;
+  line-height: 110%;
+}
+
+/* Chosen recipe: meal time and servings */
+.chosen-title {
+  font-size: 21px;
+}
+
+.details {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.link {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 17px;
+  color: var(--color-primary);
+  cursor: pointer;
+}
