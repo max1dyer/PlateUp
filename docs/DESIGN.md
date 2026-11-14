@@ -96,7 +96,7 @@ These are the major classes for CRC cards and the class diagram. Paths are relat
 | `ContactMessage`, `ContactService`, `ContactController`, `ContactMessageRepository`                        | contact feature       | `contact/`                                 |
 | `DemoDataSeeder`, `SeedModule` (TEMPORARY: sample data loaded at startup)                                  | seed data             | `seed/`                                    |
 
-DTOs (`CreateRecipeDto`, `LogInDto`, `AddRecipeToListDto`, ...) are plain request shapes in each feature's `dto/` folder and are not part of the diagram. `guessCategory()` (`common/domain/ingredient-category.ts`) is a pure function that files generated grocery items under a store section. `dietaryConflicts()` and the `DietaryRestriction` enum (`common/domain/dietary-restriction.ts`) are pure keyword rules that estimate which dietary restrictions a recipe's ingredients break; `Recipe` exposes the result as `dietaryConflicts` and `suits()`. `deriveDailyTargets()` (`users/entities/user-preferences.ts`) fills in the one daily goal the others determine (total calories from three gram goals, or the last macro's grams from the calorie goal); the frontend's `planMacros()` (`preferences/macro-plan.ts`) applies the same rule to preview it on the Preferences page and to flag macros that overshoot the calorie goal.
+DTOs (`CreateRecipeDto`, `LogInDto`, `AddRecipeToListDto`, ...) are plain request shapes in each feature's `dto/` folder and are not part of the diagram. `requireCalendarDate()` and `addDays()` (`common/domain/calendar-date.ts`) validate and do arithmetic on `YYYY-MM-DD` calendar days, such as a pantry item's expiration date. `guessCategory()` (`common/domain/ingredient-category.ts`) is a pure function that files generated grocery items under a store section. `dietaryConflicts()` and the `DietaryRestriction` enum (`common/domain/dietary-restriction.ts`) are pure keyword rules that estimate which dietary restrictions a recipe's ingredients break; `Recipe` exposes the result as `dietaryConflicts` and `suits()`. `deriveDailyTargets()` (`users/entities/user-preferences.ts`) fills in the one daily goal the others determine (total calories from three gram goals, or the last macro's grams from the calorie goal); the frontend's `planMacros()` (`preferences/macro-plan.ts`) applies the same rule to preview it on the Preferences page and to flag macros that overshoot the calorie goal. `expiryStatus()` and `expiryAlert()` (`pantry/pantry-expiry.ts`) decide which pantry items have expired or expire within 7 days (UC15); the Pantry and Home pages show the alert.
 
 Frontend classes (paths relative to `frontend/src/app/`). Services, models, and helpers sit at the top of each feature folder; each component has its own subfolder named after it (e.g. `recipes/recipe-page/recipe-page.ts`):
 
@@ -184,8 +184,12 @@ classDiagram
   class PantryItem {
     -itemName: string
     -itemQuantity: Quantity
+    -expiry: string | null
+    +expiresOn: string | null
     +rename(name) void
     +setQuantity(quantity) void
+    +setExpiresOn(expiresOn) void
+    +addQuantity(quantity, expiresOn) void
   }
   class GroceryList {
     -listName: string

@@ -9,6 +9,7 @@ export function pantryItem(overrides: Partial<PantryItem> = {}): PantryItem {
     ownerId: 'user-1',
     name: 'Eggs',
     quantity: { amount: 12, unit: 'piece' },
+    expiresOn: null,
     ...overrides,
   };
 }
