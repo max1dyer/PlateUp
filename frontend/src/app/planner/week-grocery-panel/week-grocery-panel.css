@@ -1,0 +1,64 @@
+.panel {
+  gap: 10px;
+  border: 2px dashed var(--color-primary);
+  background: #ffffff;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.heading {
+  margin: 0;
+  font-size: 23px;
+  font-weight: 400;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pantry-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 17px;
+}
+
+.pantry-toggle input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-secondary);
+}
+
+/* Summary of the last add */
+.summary {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  background: var(--color-card-green);
+  font-size: 17px;
+}
+
+.summary p {
+  margin: 0;
+}
+
+.summary a {
+  color: var(--color-primary);
+}
+
+.label {
+  color: var(--color-text-muted);
+}
+
+.skipped {
+  color: var(--color-error);
+}

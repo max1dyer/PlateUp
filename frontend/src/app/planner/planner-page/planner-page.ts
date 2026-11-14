@@ -16,6 +16,7 @@ import {
 } from '../planner-week';
 import { MEAL_SLOTS, MealSlot, PlannedMeal } from '../planner.models';
 import { PlannerService } from '../planner.service';
+import { WeekGroceryPanel } from '../week-grocery-panel/week-grocery-panel';
 
 /** One day button in the week strip. */
 interface DayTab {
@@ -34,11 +35,12 @@ interface DayTab {
  * "Your Planner" page (`/planner`, UC1, UC4): a week strip to pick a day, the
  * day's nutrition against the user's calorie goal, and its meals grouped by
  * meal time. The user can go to any day from half a year before today to half
- * a year after; the chosen day is kept in the address (`?date=`).
+ * a year after; the chosen day is kept in the address (`?date=`). The week's
+ * ingredients can be added to a grocery list in one step (UC6).
  */
 @Component({
   selector: 'app-planner-page',
-  imports: [AddMealForm, PlannedMealCard],
+  imports: [AddMealForm, PlannedMealCard, WeekGroceryPanel],
   templateUrl: './planner-page.html',
   styleUrl: './planner-page.css',
 })
@@ -58,6 +60,8 @@ export class PlannerPage implements OnInit {
   protected readonly loadError = signal(false);
   /** The meal time whose add form is open, or null when it is closed. */
   protected readonly addingTo = signal<MealSlot | null>(null);
+  /** True while the "Shop for this week" panel is open. */
+  protected readonly shopping = signal(false);
 
   /** The seven days of the selected week, Monday first. */
   protected readonly week = computed(() => weekDays(this.selected()));
@@ -185,6 +189,8 @@ export class PlannerPage implements OnInit {
       replaceUrl: true,
     });
     if (!sameWeek) {
+      // The shopping panel belongs to the week it was opened for.
+      this.shopping.set(false);
       this.loadWeek();
     }
   }

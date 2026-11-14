@@ -3,6 +3,7 @@ import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/route
 import { of, throwError } from 'rxjs';
 import { signal } from '@angular/core';
 import { addDays, startOfWeek, today } from '../../core/calendar-date';
+import { GroceryListsService } from '../../grocery-list/grocery-lists.service';
 import { preferences } from '../../preferences/preferences.fixtures';
 import { UserPreferences } from '../../preferences/preferences.models';
 import { PreferencesService } from '../../preferences/preferences.service';
@@ -36,6 +37,7 @@ describe('PlannerPage', () => {
         provideRouter([]),
         { provide: PlannerService, useValue: service },
         { provide: PreferencesService, useValue: preferencesService },
+        { provide: GroceryListsService, useValue: { getLists: () => of([]) } },
         {
           provide: ActivatedRoute,
           useValue: { snapshot: { queryParamMap: convertToParamMap(date ? { date } : {}) } },
@@ -154,5 +156,22 @@ describe('PlannerPage', () => {
     const page = fixture.nativeElement as HTMLElement;
 
     expect(text(page, '.ui-status')[0]).toContain("We couldn't load your planner.");
+  });
+
+  it('opens the shopping panel only when the week has meals', async () => {
+    const { fixture, page } = await render([plannedMeal({ date: now })]);
+    const shop = page.querySelector('.shop') as HTMLButtonElement;
+
+    expect(shop.disabled).toBe(false);
+    shop.click();
+    fixture.detectChanges();
+
+    expect(page.querySelector('app-week-grocery-panel')).not.toBeNull();
+  });
+
+  it('disables shopping for an empty week', async () => {
+    const { page } = await render([]);
+
+    expect((page.querySelector('.shop') as HTMLButtonElement).disabled).toBe(true);
   });
 });

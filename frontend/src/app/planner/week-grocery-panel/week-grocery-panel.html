@@ -1,0 +1,59 @@
+<section class="ui-card panel" aria-label="Shop for this week">
+  <div class="header">
+    <h3 class="heading">Shop for this week</h3>
+    <button type="button" class="ui-button plain" (click)="closed.emit()">Close</button>
+  </div>
+  <p class="ui-hint">
+    Adds every ingredient your planned meals need, scaled to their servings and combined across
+    meals.
+  </p>
+
+  <form class="form" [formGroup]="form" (ngSubmit)="add()">
+    <label class="ui-label">
+      Grocery list
+      <select class="ui-field" formControlName="listId">
+        @for (list of lists(); track list.id) {
+          <option [value]="list.id">{{ list.name }} ({{ list.items.length }} items)</option>
+        }
+        <option [value]="newList">+ New list</option>
+      </select>
+    </label>
+    @if (listId() === newList) {
+      <label class="ui-label">
+        New list name
+        <input class="ui-field" formControlName="newListName" />
+      </label>
+    }
+    <label class="pantry-toggle">
+      <input type="checkbox" formControlName="usePantry" />
+      Leave out what's already in my pantry
+    </label>
+    <button type="submit" class="ui-button primary" [disabled]="loading() || saving()">
+      {{ saving() ? 'Adding…' : '🛒 Add to grocery list' }}
+    </button>
+  </form>
+
+  @if (error(); as message) {
+    <p class="ui-error" role="alert">{{ message }}</p>
+  }
+
+  <!-- Summary of the last add -->
+  @if (result(); as result) {
+    <div class="summary" role="status">
+      <p class="summary-title">
+        {{ result.added.length }} {{ result.added.length === 1 ? 'item' : 'items' }} added to
+        {{ result.list.name }}.
+        <a routerLink="/grocery" [queryParams]="{ list: result.list.id }">Open list ›</a>
+      </p>
+      @if (result.coveredByPantry.length > 0) {
+        <p class="covered">
+          <span class="label">Already in your pantry:</span>
+          {{ result.coveredByPantry.join(', ') }}
+        </p>
+      }
+      @for (skipped of result.skipped; track $index) {
+        <p class="skipped">⚠ {{ skipped.reason }}</p>
+      }
+    </div>
+  }
+</section>
