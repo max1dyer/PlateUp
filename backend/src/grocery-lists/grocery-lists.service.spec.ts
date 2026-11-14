@@ -11,6 +11,13 @@ import { buildCreateRecipeDto } from '../recipes/testing/recipe.fixtures';
 import { PantryService } from '../pantry/pantry.service';
 import { InMemoryPantryItemRepository } from '../pantry/repositories/in-memory-pantry-item.repository';
 import { PantryItemRepository } from '../pantry/repositories/pantry-item.repository';
+import { MealSlot } from '../planner/entities/planned-meal.entity';
+import { PlannerService } from '../planner/planner.service';
+import { InMemoryPlannedMealRepository } from '../planner/repositories/in-memory-planned-meal.repository';
+import { PlannedMealRepository } from '../planner/repositories/planned-meal.repository';
+import { InMemoryUserRepository } from '../users/repositories/in-memory-user.repository';
+import { UserRepository } from '../users/repositories/user.repository';
+import { UsersService } from '../users/users.service';
 import { GroceryListsService } from './grocery-lists.service';
 import { GroceryListRepository } from './repositories/grocery-list.repository';
 import { InMemoryGroceryListRepository } from './repositories/in-memory-grocery-list.repository';
@@ -19,6 +26,7 @@ describe('GroceryListsService', () => {
   let service: GroceryListsService;
   let recipes: RecipesService;
   let pantry: PantryService;
+  let planner: PlannerService;
 
   beforeEach(async () => {
     const moduleRef = await Test.createTestingModule({
@@ -26,7 +34,11 @@ describe('GroceryListsService', () => {
         GroceryListsService,
         RecipesService,
         PantryService,
+        PlannerService,
+        UsersService,
         { provide: PantryItemRepository, useClass: InMemoryPantryItemRepository },
+        { provide: PlannedMealRepository, useClass: InMemoryPlannedMealRepository },
+        { provide: UserRepository, useClass: InMemoryUserRepository },
         { provide: GroceryListRepository, useClass: InMemoryGroceryListRepository },
         { provide: RecipeRepository, useClass: InMemoryRecipeRepository },
       ],
@@ -34,6 +46,7 @@ describe('GroceryListsService', () => {
     service = moduleRef.get(GroceryListsService);
     recipes = moduleRef.get(RecipesService);
     pantry = moduleRef.get(PantryService);
+    planner = moduleRef.get(PlannerService);
   });
 
   it('create and findAll are scoped to the owner', async () => {
@@ -308,6 +321,109 @@ describe('GroceryListsService', () => {
       ]);
       expect(result.list.items).toEqual([chips, bread]);
       expect((await pantry.findAll('alice')).map((item) => item.name)).toEqual(['Milk']);
+    });
+  });
+
+  describe('addPlannerWeek (UC6)', () => {
+    const week = { from: '2026-09-21', to: '2026-09-27' };
+    let riceBowl: string;
+    let friedRice: string;
+
+    beforeEach(async () => {
+      riceBowl = (
+        await recipes.create(
+          'chef',
+          buildCreateRecipeDto({
+            servings: 2,
+            ingredients: [
+              { name: 'Rice', quantity: { amount: 1, unit: Unit.Cup } },
+              { name: 'Chicken breast', quantity: { amount: 400, unit: Unit.Gram } },
+            ],
+          }),
+        )
+      ).id;
+      friedRice = (
+        await recipes.create(
+          'chef',
+          buildCreateRecipeDto({
+            servings: 1,
+            ingredients: [
+              { name: 'rice', quantity: { amount: 0.5, unit: Unit.Cup } },
+              { name: 'Eggs', quantity: { amount: 2, unit: Unit.Piece } },
+            ],
+          }),
+        )
+      ).id;
+    });
+
+    const plan = (recipeId: string, date: string, servings: number) =>
+      planner.plan('alice', { recipeId, date, slot: MealSlot.Dinner, servings });
+
+    it('adds every ingredient for the week, scaled and combined across meals', async () => {
+      const list = await service.create('alice', { name: 'Week' });
+      await plan(riceBowl, '2026-09-21', 4);
+      await plan(friedRice, '2026-09-23', 1);
+      await plan(friedRice, '2026-09-28', 1); // next week: not included
+
+      const result = await service.addPlannerWeek('alice', list.id, { ...week, usePantry: false });
+
+      expect(result.added).toEqual(['Rice', 'Chicken breast', 'Eggs']);
+      const byName = new Map(result.list.items.map((item) => [item.name, item.quantity]));
+      expect(byName.get('Rice')?.equals(new Quantity(2.5, Unit.Cup))).toBe(true);
+      expect(byName.get('Chicken breast')?.equals(new Quantity(800, Unit.Gram))).toBe(true);
+      expect(byName.get('Eggs')?.equals(new Quantity(2, Unit.Piece))).toBe(true);
+      expect(result.list.items.find((item) => item.name === 'Chicken breast')?.category).toBe(
+        IngredientCategory.Protein,
+      );
+    });
+
+    it('subtracts what the pantry holds and reports what it covers', async () => {
+      const list = await service.create('alice', { name: 'Week' });
+      await plan(riceBowl, '2026-09-21', 2);
+      await pantry.add('alice', { name: 'Rice', quantity: { amount: 0.25, unit: Unit.Cup } });
+      await pantry.add('alice', {
+        name: 'chicken breast',
+        quantity: { amount: 1, unit: Unit.Kilogram },
+      });
+
+      const result = await service.addPlannerWeek('alice', list.id, week);
+
+      expect(result.coveredByPantry).toEqual(['Chicken breast']);
+      expect(result.added).toEqual(['Rice']);
+      expect(result.list.items).toHaveLength(1);
+      expect(result.list.items[0].quantity?.equals(new Quantity(0.75, Unit.Cup))).toBe(true);
+      expect(await pantry.findAll('alice')).toHaveLength(2);
+    });
+
+    it('skips an ingredient the list holds in another unit and adds the rest', async () => {
+      const list = await service.create('alice', { name: 'Week' });
+      await service.addItem('alice', list.id, {
+        name: 'Rice',
+        quantity: { amount: 1, unit: Unit.Bag },
+      });
+      await plan(riceBowl, '2026-09-21', 2);
+
+      const result = await service.addPlannerWeek('alice', list.id, { ...week, usePantry: false });
+
+      expect(result.added).toEqual(['Chicken breast']);
+      expect(result.skipped.map((each) => each.name)).toEqual(['Rice']);
+    });
+
+    it('refuses a week with nothing planned', async () => {
+      const list = await service.create('alice', { name: 'Week' });
+
+      await expect(service.addPlannerWeek('alice', list.id, week)).rejects.toThrow(
+        'No meals are planned for those days.',
+      );
+    });
+
+    it('404s for another user’s list', async () => {
+      const list = await service.create('bob', { name: 'Week' });
+      await plan(riceBowl, '2026-09-21', 2);
+
+      await expect(service.addPlannerWeek('alice', list.id, week)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 });

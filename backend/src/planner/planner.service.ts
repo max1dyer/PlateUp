@@ -29,16 +29,32 @@ export class PlannerService {
 
   /**
    * The user's meals from `from` to `to` (both inclusive), ordered by day and
-   * meal time. Meals whose recipe was deleted or made private are left out.
+   * meal time, each with a summary of its recipe. Meals whose recipe was
+   * deleted or made private are left out.
    *
-   * @throws DomainValidationError if a date is invalid, `to` is before `from`,
-   *   or the range is longer than `MAX_RANGE_DAYS`.
+   * @throws DomainValidationError if the range is invalid (see `mealsBetween`).
    */
   public async findBetween(
     ownerId: string,
     from: string | undefined,
     to: string | undefined,
   ): Promise<PlannedMealView[]> {
+    return this.withRecipes(ownerId, await this.mealsBetween(ownerId, from, to));
+  }
+
+  /**
+   * The user's planned meals from `from` to `to` (both inclusive), ordered by
+   * day and meal time. Other features use this to work with a week's plan
+   * (e.g. building a grocery list from it).
+   *
+   * @throws DomainValidationError if a date is invalid, `to` is before `from`,
+   *   or the range is longer than `MAX_RANGE_DAYS`.
+   */
+  public async mealsBetween(
+    ownerId: string,
+    from: string | undefined,
+    to: string | undefined,
+  ): Promise<PlannedMeal[]> {
     const start = requireCalendarDate(from, 'From date');
     const end = requireCalendarDate(to, 'To date');
     const span = daysBetween(start, end);
@@ -49,7 +65,7 @@ export class PlannerService {
       throw new DomainValidationError(`Load at most ${MAX_RANGE_DAYS} days of meals at a time.`);
     }
     const meals = await this.meals.findByOwnerBetween(ownerId, start, end);
-    return this.withRecipes(ownerId, meals.sort(compareMeals));
+    return meals.sort(compareMeals);
   }
 
   /**

@@ -99,6 +99,8 @@ These are the major classes for CRC cards and the class diagram. Paths are relat
 
 DTOs (`CreateRecipeDto`, `LogInDto`, `AddRecipeToListDto`, ...) are plain request shapes in each feature's `dto/` folder and are not part of the diagram. `guessCategory()` (`common/domain/ingredient-category.ts`) is a pure function that files generated grocery items under a store section. `dietaryConflicts()` and the `DietaryRestriction` enum (`common/domain/dietary-restriction.ts`) are pure keyword rules that estimate which dietary restrictions a recipe's ingredients break; `Recipe` exposes the result as `dietaryConflicts` and `suits()`. `deriveDailyTargets()` (`users/entities/user-preferences.ts`) fills in the one daily goal the others determine (total calories from three gram goals, or the last macro's grams from the calorie goal); the frontend's `planMacros()` (`preferences/macro-plan.ts`) applies the same rule to preview it on the Preferences page and to flag macros that overshoot the calorie goal.
 
+`combineNeeds()` and `shortfall()` (`grocery-lists/entities/shopping-needs.ts`) merge the ingredients of a planned week across meals and subtract what the pantry already holds; `GroceryListsService.addPlannerWeek()` uses them to build a grocery list from the planner (UC6).
+
 Frontend classes (paths relative to `frontend/src/app/`). Services, models, and helpers sit at the top of each feature folder; each component has its own subfolder named after it (e.g. `recipes/recipe-page/recipe-page.ts`):
 
 | Class                                                                                     | Kind             | Path                        |
