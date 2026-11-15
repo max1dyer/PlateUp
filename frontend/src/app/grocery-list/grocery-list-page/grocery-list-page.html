@@ -114,6 +114,11 @@
         >
           ⬇️ Download .txt
         </button>
+        @if (canShare) {
+          <button type="button" class="manage" [disabled]="itemCount() === 0" (click)="shareAsText()">
+            📤 Share…
+          </button>
+        }
       </div>
 
       <!-- Items grouped by store section; the cards alternate colours -->

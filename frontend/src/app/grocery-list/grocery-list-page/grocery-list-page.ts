@@ -52,6 +52,9 @@ export class GroceryListPage implements OnInit {
   protected readonly list = computed(
     () => this.lists().find((list) => list.id === this.selectedId()) ?? null,
   );
+  /** True where the browser can open the system share sheet (iPhone, Android, Safari). */
+  protected readonly canShare =
+    typeof navigator !== 'undefined' && typeof navigator.share === 'function';
   /** The shown list's items grouped by store section, for display. */
   protected readonly groups = computed(() => groupByCategory(this.list()?.items ?? []));
   /** Totals for the summary line ("3 of 8 items in cart"). */
@@ -178,6 +181,23 @@ export class GroceryListPage implements OnInit {
     link.download = `${list.name.replace(/[^\w\- ]+/g, '').trim() || 'grocery-list'}.txt`;
     link.click();
     URL.revokeObjectURL(url);
+  }
+
+  /** "Share": opens the share sheet so the list can go to Notes, Messages, etc. */
+  protected async shareAsText(): Promise<void> {
+    const text = this.listText();
+    const list = this.list();
+    if (text === null || !list) {
+      return;
+    }
+    try {
+      await navigator.share({ title: list.name, text });
+    } catch (error) {
+      // Closing the sheet without choosing anything is not an error.
+      if ((error as DOMException).name !== 'AbortError') {
+        this.actionError.set("Couldn't open the share sheet. Try Copy instead.");
+      }
+    }
   }
 
   /** Shows an empty name field for a new list. */
