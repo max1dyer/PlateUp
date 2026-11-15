@@ -32,6 +32,8 @@ export interface UserPreferencesProps {
   dailyCalories: number | null;
   /** Daily gram goal for each macro; each may be null independently. */
   macroGoals: MacroGoals;
+  /** When true, other users cannot share recipes with this user. */
+  blockRecipeShares: boolean;
 }
 
 /** A partial edit; `macroGoals` may name only the macros that change. */
@@ -95,6 +97,7 @@ export class UserPreferences {
   public readonly dietaryRestrictions: readonly DietaryRestriction[];
   public readonly dailyCalories: number | null;
   public readonly macroGoals: Readonly<MacroGoals>;
+  public readonly blockRecipeShares: boolean;
 
   /** @throws DomainValidationError if any value is out of range or not recognised. */
   constructor(props: UserPreferencesProps) {
@@ -115,6 +118,10 @@ export class UserPreferences {
             'Daily calories',
           );
     this.macroGoals = UserPreferences.validateMacroGoals(props.macroGoals);
+    if (typeof props.blockRecipeShares !== 'boolean') {
+      throw new DomainValidationError('Block recipe shares must be true or false.');
+    }
+    this.blockRecipeShares = props.blockRecipeShares;
   }
 
   /** What a new account starts with: default servings, no restrictions, no goals. */
@@ -124,6 +131,7 @@ export class UserPreferences {
       dietaryRestrictions: [],
       dailyCalories: null,
       macroGoals: { protein: null, carbohydrates: null, fat: null },
+      blockRecipeShares: false,
     });
   }
 
@@ -155,6 +163,7 @@ export class UserPreferences {
       dietaryRestrictions: [...this.dietaryRestrictions],
       dailyCalories: this.dailyCalories,
       macroGoals: { ...this.macroGoals },
+      blockRecipeShares: this.blockRecipeShares,
     };
   }
 

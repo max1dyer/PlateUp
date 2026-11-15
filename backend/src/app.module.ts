@@ -5,6 +5,7 @@ import { AppService } from './app.service';
 import { ContactModule } from './contact/contact.module';
 import { DomainErrorFilter } from './common/filters/domain-error.filter';
 import { GroceryListsModule } from './grocery-lists/grocery-lists.module';
+import { RecipeSharesModule } from './recipe-shares/recipe-shares.module';
 import { PantryModule } from './pantry/pantry.module';
 import { RecipesModule } from './recipes/recipes.module';
 import { SeedModule } from './seed/seed.module';
@@ -22,6 +23,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     PantryModule,
     NotificationsModule,
     GroceryListsModule,
+    RecipeSharesModule,
     ContactModule,
     SeedModule,
   ],

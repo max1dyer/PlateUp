@@ -1,4 +1,4 @@
-import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, NotFoundException, ConflictException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { Unit } from '../common/domain/quantity';
 import { RecipeVisibility } from './entities/recipe.entity';
@@ -6,6 +6,7 @@ import { RecipesService } from './recipes.service';
 import { InMemoryRecipeRepository } from './repositories/in-memory-recipe.repository';
 import { RecipeRepository } from './repositories/recipe.repository';
 import { buildCreateRecipeDto } from './testing/recipe.fixtures';
+import { DomainValidationError } from '../common/errors/domain-validation.error';
 
 describe('RecipesService', () => {
   let service: RecipesService;
@@ -113,5 +114,47 @@ describe('RecipesService', () => {
     await service.remove(recipe.id, 'alice');
 
     await expect(service.findOne(recipe.id, 'alice')).rejects.toThrow(NotFoundException);
+  });
+
+  describe('sharing', () => {
+    const privateRecipe = () =>
+      service.create('alice', buildCreateRecipeDto({ visibility: RecipeVisibility.Private }));
+
+    it('a shared private recipe is visible to the recipient until it is revoked', async () => {
+      const recipe = await privateRecipe();
+
+      await service.shareWith(recipe.id, 'alice', 'bob');
+      await expect(service.findOne(recipe.id, 'bob')).resolves.toBe(recipe);
+      expect(await service.findSharedWith('bob')).toEqual([recipe]);
+      expect(await service.findAllVisibleTo('carol')).toHaveLength(0);
+
+      await service.revokeShare(recipe.id, 'alice', 'bob');
+      await expect(service.findOne(recipe.id, 'bob')).rejects.toThrow(NotFoundException);
+      expect(await service.findSharedWith('bob')).toHaveLength(0);
+    });
+
+    it('refuses sharing twice, with yourself, or revoking what was never shared', async () => {
+      const recipe = await privateRecipe();
+      await service.shareWith(recipe.id, 'alice', 'bob');
+
+      await expect(service.shareWith(recipe.id, 'alice', 'bob')).rejects.toThrow(ConflictException);
+      await expect(service.shareWith(recipe.id, 'alice', 'alice')).rejects.toThrow(
+        DomainValidationError,
+      );
+      await expect(service.revokeShare(recipe.id, 'alice', 'carol')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('only the author can share or revoke', async () => {
+      const recipe = await service.create('alice', buildCreateRecipeDto());
+
+      await expect(service.shareWith(recipe.id, 'bob', 'carol')).rejects.toThrow(
+        ForbiddenException,
+      );
+      await expect(service.revokeShare(recipe.id, 'bob', 'carol')).rejects.toThrow(
+        ForbiddenException,
+      );
+    });
   });
 });

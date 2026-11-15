@@ -10,7 +10,7 @@ import { OwnedEntity } from '../../common/domain/owned.entity';
 import { RecipeIngredient } from './recipe-ingredient';
 import { RecipeReview } from './recipe-review';
 
-/** Who can see a recipe: everyone, or only its author. */
+/** Who can see a recipe: everyone, or only its author and the users it was shared with. */
 export enum RecipeVisibility {
   Public = 'public',
   Private = 'private',
@@ -58,6 +58,8 @@ export class Recipe extends OwnedEntity<RecipeSnapshot> {
   private details: RecipeDetails;
   /** Keyed by reviewer, so each user has at most one review. */
   private readonly reviewsByUser = new Map<string, RecipeReview>();
+  /** Ids of users the author shared this recipe with, so they can see it even if it is private. */
+  private readonly sharedWith = new Set<string>();
 
   /** @throws DomainValidationError if any of the details are invalid (see `validate`). */
   constructor(authorId: string, details: RecipeDetails) {
@@ -98,6 +100,43 @@ export class Recipe extends OwnedEntity<RecipeSnapshot> {
   /** A copy of every review, one per reviewer. */
   public get reviews(): RecipeReview[] {
     return [...this.reviewsByUser.values()];
+  }
+
+  /** A copy of the ids of the users this recipe is shared with. */
+  public get sharedWithIds(): string[] {
+    return [...this.sharedWith];
+  }
+
+  /** True if the author shared this recipe with `userId`. */
+  public isSharedWith(userId: string): boolean {
+    return this.sharedWith.has(userId);
+  }
+
+  /**
+   * Lets `userId` see this recipe even if it is private. Returns false if it was already shared
+   * with them.
+   *
+   * @throws DomainValidationError if `userId` is the author.
+   */
+  public shareWith(userId: string): boolean {
+    if (this.isOwnedBy(userId)) {
+      throw new DomainValidationError("You can't share a recipe with yourself.");
+    }
+    if (this.sharedWith.has(userId)) {
+      return false;
+    }
+    this.sharedWith.add(userId);
+    this.touch();
+    return true;
+  }
+
+  /** Stops sharing with `userId`. Returns false if it was not shared with them. */
+  public revokeShare(userId: string): boolean {
+    const removed = this.sharedWith.delete(userId);
+    if (removed) {
+      this.touch();
+    }
+    return removed;
   }
 
   /** How many users have reviewed this recipe. */
@@ -146,9 +185,13 @@ export class Recipe extends OwnedEntity<RecipeSnapshot> {
     return restrictions.every((restriction) => conflicts[restriction] === undefined);
   }
 
-  /** Public recipes are visible to everyone; private ones only to their author. */
+  /** Public recipes are visible to everyone; private ones to their author and who they're shared with. */
   public isVisibleTo(userId: string): boolean {
-    return this.details.visibility === RecipeVisibility.Public || this.isOwnedBy(userId);
+    return (
+      this.details.visibility === RecipeVisibility.Public ||
+      this.isOwnedBy(userId) ||
+      this.sharedWith.has(userId)
+    );
   }
 
   /** The ingredient list scaled to `servings` (used to generate grocery lists). */

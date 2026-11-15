@@ -15,7 +15,10 @@ import { GroceryListsService } from './grocery-lists.service';
 import { GroceryListRepository } from './repositories/grocery-list.repository';
 import { InMemoryGroceryListRepository } from './repositories/in-memory-grocery-list.repository';
 import { NotificationsService } from '../notifications/notifications.service';
-import { NotificationStatus } from '../notifications/entities/notification.entity';
+import {
+  GroceryListSharePayload,
+  NotificationStatus,
+} from '../notifications/entities/notification.entity';
 import { InMemoryNotificationRepository } from '../notifications/repositories/in-memory-notification.repository';
 import { NotificationRepository } from '../notifications/repositories/notification.repository';
 import { InMemoryUserRepository } from '../users/repositories/in-memory-user.repository';
@@ -349,11 +352,12 @@ describe('GroceryListsService', () => {
       await service.share(sender.id, list.id, { recipientUsername: 'BOB' });
 
       const [notification] = await notifications.findAll(recipient.id);
+      const payload = notification.payload as GroceryListSharePayload;
       expect(notification.senderId).toBe(sender.id);
       expect(notification.status).toBe(NotificationStatus.Pending);
-      expect(notification.payload.senderName).toBe('peter');
-      expect(notification.payload.listName).toBe('Weekly');
-      expect(notification.payload.items.map((item) => item.name)).toEqual(['Eggs', 'Chips']);
+      expect(payload.senderName).toBe('peter');
+      expect(payload.listName).toBe('Weekly');
+      expect(payload.items.map((item) => item.name)).toEqual(['Eggs', 'Chips']);
       expect(await service.findAll(recipient.id)).toHaveLength(0);
     });
 
