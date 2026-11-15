@@ -1,0 +1,53 @@
+<section class="panel">
+  <h2 class="ui-heading">Notifications ({{ unreadCount() }})</h2>
+  @if (loadError()) {
+    <p class="status">We couldn't load your notifications.</p>
+  } @else if (shown().length === 0) {
+    <p class="status">No notifications yet.</p>
+  } @else {
+    <ul class="list">
+      @for (item of shown(); track item.id) {
+        <li class="item">
+          <!-- Only grocery list shares exist so far; branch on item.type when more are added. -->
+          <p class="message">
+            <strong>{{ item.payload.senderName }}</strong> sent you a grocery list:
+            “{{ item.payload.listName }}” ({{ item.payload.items.length }}
+            {{ item.payload.items.length === 1 ? 'item' : 'items' }})
+          </p>
+          @if (item.status === 'pending') {
+            <div class="buttons">
+              <button
+                type="button"
+                class="accept"
+                [disabled]="busyId() !== null"
+                (click)="accept(item)"
+              >
+                Accept
+              </button>
+              <button
+                type="button"
+                class="reject"
+                [disabled]="busyId() !== null"
+                (click)="reject(item)"
+              >
+                Reject
+              </button>
+            </div>
+          } @else if (item.status === 'accepted') {
+            <p class="answer">
+              Accepted ·
+              <a [routerLink]="['/grocery']" [queryParams]="{ list: acceptedLists()[item.id] }"
+                >View list</a
+              >
+            </p>
+          } @else {
+            <p class="answer">Rejected</p>
+          }
+        </li>
+      }
+    </ul>
+  }
+  @if (actionError(); as message) {
+    <p class="error" role="alert">{{ message }}</p>
+  }
+</section>

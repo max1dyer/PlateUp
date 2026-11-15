@@ -78,4 +78,20 @@ describe('GroceryListsService', () => {
       http.expectOne({ method: 'POST', url: '/api/grocery-lists/l1/purchased-items/pantry' }),
     ).toBeTruthy();
   });
+
+  it('shareList, acceptShare and rejectShare call the share routes', () => {
+    service.shareList('l1', 'bob').subscribe();
+    service.acceptShare('n1').subscribe();
+    service.rejectShare('n2').subscribe();
+
+    expect(
+      http.expectOne({ method: 'POST', url: '/api/grocery-lists/l1/share' }).request.body,
+    ).toEqual({ recipientUsername: 'bob' });
+    expect(
+      http.expectOne({ method: 'POST', url: '/api/grocery-lists/shares/n1/accept' }),
+    ).toBeTruthy();
+    expect(
+      http.expectOne({ method: 'POST', url: '/api/grocery-lists/shares/n2/reject' }),
+    ).toBeTruthy();
+  });
 });

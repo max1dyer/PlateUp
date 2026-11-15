@@ -4,6 +4,7 @@ import { of, throwError } from 'rxjs';
 import { groceryItem, groceryList } from '../grocery-list.fixtures';
 import { DEFAULT_LIST_NAME, GroceryListPage } from './grocery-list-page';
 import { GroceryListsService } from '../grocery-lists.service';
+import { HttpErrorResponse } from '@angular/common/http';
 
 describe('GroceryListPage', () => {
   const service = {
@@ -13,6 +14,7 @@ describe('GroceryListPage', () => {
     deleteList: vi.fn(),
     removePurchasedItems: vi.fn(),
     movePurchasedToPantry: vi.fn(),
+    shareList: vi.fn(),
   };
 
   async function render(url = '/grocery'): Promise<{
@@ -165,5 +167,49 @@ describe('GroceryListPage', () => {
     const { page } = await render();
 
     expect((page.querySelector('.move-to-pantry') as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it('Send to user sends the list to the typed username', async () => {
+    service.getLists.mockReturnValue(of([groceryList([groceryItem()])]));
+    service.shareList.mockReturnValue(of(undefined));
+    const { fixture, page } = await render();
+
+    (page.querySelector('.share .manage') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    const input = page.querySelector('.share-name') as HTMLInputElement;
+    input.value = 'bob';
+    input.dispatchEvent(new Event('input'));
+    (page.querySelector('.share-form') as HTMLFormElement).dispatchEvent(new Event('submit'));
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(service.shareList).toHaveBeenCalledWith('list-1', 'bob');
+    expect(page.querySelector('.share-form')).toBeNull();
+  });
+
+  it('Send to user shows the backend error and keeps the form open', async () => {
+    service.getLists.mockReturnValue(of([groceryList([groceryItem()])]));
+    service.shareList.mockReturnValue(
+      throwError(
+        () =>
+          new HttpErrorResponse({
+            status: 404,
+            error: { message: 'No account with the username "zed".' },
+          }),
+      ),
+    );
+    const { fixture, page } = await render();
+
+    (page.querySelector('.share .manage') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    const input = page.querySelector('.share-name') as HTMLInputElement;
+    input.value = 'zed';
+    input.dispatchEvent(new Event('input'));
+    (page.querySelector('.share-form') as HTMLFormElement).dispatchEvent(new Event('submit'));
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(text(page, '.error')[0]).toContain('No account with the username');
+    expect(page.querySelector('.share-form')).not.toBeNull();
   });
 });

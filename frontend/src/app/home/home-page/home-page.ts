@@ -7,6 +7,7 @@ import { PantryService } from '../../pantry/pantry.service';
 import { RecipeCard } from '../../recipes/recipe-card/recipe-card';
 import { Recipe } from '../../recipes/recipe.models';
 import { RecipesService } from '../../recipes/recipes.service';
+import { NotificationsPanel } from '../../notifications/notifications-panel/notifications-panel';
 
 /** A tile linking to one of the app's main features. */
 interface Shortcut {
@@ -22,7 +23,7 @@ const NEWEST_COUNT = 3;
 /** Landing page after signing in: shortcuts to each feature and the newest recipes. */
 @Component({
   selector: 'app-home-page',
-  imports: [RouterLink, RecipeCard],
+  imports: [RouterLink, RecipeCard, NotificationsPanel],
   templateUrl: './home-page.html',
   styleUrl: './home-page.css',
 })

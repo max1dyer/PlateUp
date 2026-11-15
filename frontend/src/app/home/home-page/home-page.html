@@ -10,6 +10,8 @@
     }
   </section>
 
+  <app-notifications-panel />
+
   <nav class="shortcuts" aria-label="Shortcuts">
     @for (shortcut of shortcuts; track shortcut.path; let index = $index) {
       <a class="ui-card shortcut" [class.green]="index % 3 !== 0" [routerLink]="shortcut.path">

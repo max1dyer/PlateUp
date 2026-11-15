@@ -89,4 +89,19 @@ export class GroceryListsService {
       {},
     );
   }
+
+  /** `POST /grocery-lists/:listId/share`: sends a copy of the list to another user by username. */
+  public shareList(listId: string, recipientUsername: string): Observable<void> {
+    return this.http.post<void>(`${this.baseUrl}/${listId}/share`, { recipientUsername });
+  }
+
+  /** Accepts a shared list: the backend creates a new list from it and returns that list. */
+  public acceptShare(notificationId: string): Observable<GroceryList> {
+    return this.http.post<GroceryList>(`${this.baseUrl}/shares/${notificationId}/accept`, {});
+  }
+
+  /** Declines a shared list; nothing is added to the user's account. */
+  public rejectShare(notificationId: string): Observable<void> {
+    return this.http.post<void>(`${this.baseUrl}/shares/${notificationId}/reject`, {});
+  }
 }

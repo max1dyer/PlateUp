@@ -212,6 +212,28 @@
   font-size: 16px;
 }
 
+/* Send a copy of the list to another user */
+.share .manage:disabled {
+  color: var(--color-text-muted);
+  cursor: default;
+}
+
+.share-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.share-name {
+  flex: 1;
+  min-width: 0;
+  padding: 2px 6px;
+  border: 1px solid var(--color-checkbox-border);
+  border-radius: var(--radius);
+  background: #ffffff;
+  font-size: 18px;
+}
+
 /* Desktop: wider column; the main actions stop stretching edge to edge. */
 @media (min-width: 768px) {
   .page {
