@@ -17,6 +17,9 @@ describe('GroceryListsController', () => {
     removePurchasedItems: jest.fn(),
     moveItemToPantry: jest.fn(),
     movePurchasedToPantry: jest.fn(),
+    share: jest.fn(),
+    acceptShare: jest.fn(),
+    rejectShare: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -70,5 +73,15 @@ describe('GroceryListsController', () => {
 
     expect(service.moveItemToPantry).toHaveBeenCalledWith('alice', 'l1', 'i1');
     expect(service.movePurchasedToPantry).toHaveBeenCalledWith('alice', 'l1');
+  });
+
+  it('share routes delegate sending, accepting, and rejecting a shared list', async () => {
+    await controller.share('alice', 'l1', { recipientUsername: 'bob' });
+    await controller.acceptShare('bob', 'n1');
+    await controller.rejectShare('bob', 'n2');
+
+    expect(service.share).toHaveBeenCalledWith('alice', 'l1', { recipientUsername: 'bob' });
+    expect(service.acceptShare).toHaveBeenCalledWith('bob', 'n1');
+    expect(service.rejectShare).toHaveBeenCalledWith('bob', 'n2');
   });
 });

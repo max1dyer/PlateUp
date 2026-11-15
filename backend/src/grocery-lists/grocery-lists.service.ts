@@ -15,6 +15,13 @@ import { MoveToPantryResult, SkippedPantryMove } from './dto/move-to-pantry-resu
 import { GroceryListItem, GroceryListItemChanges } from './entities/grocery-list-item.entity';
 import { GroceryList } from './entities/grocery-list.entity';
 import { GroceryListRepository } from './repositories/grocery-list.repository';
+import { NotificationsService } from '../notifications/notifications.service';
+import {
+  NotificationStatus,
+  NotificationType,
+} from '../notifications/entities/notification.entity';
+import { UsersService } from '../users/users.service';
+import { ShareGroceryListDto } from './dto/share-grocery-list.dto';
 
 /**
  * Use-case layer for grocery lists: loads the user's lists, applies item changes through the
@@ -26,6 +33,8 @@ export class GroceryListsService {
     private readonly groceryLists: GroceryListRepository,
     private readonly recipesService: RecipesService,
     private readonly pantryService: PantryService,
+    private readonly notificationsService: NotificationsService,
+    private readonly usersService: UsersService,
   ) {}
 
   /** All of the user's lists. */
@@ -199,6 +208,76 @@ export class GroceryListsService {
     const list = await this.findOne(ownerId, listId);
     list.removePurchasedItems();
     return this.groceryLists.save(list);
+  }
+
+  /**
+   * Sends a snapshot of one of the user's lists to another user as a notification they can accept
+   * or reject. Nothing is added to the recipient's account until they accept.
+   *
+   * @throws NotFoundException if the list or the recipient is not found.
+   * @throws DomainValidationError if the user tries to send a list to themselves.
+   */
+  public async share(ownerId: string, listId: string, dto: ShareGroceryListDto): Promise<void> {
+    const list = await this.findOne(ownerId, listId);
+    const recipient = await this.usersService.findByUsername(dto.recipientUsername);
+    if (recipient.id === ownerId) {
+      throw new DomainValidationError("You can't send a grocery list to yourself.");
+    }
+    const sender = await this.usersService.findOne(ownerId);
+    await this.notificationsService.create(
+      recipient.id,
+      ownerId,
+      NotificationType.GroceryListShare,
+      {
+        senderName: sender.displayName,
+        listName: list.name,
+        // Plain data, so the notification stays valid even if the original list changes.
+        items: list.items.map((item) => ({
+          name: item.name,
+          quantity: item.quantity
+            ? { amount: item.quantity.amount, unit: item.quantity.unit }
+            : null,
+          category: item.category,
+        })),
+      },
+    );
+  }
+
+  /**
+   * Accepting a shared list: creates a new, independent list in the recipient's account from the
+   * snapshot (nothing is checked off) and marks the notification accepted.
+   *
+   * @throws NotFoundException if the notification is not theirs or not a list share.
+   * @throws ConflictException if it was already answered.
+   */
+  public async acceptShare(userId: string, notificationId: string): Promise<GroceryList> {
+    const notification = await this.notificationsService.findPending(
+      userId,
+      notificationId,
+      NotificationType.GroceryListShare,
+    );
+    const { listName, items } = notification.payload;
+    const list = new GroceryList(userId, listName);
+    list.addItems(
+      items.map((item) => ({
+        name: item.name,
+        quantity: item.quantity ? new Quantity(item.quantity.amount, item.quantity.unit) : null,
+        category: item.category,
+      })),
+    );
+    const saved = await this.groceryLists.save(list);
+    await this.notificationsService.resolve(userId, notificationId, NotificationStatus.Accepted);
+    return saved;
+  }
+
+  /** Rejecting a shared list: nothing is created; the notification is marked rejected. */
+  public async rejectShare(userId: string, notificationId: string): Promise<void> {
+    await this.notificationsService.findPending(
+      userId,
+      notificationId,
+      NotificationType.GroceryListShare,
+    );
+    await this.notificationsService.resolve(userId, notificationId, NotificationStatus.Rejected);
   }
 
   /** The pantry needs an amount, so an item without one is refused. */

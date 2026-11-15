@@ -1,4 +1,4 @@
-import { NotFoundException } from '@nestjs/common';
+import { NotFoundException, ConflictException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { IngredientCategory } from '../common/domain/ingredient-category';
 import { Quantity, Unit } from '../common/domain/quantity';
@@ -14,11 +14,20 @@ import { PantryItemRepository } from '../pantry/repositories/pantry-item.reposit
 import { GroceryListsService } from './grocery-lists.service';
 import { GroceryListRepository } from './repositories/grocery-list.repository';
 import { InMemoryGroceryListRepository } from './repositories/in-memory-grocery-list.repository';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationStatus } from '../notifications/entities/notification.entity';
+import { InMemoryNotificationRepository } from '../notifications/repositories/in-memory-notification.repository';
+import { NotificationRepository } from '../notifications/repositories/notification.repository';
+import { InMemoryUserRepository } from '../users/repositories/in-memory-user.repository';
+import { UserRepository } from '../users/repositories/user.repository';
+import { UsersService } from '../users/users.service';
 
 describe('GroceryListsService', () => {
   let service: GroceryListsService;
   let recipes: RecipesService;
   let pantry: PantryService;
+  let users: UsersService;
+  let notifications: NotificationsService;
 
   beforeEach(async () => {
     const moduleRef = await Test.createTestingModule({
@@ -26,14 +35,20 @@ describe('GroceryListsService', () => {
         GroceryListsService,
         RecipesService,
         PantryService,
+        NotificationsService,
+        UsersService,
         { provide: PantryItemRepository, useClass: InMemoryPantryItemRepository },
         { provide: GroceryListRepository, useClass: InMemoryGroceryListRepository },
         { provide: RecipeRepository, useClass: InMemoryRecipeRepository },
+        { provide: NotificationRepository, useClass: InMemoryNotificationRepository },
+        { provide: UserRepository, useClass: InMemoryUserRepository },
       ],
     }).compile();
     service = moduleRef.get(GroceryListsService);
     recipes = moduleRef.get(RecipesService);
     pantry = moduleRef.get(PantryService);
+    users = moduleRef.get(UsersService);
+    notifications = moduleRef.get(NotificationsService);
   });
 
   it('create and findAll are scoped to the owner', async () => {
@@ -308,6 +323,116 @@ describe('GroceryListsService', () => {
       ]);
       expect(result.list.items).toEqual([chips, bread]);
       expect((await pantry.findAll('alice')).map((item) => item.name)).toEqual(['Milk']);
+    });
+  });
+
+  describe('sharing a list', () => {
+    const user = (username: string) => users.register({ username, displayName: username });
+
+    /** Registers a sender and a recipient, and gives the sender a list with two items. */
+    async function setUp() {
+      const sender = await user('peter');
+      const recipient = await user('bob');
+      const list = await service.create(sender.id, { name: 'Weekly' });
+      await service.addItem(sender.id, list.id, {
+        name: 'Eggs',
+        quantity: { amount: 2, unit: Unit.Carton },
+        category: IngredientCategory.Protein,
+      });
+      await service.addItem(sender.id, list.id, { name: 'Chips' });
+      return { sender, recipient, list };
+    }
+
+    it('share sends the recipient a snapshot and adds nothing to their account yet', async () => {
+      const { sender, recipient, list } = await setUp();
+
+      await service.share(sender.id, list.id, { recipientUsername: 'BOB' });
+
+      const [notification] = await notifications.findAll(recipient.id);
+      expect(notification.senderId).toBe(sender.id);
+      expect(notification.status).toBe(NotificationStatus.Pending);
+      expect(notification.payload.senderName).toBe('peter');
+      expect(notification.payload.listName).toBe('Weekly');
+      expect(notification.payload.items.map((item) => item.name)).toEqual(['Eggs', 'Chips']);
+      expect(await service.findAll(recipient.id)).toHaveLength(0);
+    });
+
+    it('share refuses an unknown recipient, yourself, or a list that is not yours', async () => {
+      const { sender, recipient, list } = await setUp();
+
+      await expect(
+        service.share(sender.id, list.id, { recipientUsername: 'nobody' }),
+      ).rejects.toThrow(NotFoundException);
+      await expect(
+        service.share(sender.id, list.id, { recipientUsername: 'peter' }),
+      ).rejects.toThrow(DomainValidationError);
+      await expect(
+        service.share(recipient.id, list.id, { recipientUsername: 'peter' }),
+      ).rejects.toThrow(NotFoundException);
+      expect(await notifications.findAll(recipient.id)).toHaveLength(0);
+    });
+
+    it('acceptShare creates an independent list in the recipient account', async () => {
+      const { sender, recipient, list } = await setUp();
+      await service.share(sender.id, list.id, { recipientUsername: 'bob' });
+      const [notification] = await notifications.findAll(recipient.id);
+
+      // Editing the original after sending must not change what the recipient gets.
+      await service.addItem(sender.id, list.id, { name: 'Milk' });
+      const copy = await service.acceptShare(recipient.id, notification.id);
+
+      expect(copy.id).not.toBe(list.id);
+      expect(copy.isOwnedBy(recipient.id)).toBe(true);
+      expect(copy.name).toBe('Weekly');
+      expect(copy.items.map((item) => item.name)).toEqual(['Eggs', 'Chips']);
+      expect(copy.items[0].quantity).toEqual(new Quantity(2, Unit.Carton));
+      expect(copy.items[0].category).toBe(IngredientCategory.Protein);
+      expect(copy.items.every((item) => !item.purchased)).toBe(true);
+      expect(await service.findAll(recipient.id)).toHaveLength(1);
+      expect((await notifications.findOne(recipient.id, notification.id)).status).toBe(
+        NotificationStatus.Accepted,
+      );
+    });
+
+    it('rejectShare creates no list and marks the notification rejected', async () => {
+      const { sender, recipient, list } = await setUp();
+      await service.share(sender.id, list.id, { recipientUsername: 'bob' });
+      const [notification] = await notifications.findAll(recipient.id);
+
+      await service.rejectShare(recipient.id, notification.id);
+
+      expect(await service.findAll(recipient.id)).toHaveLength(0);
+      expect((await notifications.findOne(recipient.id, notification.id)).status).toBe(
+        NotificationStatus.Rejected,
+      );
+    });
+
+    it('a shared list can only be answered once', async () => {
+      const { sender, recipient, list } = await setUp();
+      await service.share(sender.id, list.id, { recipientUsername: 'bob' });
+      const [notification] = await notifications.findAll(recipient.id);
+      await service.acceptShare(recipient.id, notification.id);
+
+      await expect(service.acceptShare(recipient.id, notification.id)).rejects.toThrow(
+        ConflictException,
+      );
+      await expect(service.rejectShare(recipient.id, notification.id)).rejects.toThrow(
+        ConflictException,
+      );
+      expect(await service.findAll(recipient.id)).toHaveLength(1);
+    });
+
+    it('only the recipient can answer a shared list', async () => {
+      const { sender, recipient, list } = await setUp();
+      await service.share(sender.id, list.id, { recipientUsername: 'bob' });
+      const [notification] = await notifications.findAll(recipient.id);
+
+      await expect(service.acceptShare(sender.id, notification.id)).rejects.toThrow(
+        NotFoundException,
+      );
+      await expect(service.rejectShare(sender.id, notification.id)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 });
