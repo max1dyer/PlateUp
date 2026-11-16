@@ -123,6 +123,45 @@ describe('PantryService', () => {
     expect(updated.quantity.equals(new Quantity(6, Unit.Piece))).toBe(true);
   });
 
+  it('add stores an expiration date, and combining keeps the earlier one', async () => {
+    const milk = await service.add('alice', {
+      name: 'Milk',
+      quantity: { amount: 1, unit: Unit.Liter },
+      expiresOn: '2026-10-02',
+    });
+    expect(milk.expiresOn).toBe('2026-10-02');
+
+    const combined = await service.add('alice', {
+      name: 'milk',
+      quantity: { amount: 1, unit: Unit.Liter },
+      expiresOn: '2026-09-25',
+    });
+
+    expect(combined.id).toBe(milk.id);
+    expect(combined.expiresOn).toBe('2026-09-25');
+  });
+
+  it('update sets and clears the expiration date', async () => {
+    const item = await service.add('alice', eggs);
+
+    expect((await service.update('alice', item.id, { expiresOn: '2026-09-28' })).expiresOn).toBe(
+      '2026-09-28',
+    );
+    expect((await service.update('alice', item.id, { expiresOn: null })).expiresOn).toBeNull();
+  });
+
+  it('update with an invalid date changes nothing', async () => {
+    const item = await service.add('alice', eggs);
+
+    await expect(
+      service.update('alice', item.id, { name: 'Duck eggs', expiresOn: '2026-13-01' }),
+    ).rejects.toThrow(DomainValidationError);
+
+    const [stored] = await service.findAll('alice');
+    expect(stored.name).toBe('Eggs');
+    expect(stored.expiresOn).toBeNull();
+  });
+
   it('update and remove 404 for another user’s item', async () => {
     const item = await service.add('alice', eggs);
 

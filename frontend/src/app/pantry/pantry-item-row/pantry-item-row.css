@@ -18,8 +18,15 @@
   cursor: pointer;
 }
 
-.name {
+.text {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.name {
   font-size: 23px;
   line-height: 110%;
   overflow-wrap: anywhere;
@@ -52,4 +59,22 @@
 
 .unit {
   width: auto;
+}
+
+.date {
+  width: auto;
+}
+
+/* Expiration date and marker under the name */
+.expiry {
+  font-size: 15px;
+  color: var(--color-text-muted);
+}
+
+.expiry.soon {
+  color: var(--color-primary);
+}
+
+.expiry.expired {
+  color: var(--color-error);
 }

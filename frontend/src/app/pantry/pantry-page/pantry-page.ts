@@ -1,15 +1,18 @@
 import { Component, OnInit, computed, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { errorMessage } from '../../core/api';
+import { today } from '../../core/calendar-date';
 import { ToastService } from '../../core/toast.service';
 import { UNITS, Unit } from '../../grocery-list/grocery-list.models';
 import { PantryItemRow } from '../pantry-item-row/pantry-item-row';
+import { expiringItems, expiryAlert, expiryStatus } from '../pantry-expiry';
 import { PantryItem } from '../pantry.models';
 import { PantryService } from '../pantry.service';
 
 /**
- * "Your Pantry" page (UC5, UC11): what the user has on hand. Adding an
- * ingredient that is already there combines the amounts.
+ * "Your Pantry" page (UC5, UC11, UC15): what the user has on hand. Adding an
+ * ingredient that is already there combines the amounts. Items that have
+ * expired or expire within a week are listed in an alert at the top.
  */
 @Component({
   selector: 'app-pantry-page',
@@ -31,6 +34,18 @@ export class PantryPage implements OnInit {
   /** Text typed in the search box. */
   protected readonly search = signal('');
   protected readonly units = UNITS;
+  /** Today's date, against which expiration dates are judged. */
+  protected readonly today = today();
+
+  /** The expiry alert summary, or null when nothing is expiring. */
+  protected readonly alert = computed(() => expiryAlert(this.items(), this.today));
+  /** Expired and soon-to-expire items, most urgent first, with their markers. */
+  protected readonly expiring = computed(() =>
+    expiringItems(this.items(), this.today).map((item) => ({
+      item,
+      status: expiryStatus(item.expiresOn, this.today),
+    })),
+  );
 
   /** The items matching the search, in alphabetical order. */
   protected readonly shown = computed(() => {
@@ -40,11 +55,12 @@ export class PantryPage implements OnInit {
       .sort((a, b) => a.name.localeCompare(b.name));
   });
 
-  /** The "add an ingredient" form; the amount starts at 1. */
+  /** The "add an ingredient" form; the amount starts at 1 and the date is optional. */
   protected readonly form = new FormGroup({
     name: new FormControl('', { nonNullable: true }),
     amount: new FormControl<number | null>(1),
     unit: new FormControl<Unit>('piece', { nonNullable: true }),
+    expiresOn: new FormControl('', { nonNullable: true }),
   });
 
   constructor(
@@ -78,7 +94,7 @@ export class PantryPage implements OnInit {
    * retyped.
    */
   protected add(): void {
-    const { name, amount, unit } = this.form.getRawValue();
+    const { name, amount, unit, expiresOn } = this.form.getRawValue();
     if (name.trim().length === 0 || amount === null) {
       this.addError.set('Enter an ingredient and an amount.');
       return;
@@ -86,19 +102,22 @@ export class PantryPage implements OnInit {
     this.saving.set(true);
     this.addError.set(null);
     // Clear straight away so the next item can be typed while this one saves.
-    this.form.patchValue({ name: '', amount: 1 });
-    this.pantry.addItem({ name, quantity: { amount, unit } }).subscribe({
-      next: (item) => {
-        this.saving.set(false);
-        this.onChanged(item);
-        this.toasts.success(`${item.name} is in your pantry`);
-      },
-      error: (error: unknown) => {
-        this.saving.set(false);
-        this.form.patchValue({ name, amount });
-        this.addError.set(errorMessage(error));
-      },
-    });
+    this.form.patchValue({ name: '', amount: 1, expiresOn: '' });
+    // A blank date field means "no expiration date".
+    this.pantry
+      .addItem({ name, quantity: { amount, unit }, expiresOn: expiresOn || null })
+      .subscribe({
+        next: (item) => {
+          this.saving.set(false);
+          this.onChanged(item);
+          this.toasts.success(`${item.name} is in your pantry`);
+        },
+        error: (error: unknown) => {
+          this.saving.set(false);
+          this.form.patchValue({ name, amount, expiresOn });
+          this.addError.set(errorMessage(error));
+        },
+      });
   }
 
   /** Replaces the item if it was already listed (e.g. amounts were combined), else adds it. */

@@ -93,3 +93,18 @@ export function isSameIngredient(a: string, b: string): boolean {
 function normalizeName(name: string): string {
   return name.trim().replace(/\s+/g, ' ').toLowerCase();
 }
+
+/**
+ * The list as plain text for pasting into a notes app: the list name, then each store section
+ * with one "- 2 cartons Eggs" line per item.
+ */
+export function formatListAsText(name: string, items: readonly GroceryListItem[]): string {
+  const sections = groupByCategory(items).map((group) => {
+    const lines = group.items.map((item) => {
+      const quantity = formatQuantity(item.quantity);
+      return quantity ? `- ${quantity} ${item.name}` : `- ${item.name}`;
+    });
+    return [group.label, ...lines].join('\n');
+  });
+  return [name, ...sections].join('\n\n') + '\n';
+}

@@ -116,3 +116,14 @@ export interface MoveToPantryResult {
   moved: string[];
   skipped: { name: string; reason: string }[];
 }
+
+/** Response of `POST /grocery-lists/:listId/planner-week` (UC6). */
+export interface AddPlannerWeekResult {
+  list: GroceryList;
+  /** Names of the ingredients added to (or combined into) the list. */
+  added: string[];
+  /** Names of ingredients the pantry already holds enough of. */
+  coveredByPantry: string[];
+  /** Ingredients that could not be added, with the reason. */
+  skipped: { name: string; reason: string }[];
+}

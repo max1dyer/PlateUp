@@ -212,4 +212,53 @@ describe('GroceryListPage', () => {
     expect(text(page, '.error')[0]).toContain('No account with the username');
     expect(page.querySelector('.share-form')).not.toBeNull();
   });
+
+  it('Copy as text puts the list on the clipboard', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+    service.getLists.mockReturnValue(
+      of([
+        groceryList([groceryItem({ name: 'Eggs', quantity: { amount: 2, unit: 'carton' } })], {
+          name: 'Weekly',
+        }),
+      ]),
+    );
+    const { page } = await render();
+
+    const copy = [...page.querySelectorAll<HTMLButtonElement>('.export .manage')].find((button) =>
+      button.textContent?.includes('Copy'),
+    );
+    copy?.click();
+
+    expect(writeText).toHaveBeenCalledTimes(1);
+    expect(writeText.mock.calls[0][0]).toContain('Weekly');
+    expect(writeText.mock.calls[0][0]).toContain('- 2 cartons Eggs');
+  });
+
+  it('Download .txt saves a file named after the list', async () => {
+    const createObjectURL = vi.fn().mockReturnValue('blob:test');
+    Object.assign(URL, { createObjectURL, revokeObjectURL: vi.fn() });
+    const click = vi
+      .spyOn(HTMLAnchorElement.prototype, 'click')
+      .mockImplementation(() => undefined);
+    service.getLists.mockReturnValue(of([groceryList([groceryItem()], { name: 'Weekly' })]));
+    const { page } = await render();
+
+    const download = [...page.querySelectorAll<HTMLButtonElement>('.export .manage')].find(
+      (button) => button.textContent?.includes('Download'),
+    );
+    download?.click();
+
+    expect(createObjectURL).toHaveBeenCalledTimes(1);
+    expect(click).toHaveBeenCalledTimes(1);
+  });
+
+  it('export buttons are disabled for an empty list', async () => {
+    service.getLists.mockReturnValue(of([groceryList()]));
+    const { page } = await render();
+
+    const buttons = [...page.querySelectorAll<HTMLButtonElement>('.export .manage')];
+    expect(buttons).toHaveLength(2);
+    expect(buttons.every((button) => button.disabled)).toBe(true);
+  });
 });

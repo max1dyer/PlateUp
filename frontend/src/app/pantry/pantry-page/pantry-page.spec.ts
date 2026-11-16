@@ -1,6 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
+import { addDays, today } from '../../core/calendar-date';
 import { pantryItem } from '../pantry.fixtures';
 import { PantryPage } from './pantry-page';
 import { PantryService } from '../pantry.service';
@@ -65,6 +66,7 @@ describe('PantryPage', () => {
     expect(service.addItem).toHaveBeenCalledWith({
       name: 'Milk',
       quantity: { amount: 1, unit: 'piece' },
+      expiresOn: null,
     });
     expect(text(page, '.name')).toEqual(['Milk']);
   });
@@ -124,7 +126,57 @@ describe('PantryPage', () => {
     expect(service.updateItem).toHaveBeenCalledWith('item-1', {
       name: 'Eggs',
       quantity: { amount: 6, unit: 'piece' },
+      expiresOn: null,
     });
     expect(text(page, '.quantity')).toEqual(['6']);
+  });
+
+  it('sends the expiration date chosen when adding', async () => {
+    service.getItems.mockReturnValue(of([]));
+    service.addItem.mockReturnValue(of(pantryItem({ name: 'Milk' })));
+    const { fixture, page } = await render();
+
+    const date = page.querySelector('.add input[type=date]') as HTMLInputElement;
+    date.value = '2026-10-02';
+    date.dispatchEvent(new Event('input'));
+    submitAdd(page, 'Milk');
+    await fixture.whenStable();
+
+    expect(service.addItem).toHaveBeenCalledWith({
+      name: 'Milk',
+      quantity: { amount: 1, unit: 'piece' },
+      expiresOn: '2026-10-02',
+    });
+  });
+
+  it('alerts about items expiring within a week, most urgent first', async () => {
+    service.getItems.mockReturnValue(
+      of([
+        pantryItem({ id: 'a', name: 'Milk', expiresOn: addDays(today(), 3) }),
+        pantryItem({ id: 'b', name: 'Yogurt', expiresOn: addDays(today(), -1) }),
+        pantryItem({ id: 'c', name: 'Rice', expiresOn: addDays(today(), 30) }),
+        pantryItem({ id: 'd', name: 'Salt' }),
+      ]),
+    );
+
+    const { page } = await render();
+
+    expect(text(page, '.alert-title')[0]).toBe(
+      '⚠ 2 items in your pantry have expired or expire within 7 days.',
+    );
+    expect(text(page, '.alert-list li span:first-child')).toEqual(['Yogurt', 'Milk']);
+    expect(text(page, '.marker')).toEqual(['Expired', 'Expires in 3 days']);
+    expect(text(page, '.expiry.soon')[0]).toContain('Expires in 3 days');
+    expect(page.querySelectorAll('.expiry')).toHaveLength(3);
+  });
+
+  it('shows no alert when nothing is expiring soon', async () => {
+    service.getItems.mockReturnValue(
+      of([pantryItem({ name: 'Rice', expiresOn: addDays(today(), 30) })]),
+    );
+
+    const { page } = await render();
+
+    expect(page.querySelector('.expiry-alert')).toBeNull();
   });
 });
