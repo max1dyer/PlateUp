@@ -127,7 +127,7 @@ export function parseRecipeText(text: string): RecipeDraft {
     ingredients,
     steps: steps.map((step) => step.trim()).filter((step) => step.length > 0),
     tags,
-    servings: firstNumber(text, /(?:serves|servings?:?|makes)\s*(\d+)/i),
+    servings: firstNumber(text, /(?:serves|servings?:?|makes)\s*(\d+)|(\d+)\s*servings?\b/i),
     prepTimeMinutes: minutes(text),
     calories: firstNumber(text, /(\d+)\s*(?:k?cals?|calories)\b|calories:?\s*(\d+)/i),
   };
