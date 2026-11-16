@@ -1,0 +1,78 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 12px;
+  list-style: none;
+  border-radius: var(--radius);
+  background: var(--color-card-green);
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.message,
+.answer {
+  margin: 0;
+  font-size: 18px;
+  line-height: 110%;
+  color: var(--color-text-strong);
+}
+
+.answer {
+  font-size: 16px;
+  color: var(--color-text-muted);
+}
+
+.buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.accept,
+.reject {
+  height: 37px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: var(--radius);
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.accept {
+  background: var(--color-primary);
+  color: var(--color-on-color);
+}
+
+.reject {
+  background: var(--color-danger-tint);
+  color: var(--color-text-strong);
+}
+
+.accept:disabled,
+.reject:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.status {
+  margin: 0;
+  font-size: 18px;
+  color: var(--color-text-muted);
+}
+
+.error {
+  margin: 0;
+  font-size: 16px;
+  color: var(--color-error);
+}

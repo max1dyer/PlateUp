@@ -105,4 +105,17 @@ export class UsersService {
     user.unsaveRecipe(recipeId);
     return this.users.save(user);
   }
+
+  /**
+   * Loads a user by username (case-insensitive).
+   *
+   * @throws NotFoundException if there is no such user.
+   */
+  public async findByUsername(username: string): Promise<User> {
+    const user = await this.users.findByUsername(username ?? '');
+    if (!user) {
+      throw new NotFoundException(`No account with the username "${username}".`);
+    }
+    return user;
+  }
 }

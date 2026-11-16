@@ -121,6 +121,30 @@
         }
       </div>
 
+      <!-- Send a copy of this list to another user -->
+      <div class="share">
+        <button
+          type="button"
+          class="manage"
+          [disabled]="itemCount() === 0"
+          (click)="startSharing()"
+        >
+          👥 Send to user
+        </button>
+      </div>
+      @if (sharing()) {
+        <form class="share-form" [formGroup]="shareForm" (ngSubmit)="sendList()">
+          <input
+            class="share-name"
+            formControlName="username"
+            aria-label="Username to send this list to"
+            placeholder="Their username"
+          />
+          <button type="submit" class="manage">Send</button>
+          <button type="button" class="manage" (click)="sharing.set(false)">Cancel</button>
+        </form>
+      }
+
       <!-- Items grouped by store section; the cards alternate colours -->
       @for (group of groups(); track group.category; let groupIndex = $index) {
         <h3 class="group-label">{{ group.label }}</h3>

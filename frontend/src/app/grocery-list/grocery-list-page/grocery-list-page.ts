@@ -43,6 +43,12 @@ export class GroceryListPage implements OnInit {
   protected readonly listMode = signal<ListMode>('view');
   /** True while the "Delete this list?" confirmation is showing. */
   protected readonly confirmingDelete = signal(false);
+  /** True while the "Send to user" username field is open. */
+  protected readonly sharing = signal(false);
+  /** The username field used when sending a copy of the list to another user. */
+  protected readonly shareForm = new FormGroup({
+    username: new FormControl('', { nonNullable: true }),
+  });
   /** The name field used when creating or renaming a list. */
   protected readonly listForm = new FormGroup({
     name: new FormControl('', { nonNullable: true }),
@@ -148,6 +154,33 @@ export class GroceryListPage implements OnInit {
         if (skipped.length > 0) {
           this.actionError.set(skipped.map((item) => item.reason).join(' '));
         }
+      },
+      error: (error: unknown) => this.actionError.set(errorMessage(error)),
+    });
+  }
+
+  /** Opens an empty username field for "Send to user". */
+  protected startSharing(): void {
+    this.shareForm.setValue({ username: '' });
+    this.sharing.set(true);
+  }
+
+  /** Sends a copy of the shown list to the typed username; they can accept or reject it. */
+  protected sendList(): void {
+    const list = this.list();
+    const username = this.shareForm.getRawValue().username.trim();
+    if (!list) {
+      return;
+    }
+    if (username.length === 0) {
+      this.actionError.set('Enter the username to send the list to.');
+      return;
+    }
+    this.groceryLists.shareList(list.id, username).subscribe({
+      next: () => {
+        this.sharing.set(false);
+        this.actionError.set(null);
+        this.toasts.success(`Sent “${list.name}” to ${username}`);
       },
       error: (error: unknown) => this.actionError.set(errorMessage(error)),
     });
@@ -272,6 +305,7 @@ export class GroceryListPage implements OnInit {
     this.adding.set(false);
     this.confirmingDelete.set(false);
     this.actionError.set(null);
+    this.sharing.set(false);
     // Keep the address in step so the page can be bookmarked or refreshed.
     void this.router.navigate([], {
       relativeTo: this.route,

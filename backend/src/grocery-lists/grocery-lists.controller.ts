@@ -10,6 +10,7 @@ import { UpdateGroceryListDto } from './dto/update-grocery-list.dto';
 import { MoveToPantryResult } from './dto/move-to-pantry-result';
 import { GroceryList } from './entities/grocery-list.entity';
 import { GroceryListsService } from './grocery-lists.service';
+import { ShareGroceryListDto } from './dto/share-grocery-list.dto';
 
 /**
  * HTTP routes under `/grocery-lists` for a user's shopping lists and their items, including adding
@@ -148,5 +149,36 @@ export class GroceryListsController {
     @Param('listId') listId: string,
   ): Promise<GroceryList> {
     return this.groceryListsService.removePurchasedItems(userId, listId);
+  }
+
+  /** `POST /grocery-lists/shares/:notificationId/accept`: creates a list from a shared one. */
+  @Post('shares/:notificationId/accept')
+  @HttpCode(200)
+  public acceptShare(
+    @CurrentUserId() userId: string,
+    @Param('notificationId') notificationId: string,
+  ): Promise<GroceryList> {
+    return this.groceryListsService.acceptShare(userId, notificationId);
+  }
+
+  /** `POST /grocery-lists/shares/:notificationId/reject`: declines a shared list. */
+  @Post('shares/:notificationId/reject')
+  @HttpCode(204)
+  public rejectShare(
+    @CurrentUserId() userId: string,
+    @Param('notificationId') notificationId: string,
+  ): Promise<void> {
+    return this.groceryListsService.rejectShare(userId, notificationId);
+  }
+
+  /** `POST /grocery-lists/:listId/share`: sends a copy of a list to another user. */
+  @Post(':listId/share')
+  @HttpCode(204)
+  public share(
+    @CurrentUserId() userId: string,
+    @Param('listId') listId: string,
+    @Body() dto: ShareGroceryListDto,
+  ): Promise<void> {
+    return this.groceryListsService.share(userId, listId, dto);
   }
 }

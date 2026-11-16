@@ -10,6 +10,7 @@ import { PlannerModule } from './planner/planner.module';
 import { RecipesModule } from './recipes/recipes.module';
 import { SeedModule } from './seed/seed.module';
 import { UsersModule } from './users/users.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 /**
  * Root module. Pulls in every feature module and registers `DomainErrorFilter` globally (through
@@ -20,6 +21,7 @@ import { UsersModule } from './users/users.module';
     UsersModule,
     RecipesModule,
     PantryModule,
+    NotificationsModule,
     GroceryListsModule,
     PlannerModule,
     ContactModule,
