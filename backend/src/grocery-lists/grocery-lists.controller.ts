@@ -1,6 +1,8 @@
 import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post } from '@nestjs/common';
 import { CurrentUserId } from '../common/decorators/current-user-id.decorator';
 import { AddGroceryItemDto } from './dto/add-grocery-item.dto';
+import { AddPlannerWeekResult } from './dto/add-planner-week-result';
+import { AddPlannerWeekDto } from './dto/add-planner-week.dto';
 import { AddRecipeToListDto } from './dto/add-recipe-to-list.dto';
 import { CreateGroceryListDto } from './dto/create-grocery-list.dto';
 import { UpdateGroceryItemDto } from './dto/update-grocery-item.dto';
@@ -76,6 +78,20 @@ export class GroceryListsController {
     @Body() dto: AddRecipeToListDto,
   ): Promise<GroceryList> {
     return this.groceryListsService.addRecipe(userId, listId, dto);
+  }
+
+  /**
+   * `POST /grocery-lists/:listId/planner-week`: adds the ingredients for the
+   * meals planned in a date range, after allowing for the pantry.
+   */
+  @Post(':listId/planner-week')
+  @HttpCode(200)
+  public addPlannerWeek(
+    @CurrentUserId() userId: string,
+    @Param('listId') listId: string,
+    @Body() dto: AddPlannerWeekDto,
+  ): Promise<AddPlannerWeekResult> {
+    return this.groceryListsService.addPlannerWeek(userId, listId, dto);
   }
 
   /**

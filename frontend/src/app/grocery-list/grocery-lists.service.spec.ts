@@ -78,4 +78,19 @@ describe('GroceryListsService', () => {
       http.expectOne({ method: 'POST', url: '/api/grocery-lists/l1/purchased-items/pantry' }),
     ).toBeTruthy();
   });
+
+  it('addPlannerWeek posts the date range and pantry choice', () => {
+    service.addPlannerWeek('list-1', '2026-09-21', '2026-09-27', false).subscribe();
+
+    const request = http.expectOne({
+      method: 'POST',
+      url: '/api/grocery-lists/list-1/planner-week',
+    });
+    expect(request.request.body).toEqual({
+      from: '2026-09-21',
+      to: '2026-09-27',
+      usePantry: false,
+    });
+    request.flush({ list: groceryList(), added: [], coveredByPantry: [], skipped: [] });
+  });
 });

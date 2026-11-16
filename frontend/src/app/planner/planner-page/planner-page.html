@@ -66,7 +66,27 @@
         />
       </div>
     </div>
+
+    <button
+      type="button"
+      class="ui-button secondary shop"
+      [disabled]="loading() || meals().length === 0"
+      [attr.aria-expanded]="shopping()"
+      (click)="shopping.set(!shopping())"
+    >
+      🛒 Shop for this week
+    </button>
   </section>
+
+  <!-- Add the week's ingredients to a grocery list (UC6) -->
+  @if (shopping()) {
+    <app-week-grocery-panel
+      [from]="week()[0]"
+      [to]="week()[6]"
+      [weekTitle]="weekTitle()"
+      (closed)="shopping.set(false)"
+    />
+  }
 
   @if (loadError()) {
     <div class="ui-card">

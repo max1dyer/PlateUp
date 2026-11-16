@@ -133,6 +133,11 @@
   cursor: pointer;
 }
 
+/* Shop for this week */
+.shop {
+  width: 100%;
+}
+
 /* Nutrition card */
 .nutrition {
   gap: 10px;

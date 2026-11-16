@@ -99,6 +99,8 @@ These are the major classes for CRC cards and the class diagram. Paths are relat
 
 DTOs (`CreateRecipeDto`, `LogInDto`, `AddRecipeToListDto`, ...) are plain request shapes in each feature's `dto/` folder and are not part of the diagram. `requireCalendarDate()` and `addDays()` (`common/domain/calendar-date.ts`) validate and do arithmetic on `YYYY-MM-DD` calendar days, such as a pantry item's expiration date. `guessCategory()` (`common/domain/ingredient-category.ts`) is a pure function that files generated grocery items under a store section. `dietaryConflicts()` and the `DietaryRestriction` enum (`common/domain/dietary-restriction.ts`) are pure keyword rules that estimate which dietary restrictions a recipe's ingredients break; `Recipe` exposes the result as `dietaryConflicts` and `suits()`. `deriveDailyTargets()` (`users/entities/user-preferences.ts`) fills in the one daily goal the others determine (total calories from three gram goals, or the last macro's grams from the calorie goal); the frontend's `planMacros()` (`preferences/macro-plan.ts`) applies the same rule to preview it on the Preferences page and to flag macros that overshoot the calorie goal. `expiryStatus()` and `expiryAlert()` (`pantry/pantry-expiry.ts`) decide which pantry items have expired or expire within 7 days (UC15); the Pantry and Home pages show the alert.
 
+`combineNeeds()` and `shortfall()` (`grocery-lists/entities/shopping-needs.ts`) merge the ingredients of a planned week across meals and subtract what the pantry already holds; `GroceryListsService.addPlannerWeek()` uses them to build a grocery list from the planner (UC6).
+
 Frontend classes (paths relative to `frontend/src/app/`). Services, models, and helpers sit at the top of each feature folder; each component has its own subfolder named after it (e.g. `recipes/recipe-page/recipe-page.ts`):
 
 | Class                                                                                     | Kind             | Path                        |
@@ -111,7 +113,7 @@ Frontend classes (paths relative to `frontend/src/app/`). Services, models, and 
 | `PantryService`, `PantryPage`, `PantryItemRow`                                            | pantry           | `pantry/`                   |
 | `GroceryListsService`, `GroceryListPage`, `GroceryItemRow`, `AddItemsForm`                | grocery lists    | `grocery-list/`             |
 | `ContactService`, `ContactPage`                                                           | contact          | `contact/`                  |
-| `PlannerService`, `PlannerPage`, `PlannedMealCard`, `AddMealForm`                         | planner          | `planner/`                  |
+| `PlannerService`, `PlannerPage`, `PlannedMealCard`, `AddMealForm`, `WeekGroceryPanel`     | planner          | `planner/`                  |
 | `HomePage`, `InfoPage`, `SiteHeader`, `SiteFooter`, `ToastOutlet`                         | shell and layout | `home/`, `info/`, `layout/` |
 
 The planner's `planningRange()`, `weekDays()`, and `totalNutrition()` (`planner/planner-week.ts`) limit navigation to half a year either side of today, lay out a Monday-to-Sunday week, and total a day's calories and macros for every planned serving.
@@ -230,6 +232,7 @@ classDiagram
     +amount: number
     +unit: Unit
     +scale(factor) Quantity
+    +minus(other) Quantity
     +equals(other) boolean
   }
 

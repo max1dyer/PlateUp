@@ -5,8 +5,11 @@ import { isSameIngredient } from '../common/domain/ingredient-name';
 import { QuantityDto } from '../common/dto/quantity.dto';
 import { DomainValidationError } from '../common/errors/domain-validation.error';
 import { PantryService } from '../pantry/pantry.service';
+import { PlannerService } from '../planner/planner.service';
 import { RecipesService } from '../recipes/recipes.service';
 import { AddGroceryItemDto } from './dto/add-grocery-item.dto';
+import { AddPlannerWeekResult } from './dto/add-planner-week-result';
+import { AddPlannerWeekDto } from './dto/add-planner-week.dto';
 import { AddRecipeToListDto } from './dto/add-recipe-to-list.dto';
 import { CreateGroceryListDto } from './dto/create-grocery-list.dto';
 import { UpdateGroceryItemDto } from './dto/update-grocery-item.dto';
@@ -14,6 +17,7 @@ import { UpdateGroceryListDto } from './dto/update-grocery-list.dto';
 import { MoveToPantryResult, SkippedPantryMove } from './dto/move-to-pantry-result';
 import { GroceryListItem, GroceryListItemChanges } from './entities/grocery-list-item.entity';
 import { GroceryList } from './entities/grocery-list.entity';
+import { IngredientNeed, SkippedNeed, combineNeeds, shortfall } from './entities/shopping-needs';
 import { GroceryListRepository } from './repositories/grocery-list.repository';
 
 /**
@@ -26,6 +30,7 @@ export class GroceryListsService {
     private readonly groceryLists: GroceryListRepository,
     private readonly recipesService: RecipesService,
     private readonly pantryService: PantryService,
+    private readonly plannerService: PlannerService,
   ) {}
 
   /** All of the user's lists. */
@@ -106,6 +111,64 @@ export class GroceryListsService {
         })),
     );
     return this.groceryLists.save(list);
+  }
+
+  /**
+   * Generates grocery items from the meals planned between `from` and `to`
+   * (UC6, story 2.3): each recipe's ingredients are scaled to the meal's
+   * servings and the same ingredient is combined across meals. Unless
+   * `usePantry` is false, what the pantry already holds is subtracted, and
+   * fully covered ingredients are reported instead of added. Ingredients that
+   * can't be combined (with each other or with the list) are skipped and
+   * reported, while the rest are still added.
+   *
+   * @throws NotFoundException if the list is not the user's.
+   * @throws DomainValidationError if the range is invalid or has no meals planned.
+   */
+  public async addPlannerWeek(
+    ownerId: string,
+    listId: string,
+    dto: AddPlannerWeekDto,
+  ): Promise<AddPlannerWeekResult> {
+    const list = await this.findOne(ownerId, listId);
+    const meals = await this.plannerService.mealsBetween(ownerId, dto.from, dto.to);
+    const recipes = await this.recipesService.findManyVisibleTo(
+      meals.map((meal) => meal.recipeId),
+      ownerId,
+    );
+    // Every ingredient of every meal, scaled to that meal's servings.
+    const needs: IngredientNeed[] = meals.flatMap((meal) => {
+      const recipe = recipes.find((each) => each.id === meal.recipeId);
+      return recipe ? recipe.ingredientsFor(meal.servings) : [];
+    });
+    if (needs.length === 0) {
+      throw new DomainValidationError('No meals are planned for those days.');
+    }
+
+    const combined = combineNeeds(needs);
+    const stock = dto.usePantry === false ? [] : await this.pantryService.findAll(ownerId);
+    const { toBuy, covered } = shortfall(combined.needs, stock);
+
+    const added: string[] = [];
+    const skipped: SkippedNeed[] = [...combined.skipped];
+    for (const need of toBuy) {
+      // One at a time, so an ingredient the list holds in another unit doesn't block the rest.
+      try {
+        list.addItem(need.name, need.quantity, guessCategory(need.name));
+        added.push(need.name);
+      } catch (error) {
+        if (!(error instanceof DomainValidationError)) {
+          throw error;
+        }
+        skipped.push({ name: need.name, reason: error.message });
+      }
+    }
+    return {
+      list: await this.groceryLists.save(list),
+      added,
+      coveredByPantry: covered,
+      skipped,
+    };
   }
 
   /**
