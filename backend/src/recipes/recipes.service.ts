@@ -1,4 +1,9 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { Quantity } from '../common/domain/quantity';
 import { CreateRecipeDto, RecipeIngredientDto } from './dto/create-recipe.dto';
 import { ReviewRecipeDto } from './dto/review-recipe.dto';
@@ -84,13 +89,45 @@ export class RecipesService {
     await this.recipes.delete(recipeId);
   }
 
+  /** Recipes other users shared with `userId`. */
+  public async findSharedWith(userId: string): Promise<Recipe[]> {
+    const visible = await this.recipes.findVisibleTo(userId);
+    return visible.filter((recipe) => recipe.isSharedWith(userId));
+  }
+
+  /**
+   * Lets `recipientId` see the author's recipe.
+   *
+   * @throws ConflictException if it is already shared with them.
+   */
+  public async shareWith(recipeId: string, userId: string, recipientId: string): Promise<Recipe> {
+    const recipe = await this.findOwned(recipeId, userId);
+    if (!recipe.shareWith(recipientId)) {
+      throw new ConflictException('This recipe is already shared with that user.');
+    }
+    return this.recipes.save(recipe);
+  }
+
+  /**
+   * Stops sharing the author's recipe with `recipientId`.
+   *
+   * @throws NotFoundException if it was not shared with them.
+   */
+  public async revokeShare(recipeId: string, userId: string, recipientId: string): Promise<Recipe> {
+    const recipe = await this.findOwned(recipeId, userId);
+    if (!recipe.revokeShare(recipientId)) {
+      throw new NotFoundException('This recipe is not shared with that user.');
+    }
+    return this.recipes.save(recipe);
+  }
+
   /**
    * Loads a recipe the user can see and checks they wrote it.
    *
    * @throws NotFoundException if the recipe is missing or private to someone else.
    * @throws ForbiddenException if the user can see it but is not the author.
    */
-  private async findOwned(recipeId: string, userId: string): Promise<Recipe> {
+  public async findOwned(recipeId: string, userId: string): Promise<Recipe> {
     const recipe = await this.findOne(recipeId, userId);
     if (!recipe.isOwnedBy(userId)) {
       throw new ForbiddenException('Only the author can modify this recipe.');

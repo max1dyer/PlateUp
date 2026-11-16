@@ -18,10 +18,12 @@ import { PreferencesService } from '../../preferences/preferences.service';
 import { UsersService } from '../../users/users.service';
 import { AddToGroceryPanel } from '../add-to-grocery-panel/add-to-grocery-panel';
 import { dietWarnings } from '../recipe-filter';
-import { Recipe, RecipeIngredient } from '../recipe.models';
+import { Recipe, RecipeIngredient, SharedWithUser } from '../recipe.models';
 import { RecipesService } from '../recipes.service';
 import { ReviewForm } from '../review-form/review-form';
 import { SaveButton } from '../save-button/save-button';
+import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
+import { RecipeSharesService } from '../recipe-shares.service';
 
 /** Shown for users whose profile cannot be loaded (e.g. a deleted account). */
 export const UNKNOWN_USER = 'Unknown user';
@@ -47,7 +49,7 @@ export interface GoalShare {
  */
 @Component({
   selector: 'app-recipe-page',
-  imports: [DatePipe, RouterLink, AddToGroceryPanel, ReviewForm, SaveButton],
+  imports: [DatePipe, ReactiveFormsModule, RouterLink, AddToGroceryPanel, ReviewForm, SaveButton],
   templateUrl: './recipe-page.html',
   styleUrl: './recipe-page.css',
 })
@@ -60,6 +62,14 @@ export class RecipePage {
   protected readonly servings = signal(1);
   /** True while the author's "Delete this recipe?" confirmation is showing. */
   protected readonly confirmingDelete = signal(false);
+  /** For the author: the users this recipe is shared with. */
+  protected readonly shares = signal<SharedWithUser[]>([]);
+  /** The last error from sharing or revoking, or null. */
+  protected readonly shareError = signal<string | null>(null);
+  /** The username field used to share the recipe. */
+  protected readonly shareForm = new FormGroup({
+    username: new FormControl('', { nonNullable: true }),
+  });
   /** Display names of the author and reviewers, by user id. */
   private readonly names = signal<ReadonlyMap<string, string>>(new Map());
 
@@ -137,6 +147,7 @@ export class RecipePage {
     private readonly router: Router,
     private readonly pantry: PantryService,
     private readonly preferences: PreferencesService,
+    private readonly recipeShares: RecipeSharesService,
   ) {
     // Reload whenever the recipe id in the address changes. `switchMap` cancels a load still in
     // flight when the user moves to another recipe.
@@ -147,6 +158,8 @@ export class RecipePage {
           this.recipe.set(null);
           this.loadError.set(false);
           this.pantryIngredients.set(new Set());
+          this.shares.set([]);
+          this.shareError.set(null);
           return this.recipes.getRecipe(recipeId).pipe(catchError(() => of(null)));
         }),
         // Fetch the author and reviewer names and the user's preferences together, before
@@ -169,6 +182,9 @@ export class RecipePage {
           this.servings.set(loaded.preferences?.defaultServings ?? loaded.recipe.servings);
           this.recipe.set(loaded.recipe);
           this.markOwnedIngredients(loaded.recipe);
+          if (loaded.recipe.authorId === this.session.userId()) {
+            this.loadShares(loaded.recipe.id);
+          }
         }
       });
   }
@@ -203,6 +219,44 @@ export class RecipePage {
         void this.router.navigateByUrl('/recipes');
       },
       error: (error: unknown) => this.toasts.error(errorMessage(error)),
+    });
+  }
+
+  /** Shares the recipe with the typed username; they see it at once and are notified. */
+  protected shareRecipe(): void {
+    const recipe = this.recipe();
+    const username = this.shareForm.getRawValue().username.trim();
+    if (!recipe) {
+      return;
+    }
+    if (username.length === 0) {
+      this.shareError.set('Enter the username to share with.');
+      return;
+    }
+    this.recipeShares.share(recipe.id, username).subscribe({
+      next: (shares) => {
+        this.shares.set(shares);
+        this.shareForm.reset();
+        this.shareError.set(null);
+        this.toasts.success(`Shared “${recipe.title}” with ${username}`);
+      },
+      error: (error: unknown) => this.shareError.set(errorMessage(error)),
+    });
+  }
+
+  /** Stops sharing with one user; they can no longer see the recipe and are told. */
+  protected revokeShare(person: SharedWithUser): void {
+    const recipe = this.recipe();
+    if (!recipe) {
+      return;
+    }
+    this.recipeShares.revoke(recipe.id, person.id).subscribe({
+      next: (shares) => {
+        this.shares.set(shares);
+        this.shareError.set(null);
+        this.toasts.success(`Stopped sharing with ${person.displayName}`);
+      },
+      error: (error: unknown) => this.shareError.set(errorMessage(error)),
     });
   }
 
@@ -263,5 +317,13 @@ export class RecipePage {
           .filter((name) => items.some((item) => isSameIngredient(item.name, name)));
         this.pantryIngredients.set(new Set(owned));
       });
+  }
+
+  /** Loads who the author shared the recipe with. A failure just shows an empty list. */
+  private loadShares(recipeId: string): void {
+    this.recipeShares
+      .getShares(recipeId)
+      .pipe(catchError(() => of<SharedWithUser[]>([])))
+      .subscribe((shares) => this.shares.set(shares));
   }
 }

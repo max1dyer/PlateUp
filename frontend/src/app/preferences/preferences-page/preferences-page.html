@@ -182,6 +182,18 @@
         </p>
       </fieldset>
 
+      <fieldset class="ui-card green">
+        <legend class="ui-heading">Recipe sharing</legend>
+        <label class="restriction">
+          <input id="block-recipe-shares" type="checkbox" formControlName="blockRecipeShares" />
+          Don't send me recipes
+        </label>
+        <p class="ui-hint">
+          When this is on, other users get an error if they try to share a recipe with you. Recipes
+          already shared with you stay visible.
+        </p>
+      </fieldset>
+
       @if (error(); as message) {
         <p class="ui-error" role="alert">{{ message }}</p>
       }

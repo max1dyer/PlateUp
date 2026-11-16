@@ -76,6 +76,7 @@ describe('PreferencesPage', () => {
       dietaryRestrictions: ['dairy-free'],
       dailyCalories: 2000,
       macroGoals: { protein: 150, carbohydrates: 200, fat: null },
+      blockRecipeShares: false,
     });
   });
 
@@ -162,5 +163,21 @@ describe('PreferencesPage', () => {
     const page = await render();
 
     expect(page.querySelector('.ui-status')?.textContent).toContain("couldn't load");
+  });
+
+  it('shows and saves the "don\'t send me recipes" setting', async () => {
+    service.load.mockReturnValue(of(preferences({ blockRecipeShares: true })));
+    service.update.mockReturnValue(of(preferences({ blockRecipeShares: false })));
+    const page = await render();
+
+    expect(input(page, 'block-recipe-shares').checked).toBe(true);
+
+    input(page, 'block-recipe-shares').click();
+    (page.querySelector('button[type="submit"]') as HTMLButtonElement).click();
+    await TestBed.inject(ApplicationRef).whenStable();
+
+    expect(service.update).toHaveBeenCalledWith(
+      expect.objectContaining({ blockRecipeShares: false }),
+    );
   });
 });

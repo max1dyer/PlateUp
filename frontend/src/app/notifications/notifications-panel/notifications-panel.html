@@ -8,40 +8,59 @@
     <ul class="list">
       @for (item of shown(); track item.id) {
         <li class="item">
-          <!-- Only grocery list shares exist so far; branch on item.type when more are added. -->
-          <p class="message">
-            <strong>{{ item.payload.senderName }}</strong> sent you a grocery list:
-            “{{ item.payload.listName }}” ({{ item.payload.items.length }}
-            {{ item.payload.items.length === 1 ? 'item' : 'items' }})
-          </p>
-          @if (item.status === 'pending') {
-            <div class="buttons">
-              <button
-                type="button"
-                class="accept"
-                [disabled]="busyId() !== null"
-                (click)="accept(item)"
-              >
-                Accept
-              </button>
-              <button
-                type="button"
-                class="reject"
-                [disabled]="busyId() !== null"
-                (click)="reject(item)"
-              >
-                Reject
-              </button>
-            </div>
-          } @else if (item.status === 'accepted') {
+          @if (item.type === 'grocery-list-share') {
+            <p class="message">
+              <strong>{{ item.payload.senderName }}</strong> sent you a grocery list:
+              “{{ item.payload.listName }}” ({{ item.payload.items.length }}
+              {{ item.payload.items.length === 1 ? 'item' : 'items' }})
+            </p>
+            @if (item.status === 'pending') {
+              <div class="buttons">
+                <button
+                  type="button"
+                  class="accept"
+                  [disabled]="busyId() !== null"
+                  (click)="accept(item)"
+                >
+                  Accept
+                </button>
+                <button
+                  type="button"
+                  class="reject"
+                  [disabled]="busyId() !== null"
+                  (click)="reject(item)"
+                >
+                  Reject
+                </button>
+              </div>
+            } @else if (item.status === 'accepted') {
+              <p class="answer">
+                Accepted ·
+                <a [routerLink]="['/grocery']" [queryParams]="{ list: acceptedLists()[item.id] }"
+                  >View list</a
+                >
+              </p>
+            } @else {
+              <p class="answer">Rejected</p>
+            }
+          } @else if (item.type === 'recipe-share') {
+            <p class="message">
+              <strong>{{ item.payload.senderName }}</strong> shared a recipe with you:
+              “{{ item.payload.recipeTitle }}”
+            </p>
             <p class="answer">
-              Accepted ·
-              <a [routerLink]="['/grocery']" [queryParams]="{ list: acceptedLists()[item.id] }"
-                >View list</a
+              <a [routerLink]="['/recipes', item.payload.recipeId]" (click)="markRead(item)"
+                >View recipe</a
               >
             </p>
           } @else {
-            <p class="answer">Rejected</p>
+            <p class="message">
+              <strong>{{ item.payload.senderName }}</strong> stopped sharing
+              “{{ item.payload.recipeTitle }}” with you.
+            </p>
+            @if (!item.read) {
+              <button type="button" class="dismiss" (click)="markRead(item)">Dismiss</button>
+            }
           }
         </li>
       }

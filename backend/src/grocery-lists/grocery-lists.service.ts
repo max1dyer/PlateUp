@@ -21,6 +21,7 @@ import { IngredientNeed, SkippedNeed, combineNeeds, shortfall } from './entities
 import { GroceryListRepository } from './repositories/grocery-list.repository';
 import { NotificationsService } from '../notifications/notifications.service';
 import {
+  GroceryListSharePayload,
   NotificationStatus,
   NotificationType,
 } from '../notifications/entities/notification.entity';
@@ -319,7 +320,7 @@ export class GroceryListsService {
       notificationId,
       NotificationType.GroceryListShare,
     );
-    const { listName, items } = notification.payload;
+    const { listName, items } = notification.payload as GroceryListSharePayload;
     const list = new GroceryList(userId, listName);
     list.addItems(
       items.map((item) => ({

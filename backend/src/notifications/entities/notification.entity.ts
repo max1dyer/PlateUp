@@ -6,6 +6,8 @@ import { DomainValidationError } from '../../common/errors/domain-validation.err
 /** What a notification is about. Add a value here for each new kind (e.g. a rating). */
 export enum NotificationType {
   GroceryListShare = 'grocery-list-share',
+  RecipeShare = 'recipe-share',
+  RecipeShareRevoked = 'recipe-share-revoked',
 }
 
 /** Whether the recipient has answered a notification that asks for a response. */
@@ -29,12 +31,22 @@ export interface GroceryListSharePayload {
   items: SharedGroceryItem[];
 }
 
+/** Payload of `RecipeShare` and `RecipeShareRevoked`: who, and which recipe. */
+export interface RecipeSharePayload {
+  senderName: string;
+  recipeId: string;
+  recipeTitle: string;
+}
+
+/** What a notification carries; narrow it by `type` (or with `in`) before using it. */
+export type NotificationPayload = GroceryListSharePayload | RecipeSharePayload;
+
 /** The fields a notification serializes to. `ownerId` is the recipient. */
 export interface NotificationSnapshot {
   ownerId: string;
   senderId: string;
   type: NotificationType;
-  payload: GroceryListSharePayload;
+  payload: NotificationPayload;
   status: NotificationStatus;
   read: boolean;
 }
@@ -48,7 +60,7 @@ export class Notification extends OwnedEntity<NotificationSnapshot> {
     recipientId: string,
     public readonly senderId: string,
     public readonly type: NotificationType,
-    public readonly payload: GroceryListSharePayload,
+    public readonly payload: NotificationPayload,
   ) {
     super(recipientId);
   }

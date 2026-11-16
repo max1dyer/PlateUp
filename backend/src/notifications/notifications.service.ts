@@ -1,6 +1,6 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import {
-  GroceryListSharePayload,
+  NotificationPayload,
   Notification,
   NotificationStatus,
   NotificationType,
@@ -23,7 +23,7 @@ export class NotificationsService {
     recipientId: string,
     senderId: string,
     type: NotificationType,
-    payload: GroceryListSharePayload,
+    payload: NotificationPayload,
   ): Promise<Notification> {
     return this.notifications.save(new Notification(recipientId, senderId, type, payload));
   }
@@ -73,5 +73,20 @@ export class NotificationsService {
     const notification = await this.findOne(userId, notificationId);
     notification.resolve(answer);
     return this.notifications.save(notification);
+  }
+
+  /** Deletes a user's `RecipeShare` notifications about one recipe (e.g. after it is revoked). */
+  public async removeRecipeShares(recipientId: string, recipeId: string): Promise<void> {
+    const all = await this.notifications.findByRecipient(recipientId);
+    await Promise.all(
+      all
+        .filter(
+          (notification) =>
+            notification.type === NotificationType.RecipeShare &&
+            'recipeId' in notification.payload &&
+            notification.payload.recipeId === recipeId,
+        )
+        .map((notification) => this.notifications.delete(notification.id)),
+    );
   }
 }

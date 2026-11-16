@@ -74,6 +74,20 @@ export class NotificationsPanel implements OnInit {
     });
   }
 
+  /** Marks a notification read (opening a shared recipe, or dismissing a revoked notice). */
+  protected markRead(item: UserNotification): void {
+    if (item.read) {
+      return;
+    }
+    this.notificationsService.markRead(item.id).subscribe({
+      next: () =>
+        this.notifications.update((all) =>
+          all.map((existing) => (existing.id === item.id ? { ...existing, read: true } : existing)),
+        ),
+      error: (error: unknown) => this.actionError.set(errorMessage(error)),
+    });
+  }
+
   /** Shows the notification as answered (and read) without reloading. */
   private answered(item: UserNotification, status: NotificationStatus): void {
     this.notifications.update((all) =>

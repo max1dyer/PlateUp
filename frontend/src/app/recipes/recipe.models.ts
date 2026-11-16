@@ -67,3 +67,10 @@ export interface NewReview {
   rating: number;
   comment: string;
 }
+
+/** A user a recipe is shared with, as returned by the `recipe-shares` routes. */
+export interface SharedWithUser {
+  id: string;
+  username: string;
+  displayName: string;
+}

@@ -1,6 +1,8 @@
 import { ApplicationRef, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
+import { HttpErrorResponse } from '@angular/common/http';
+import { RecipeSharesService } from '../recipe-shares.service';
 import { of, throwError } from 'rxjs';
 import { SessionService } from '../../core/session.service';
 import { GroceryListsService } from '../../grocery-list/grocery-lists.service';
@@ -17,6 +19,7 @@ import { RecipesService } from '../recipes.service';
 
 describe('RecipePage', () => {
   const recipesService = { getRecipe: vi.fn(), deleteRecipe: vi.fn(), reviewRecipe: vi.fn() };
+  const recipeShares = { getShares: vi.fn(), share: vi.fn(), revoke: vi.fn() };
   const usersService = { getUser: vi.fn(), saveRecipe: vi.fn(), unsaveRecipe: vi.fn() };
   const groceryLists = { getLists: vi.fn(), createList: vi.fn(), addRecipe: vi.fn() };
   const pantry = { getItems: vi.fn() };
@@ -41,6 +44,7 @@ describe('RecipePage', () => {
           useValue: { paramMap: of(convertToParamMap({ recipeId: 'recipe-1' })) },
         },
         { provide: RecipesService, useValue: recipesService },
+        { provide: RecipeSharesService, useValue: recipeShares },
         { provide: UsersService, useValue: usersService },
         { provide: GroceryListsService, useValue: groceryLists },
         { provide: PantryService, useValue: pantry },
@@ -64,6 +68,7 @@ describe('RecipePage', () => {
     groceryLists.getLists.mockReturnValue(of([]));
     pantry.getItems.mockReturnValue(of([]));
     usePreferences(null);
+    recipeShares.getShares.mockReturnValue(of([]));
   });
 
   it('loads the recipe from the route id and shows its content', async () => {
@@ -238,5 +243,54 @@ describe('RecipePage', () => {
 
     expect(page.querySelector('.author-actions')).toBeNull();
     expect(page.querySelector('app-review-form')).not.toBeNull();
+  });
+
+  it('lets the author see who the recipe is shared with and revoke a share', async () => {
+    recipesService.getRecipe.mockReturnValue(of(recipe({ id: 'recipe-1', authorId: ME })));
+    recipeShares.getShares.mockReturnValue(of([{ id: 'u2', username: 'bob', displayName: 'Bob' }]));
+    recipeShares.revoke.mockReturnValue(of([]));
+    const page = await render();
+
+    expect(text(page, '.share-row span')).toEqual(['Bob (bob)']);
+
+    (page.querySelector('.share-row .manage') as HTMLButtonElement).click();
+    await TestBed.inject(ApplicationRef).whenStable();
+
+    expect(recipeShares.revoke).toHaveBeenCalledWith('recipe-1', 'u2');
+    expect(page.querySelector('.share-row')).toBeNull();
+    expect(text(page, '.share-empty')).toEqual(['Not shared with anyone yet.']);
+  });
+
+  it('shares by username and shows the backend message when it is refused', async () => {
+    recipesService.getRecipe.mockReturnValue(of(recipe({ id: 'recipe-1', authorId: ME })));
+    recipeShares.share.mockReturnValue(
+      throwError(
+        () =>
+          new HttpErrorResponse({
+            status: 403,
+            error: { message: "Bob isn't accepting shared recipes." },
+          }),
+      ),
+    );
+    const page = await render();
+
+    const field = page.querySelector('.share-name') as HTMLInputElement;
+    field.value = 'bob';
+    field.dispatchEvent(new Event('input'));
+    (page.querySelector('.share-form') as HTMLFormElement).dispatchEvent(new Event('submit'));
+    await TestBed.inject(ApplicationRef).whenStable();
+
+    expect(recipeShares.share).toHaveBeenCalledWith('recipe-1', 'bob');
+    expect(text(page, '.share-error')[0]).toContain("isn't accepting shared recipes");
+  });
+
+  it('hides the sharing controls from other users', async () => {
+    recipesService.getRecipe.mockReturnValue(of(recipe()));
+    usersService.getUser.mockReturnValue(of({ displayName: 'Alice Cook' }));
+
+    const page = await render();
+
+    expect(page.querySelector('.shares')).toBeNull();
+    expect(recipeShares.getShares).not.toHaveBeenCalled();
   });
 });

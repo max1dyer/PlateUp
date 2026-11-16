@@ -69,6 +69,41 @@
         </div>
       }
 
+      <!-- Author only: share the recipe with specific users, or revoke a share -->
+      @if (isAuthor()) {
+        <section class="shares">
+          <h2 class="shares-heading">Shared with</h2>
+          @if (recipe.visibility === 'public') {
+            <p class="ui-hint">
+              This recipe is public, so anyone can already see it. Sharing still sends a
+              notification.
+            </p>
+          }
+          <ul class="share-list">
+            @for (person of shares(); track person.id) {
+              <li class="share-row">
+                <span>{{ person.displayName }} ({{ person.username }})</span>
+                <button type="button" class="manage" (click)="revokeShare(person)">Revoke</button>
+              </li>
+            } @empty {
+              <li class="share-empty">Not shared with anyone yet.</li>
+            }
+          </ul>
+          <form class="share-form" [formGroup]="shareForm" (ngSubmit)="shareRecipe()">
+            <input
+              class="share-name"
+              formControlName="username"
+              aria-label="Username to share this recipe with"
+              placeholder="Their username"
+            />
+            <button type="submit" class="manage">Share</button>
+          </form>
+          @if (shareError(); as message) {
+            <p class="share-error" role="alert">{{ message }}</p>
+          }
+        </section>
+      }
+
       <!-- Recipe tags -->
       @if (recipe.tags.length > 0) {
         <div class="recipe-tags">
