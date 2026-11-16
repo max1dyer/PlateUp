@@ -10,6 +10,7 @@ describe('RecipeFormPage', () => {
 
   async function render(
     recipeId: string | null = null,
+    data: Record<string, unknown> = {},
   ): Promise<{ fixture: ComponentFixture<RecipeFormPage>; page: HTMLElement }> {
     await TestBed.configureTestingModule({
       imports: [RecipeFormPage],
@@ -18,7 +19,9 @@ describe('RecipeFormPage', () => {
         { provide: RecipesService, useValue: service },
         {
           provide: ActivatedRoute,
-          useValue: { snapshot: { paramMap: convertToParamMap(recipeId ? { recipeId } : {}) } },
+          useValue: {
+            snapshot: { paramMap: convertToParamMap(recipeId ? { recipeId } : {}), data },
+          },
         },
       ],
     }).compileComponents();
@@ -129,5 +132,38 @@ describe('RecipeFormPage', () => {
       'recipe-1',
       expect.objectContaining({ title: 'Better Chicken and Rice', tags: ['High Protein'] }),
     );
+  });
+
+  it('imports pasted text as a draft and marks what it could not find', async () => {
+    const { fixture, page } = await render(null, { importing: true });
+
+    type(page, 'textarea[formControlName=text]', 'Rice Bowl\nIngredients\n1 cup rice\nsalt');
+    type(page, 'input[formControlName=link]', 'https://www.tiktok.com/@cook/video/1');
+    (page.querySelector('form') as HTMLFormElement).dispatchEvent(new Event('submit'));
+    fixture.detectChanges();
+
+    expect((page.querySelector('input[formControlName=title]') as HTMLInputElement).value).toBe(
+      'Rice Bowl',
+    );
+    expect(
+      (page.querySelector('textarea[formControlName=description]') as HTMLTextAreaElement).value,
+    ).toBe('Imported from TikTok: https://www.tiktok.com/@cook/video/1');
+    // Salt has no amount and there are no steps, so both are marked for the user to fill in.
+    expect(page.querySelector('[aria-label="Amount of ingredient 2"]')?.classList).toContain(
+      'check',
+    );
+    expect(page.querySelector('[aria-label="Step 1"]')?.classList).toContain('check');
+    expect(page.querySelector('[aria-label="Ingredient 1"]')?.classList).not.toContain('check');
+  });
+
+  it('says so when pasted text holds no recipe', async () => {
+    const { fixture, page } = await render(null, { importing: true });
+
+    type(page, 'textarea[formControlName=text]', 'Great weekend at the beach!');
+    (page.querySelector('form') as HTMLFormElement).dispatchEvent(new Event('submit'));
+    fixture.detectChanges();
+
+    expect(page.querySelector('.ui-error')?.textContent).toContain('No recipe could be found');
+    expect(page.querySelector('input[formControlName=title]')).toBeNull();
   });
 });

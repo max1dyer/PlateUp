@@ -54,6 +54,12 @@ export const routes: Routes = [
       { path: 'home', component: HomePage, title: 'Home | PlateUp!' },
       { path: 'recipes', component: RecipeListPage, title: 'Recipes | PlateUp!' },
       { path: 'recipes/new', component: RecipeFormPage, title: 'Upload Recipe | PlateUp!' },
+      {
+        path: 'recipes/import',
+        component: RecipeFormPage,
+        data: { importing: true },
+        title: 'Import Recipe | PlateUp!',
+      },
       { path: 'recipes/:recipeId', component: RecipePage, title: 'Recipe | PlateUp!' },
       {
         path: 'recipes/:recipeId/edit',

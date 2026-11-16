@@ -1,12 +1,19 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { FormArray, FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
+import {
+  AbstractControl,
+  FormArray,
+  FormControl,
+  FormGroup,
+  ReactiveFormsModule,
+} from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Observable, startWith } from 'rxjs';
 import { errorMessage } from '../../core/api';
 import { readImageFile } from '../../core/image-file';
 import { ToastService } from '../../core/toast.service';
 import { UNITS, Unit } from '../../grocery-list/grocery-list.models';
+import { isEmptyDraft, parseRecipeText, platformOf } from '../recipe-import';
 import { NewRecipe, Recipe } from '../recipe.models';
 import { RecipesService } from '../recipes.service';
 
@@ -36,9 +43,11 @@ function stepControl(text = ''): FormControl<string> {
 }
 
 /**
- * Manual recipe upload (`/recipes/new`, UC3) and editing (`/recipes/:id/edit`,
- * UC20): title, photo, servings, ingredients, steps, nutrition, and tags.
- * The backend validates everything; its message is shown if it refuses.
+ * Manual recipe upload (`/recipes/new`, UC3), editing (`/recipes/:id/edit`, UC20), and
+ * import from a social-media post (`/recipes/import`, UC19): title, photo, servings,
+ * ingredients, steps, nutrition, and tags. An import first asks for the post's text and
+ * fills the form with what `parseRecipeText` finds. The backend validates everything;
+ * its message is shown if it refuses.
  */
 @Component({
   selector: 'app-recipe-form-page',
@@ -56,6 +65,16 @@ export class RecipeFormPage implements OnInit {
   /** The first problem to fix, or the backend's error message; null when there is none. */
   protected readonly error = signal<string | null>(null);
   protected readonly units = UNITS;
+  /** True on the import route. */
+  protected readonly importing = signal(false);
+  /** True once pasted text has been turned into a draft; empty fields are then marked. */
+  protected readonly imported = signal(false);
+
+  /** The text pasted from a post, and optionally the post's link. */
+  protected readonly importForm = new FormGroup({
+    text: new FormControl('', { nonNullable: true }),
+    link: new FormControl('', { nonNullable: true }),
+  });
 
   /** The whole recipe form. A new recipe starts with one empty ingredient and one empty step. */
   protected readonly form = new FormGroup({
@@ -104,6 +123,7 @@ export class RecipeFormPage implements OnInit {
 
   /** On the edit route, loads the recipe and fills the form with it. */
   public ngOnInit(): void {
+    this.importing.set(this.route.snapshot.data['importing'] === true);
     const recipeId = this.route.snapshot.paramMap.get('recipeId');
     if (recipeId) {
       this.loading.set(true);
@@ -118,6 +138,48 @@ export class RecipeFormPage implements OnInit {
         },
       });
     }
+  }
+
+  /** Turns the pasted text into a draft in the form, or says no recipe was found. */
+  protected createDraft(): void {
+    const { text, link } = this.importForm.getRawValue();
+    const draft = parseRecipeText(text);
+    if (isEmptyDraft(draft)) {
+      this.error.set(
+        'No recipe could be found in this text. Check that you copied the ingredients and steps from the post.',
+      );
+      return;
+    }
+    this.ingredients.clear();
+    draft.ingredients.forEach((row) =>
+      this.ingredients.push(ingredientGroup(row.name, row.amount, row.unit)),
+    );
+    this.steps.clear();
+    (draft.steps.length > 0 ? draft.steps : ['']).forEach((step) =>
+      this.steps.push(stepControl(step)),
+    );
+    const source = link.trim()
+      ? `Imported from ${platformOf(link) ?? 'a post'}: ${link.trim()}`
+      : '';
+    this.form.patchValue({
+      title: draft.title,
+      description: source,
+      servings: draft.servings,
+      prepTimeMinutes: draft.prepTimeMinutes,
+      tags: draft.tags.join(', '),
+      calories: draft.calories,
+      protein: null,
+      fat: null,
+      carbohydrates: null,
+    });
+    this.error.set(null);
+    this.imported.set(true);
+  }
+
+  /** True for an empty field in an imported draft, which the template marks "Please check". */
+  protected needsCheck(control: AbstractControl): boolean {
+    const value: unknown = control.value;
+    return this.imported() && (value === null || (typeof value === 'string' && !value.trim()));
   }
 
   /** Adds an empty ingredient row at the end. */
