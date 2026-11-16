@@ -10,8 +10,6 @@
     }
   </section>
 
-  <app-notifications-panel />
-  
   <!-- Expiration alert (UC15), linking to the pantry where the items are listed -->
   @if (expiryAlert(); as alert) {
     <a class="ui-card expiry-alert" routerLink="/pantry" role="alert">
@@ -19,6 +17,8 @@
       <span class="alert-link">See your pantry ›</span>
     </a>
   }
+
+  <app-notifications-panel />
 
   <nav class="shortcuts" aria-label="Shortcuts">
     @for (shortcut of shortcuts; track shortcut.path; let index = $index) {

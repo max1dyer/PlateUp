@@ -7,6 +7,7 @@ import { DomainErrorFilter } from './common/filters/domain-error.filter';
 import { GroceryListsModule } from './grocery-lists/grocery-lists.module';
 import { RecipeSharesModule } from './recipe-shares/recipe-shares.module';
 import { PantryModule } from './pantry/pantry.module';
+import { PlannerModule } from './planner/planner.module';
 import { RecipesModule } from './recipes/recipes.module';
 import { SeedModule } from './seed/seed.module';
 import { UsersModule } from './users/users.module';
@@ -24,6 +25,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     NotificationsModule,
     GroceryListsModule,
     RecipeSharesModule,
+    PlannerModule,
     ContactModule,
     SeedModule,
   ],

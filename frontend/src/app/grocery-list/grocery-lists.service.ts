@@ -3,6 +3,7 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { API_PREFIX } from '../core/api';
 import {
+  AddPlannerWeekResult,
   GroceryItemChanges,
   GroceryList,
   MoveToPantryResult,
@@ -50,6 +51,24 @@ export class GroceryListsService {
       recipeId,
       servings,
       excludeIngredients,
+    });
+  }
+
+  /**
+   * `POST /grocery-lists/:listId/planner-week`: adds the ingredients for the
+   * meals planned from `from` to `to`, combined across meals. With `usePantry`
+   * (the default), amounts already in the pantry are left off.
+   */
+  public addPlannerWeek(
+    listId: string,
+    from: string,
+    to: string,
+    usePantry = true,
+  ): Observable<AddPlannerWeekResult> {
+    return this.http.post<AddPlannerWeekResult>(`${this.baseUrl}/${listId}/planner-week`, {
+      from,
+      to,
+      usePantry,
     });
   }
 
