@@ -4,6 +4,8 @@ import { SessionService } from '../../core/session.service';
 import { UsersService } from '../../users/users.service';
 import { RecipeCard } from '../recipe-card/recipe-card';
 import { Recipe } from '../recipe.models';
+import { catchError, of } from 'rxjs';
+import { RecipeSharesService } from '../recipe-shares.service';
 
 /** "Saved" page (UC23): the recipes the signed-in user saved. */
 @Component({
@@ -14,6 +16,8 @@ import { Recipe } from '../recipe.models';
 export class SavedRecipesPage implements OnInit {
   /** The saved recipes as loaded when the page opened. */
   private readonly recipes = signal<Recipe[]>([]);
+  /** Recipes other users shared with the signed-in user. */
+  protected readonly received = signal<Recipe[]>([]);
   /** True until the saved recipes have loaded. */
   protected readonly loading = signal(true);
   /** True if the saved recipes could not be loaded (the page offers a retry). */
@@ -28,6 +32,7 @@ export class SavedRecipesPage implements OnInit {
   constructor(
     private readonly users: UsersService,
     private readonly session: SessionService,
+    private readonly recipeShares: RecipeSharesService,
   ) {}
 
   /** Loads the saved recipes when the page opens. */
@@ -49,5 +54,10 @@ export class SavedRecipesPage implements OnInit {
         this.loading.set(false);
       },
     });
+    // The received list is secondary: if it fails to load, the saved recipes still show.
+    this.recipeShares
+      .getReceived()
+      .pipe(catchError(() => of<Recipe[]>([])))
+      .subscribe((recipes) => this.received.set(recipes));
   }
 }

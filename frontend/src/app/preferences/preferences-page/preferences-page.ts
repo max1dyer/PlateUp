@@ -28,6 +28,7 @@ interface PreferencesForm {
   protein: number | null;
   carbohydrates: number | null;
   fat: number | null;
+  blockRecipeShares: boolean;
 }
 
 /**
@@ -74,6 +75,7 @@ export class PreferencesPage implements OnInit {
     protein: new FormControl<number | null>(null),
     carbohydrates: new FormControl<number | null>(null),
     fat: new FormControl<number | null>(null),
+    blockRecipeShares: new FormControl(false, { nonNullable: true }),
   });
 
   /** The form's values as a signal, so `plan` recomputes as the user types. */
@@ -214,6 +216,7 @@ export class PreferencesPage implements OnInit {
     this.form.setValue({
       defaultServings: preferences.defaultServings,
       dailyCalories: preferences.dailyCalories,
+      blockRecipeShares: preferences.blockRecipeShares,
       ...preferences.macroGoals,
     });
   }
@@ -239,6 +242,7 @@ export class PreferencesPage implements OnInit {
       ...(values.defaultServings !== null ? { defaultServings: values.defaultServings } : {}),
       dailyCalories: numberOrNull(values.dailyCalories),
       macroGoals,
+      blockRecipeShares: values.blockRecipeShares,
     };
   }
 }

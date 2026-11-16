@@ -15,4 +15,8 @@ export class NotificationsService {
   public getNotifications(): Observable<UserNotification[]> {
     return this.http.get<UserNotification[]>(this.baseUrl);
   }
+  /** `POST /notifications/:id/read`: marks one notification as read. */
+  public markRead(notificationId: string): Observable<UserNotification> {
+    return this.http.post<UserNotification>(`${this.baseUrl}/${notificationId}/read`, {});
+  }
 }

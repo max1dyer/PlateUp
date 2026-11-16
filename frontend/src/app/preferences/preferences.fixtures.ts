@@ -8,6 +8,7 @@ export function preferences(overrides: Partial<UserPreferences> = {}): UserPrefe
     dailyCalories: null,
     macroGoals: { protein: null, carbohydrates: null, fat: null },
     dailyTargets: { calories: null, protein: null, carbohydrates: null, fat: null },
+    blockRecipeShares: false,
     ...overrides,
   };
 }

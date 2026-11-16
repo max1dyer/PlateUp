@@ -61,6 +61,7 @@ export interface UserPreferences {
   dailyCalories: number | null;
   macroGoals: MacroGoals;
   dailyTargets: DailyTargets;
+  blockRecipeShares: boolean;
 }
 
 /** Body of `PATCH /users/me/preferences`; omitted fields stay unchanged, `null` clears a goal. */
@@ -69,6 +70,7 @@ export interface PreferenceChanges {
   dietaryRestrictions?: DietaryRestriction[];
   dailyCalories?: number | null;
   macroGoals?: Partial<MacroGoals>;
+  blockRecipeShares?: boolean;
 }
 
 /** Limits enforced by the backend's `UserPreferences`, mirrored for form hints. */

@@ -21,5 +21,15 @@
         </div>
       }
     </div>
+    <section>
+      <h2 class="ui-heading">Shared with you</h2>
+      <div class="ui-card-grid">
+        @for (recipe of received(); track recipe.id; let index = $index) {
+          <app-recipe-card [recipe]="recipe" [green]="index % 2 === 1" />
+        } @empty {
+          <p class="ui-status ui-span-all">No one has shared a recipe with you yet.</p>
+        }
+      </div>
+    </section>
   }
 </div>

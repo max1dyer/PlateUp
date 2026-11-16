@@ -4,12 +4,16 @@ import { provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { groceryList } from '../../grocery-list/grocery-list.fixtures';
 import { GroceryListsService } from '../../grocery-list/grocery-lists.service';
-import { notification } from '../notification.fixtures';
+import {
+  notification,
+  recipeRevokedNotification,
+  recipeShareNotification,
+} from '../notification.fixtures';
 import { NotificationsService } from '../notifications.service';
 import { NotificationsPanel } from './notifications-panel';
 
 describe('NotificationsPanel', () => {
-  const notifications = { getNotifications: vi.fn() };
+  const notifications = { getNotifications: vi.fn(), markRead: vi.fn() };
   const groceryLists = { acceptShare: vi.fn(), rejectShare: vi.fn() };
 
   async function render(): Promise<{
@@ -19,7 +23,7 @@ describe('NotificationsPanel', () => {
     await TestBed.configureTestingModule({
       imports: [NotificationsPanel],
       providers: [
-        provideRouter([]),
+        provideRouter([{ path: '**', children: [] }]),
         { provide: NotificationsService, useValue: notifications },
         { provide: GroceryListsService, useValue: groceryLists },
       ],
@@ -108,5 +112,41 @@ describe('NotificationsPanel', () => {
     notifications.getNotifications.mockReturnValue(throwError(() => new Error('offline')));
     const { panel } = await render();
     expect(panel.querySelector('.status')?.textContent).toContain("couldn't load");
+  });
+
+  it('shows a shared recipe with a link, and no Accept or Reject', async () => {
+    notifications.getNotifications.mockReturnValue(of([recipeShareNotification()]));
+    notifications.markRead.mockReturnValue(of(recipeShareNotification({ read: true })));
+    const { fixture, panel } = await render();
+
+    expect(panel.querySelector('.message')?.textContent).toContain('shared a recipe with you');
+    expect(panel.querySelector('.message')?.textContent).toContain('Garlic Pasta');
+    expect(panel.querySelector('.accept')).toBeNull();
+    const link = panel.querySelector('.answer a') as HTMLAnchorElement;
+    expect(link.getAttribute('href')).toContain('/recipes/r1');
+    expect(panel.querySelector('h2')?.textContent).toContain('Notifications (1)');
+
+    link.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(notifications.markRead).toHaveBeenCalledWith('n3');
+    expect(panel.querySelector('h2')?.textContent).toContain('Notifications (0)');
+  });
+
+  it('shows a revoked notice as plain text that can be dismissed', async () => {
+    notifications.getNotifications.mockReturnValue(of([recipeRevokedNotification()]));
+    notifications.markRead.mockReturnValue(of(recipeRevokedNotification({ read: true })));
+    const { fixture, panel } = await render();
+
+    expect(panel.querySelector('.message')?.textContent).toContain('stopped sharing');
+    expect(panel.querySelector('.answer a')).toBeNull();
+
+    click(panel, '.dismiss');
+    fixture.detectChanges();
+
+    expect(notifications.markRead).toHaveBeenCalledWith('n4');
+    expect(panel.querySelector('.dismiss')).toBeNull();
+    expect(panel.querySelector('h2')?.textContent).toContain('Notifications (0)');
   });
 });

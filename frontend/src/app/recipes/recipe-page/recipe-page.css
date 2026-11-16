@@ -108,6 +108,69 @@
   width: 100%;
 }
 
+/* Author-only sharing controls */
+.shares {
+  margin: 12px 0;
+}
+
+.shares-heading {
+  margin: 4px 0;
+  font-size: 26px;
+  font-weight: 400;
+}
+
+.share-list {
+  margin: 0 0 8px;
+  padding: 0;
+  list-style: none;
+}
+
+.share-row,
+.share-empty {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 18px;
+}
+
+.share-empty {
+  color: var(--color-text-muted);
+}
+
+.share-row .manage,
+.share-form .manage {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 18px;
+  color: var(--color-primary);
+  cursor: pointer;
+}
+
+.share-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.share-name {
+  flex: 1;
+  min-width: 0;
+  padding: 2px 6px;
+  border: 1px solid var(--color-checkbox-border);
+  border-radius: var(--radius);
+  background: #ffffff;
+  font-size: 18px;
+}
+
+.share-error {
+  margin: 6px 0 0;
+  font-size: 16px;
+  color: var(--color-error);
+}
+
 .delete-confirmation {
   display: flex;
   flex-direction: column;

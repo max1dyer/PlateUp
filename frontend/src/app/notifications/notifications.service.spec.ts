@@ -22,4 +22,10 @@ describe('NotificationsService', () => {
 
     expect(http.expectOne({ method: 'GET', url: '/api/notifications' })).toBeTruthy();
   });
+
+  it('markRead posts to the read route', () => {
+    service.markRead('n1').subscribe();
+
+    expect(http.expectOne({ method: 'POST', url: '/api/notifications/n1/read' })).toBeTruthy();
+  });
 });
