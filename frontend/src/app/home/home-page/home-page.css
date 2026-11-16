@@ -11,6 +11,21 @@
   color: var(--color-primary);
 }
 
+/* Expiration alert */
+.expiry-alert {
+  gap: 2px;
+  border-left: 6px solid var(--color-primary);
+  font-size: 19px;
+  line-height: 120%;
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.alert-link {
+  font-size: 16px;
+  color: var(--color-primary);
+}
+
 .shortcuts {
   display: grid;
   grid-template-columns: 1fr 1fr;

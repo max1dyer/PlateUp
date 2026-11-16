@@ -4,4 +4,6 @@ import { QuantityDto } from '../../common/dto/quantity.dto';
 export class UpdatePantryItemDto {
   public readonly name?: string;
   public readonly quantity?: QuantityDto;
+  /** New expiration date (`YYYY-MM-DD`); null clears it. */
+  public readonly expiresOn?: string | null;
 }
