@@ -10,6 +10,14 @@
     }
   </section>
 
+  <!-- Expiration alert (UC15), linking to the pantry where the items are listed -->
+  @if (expiryAlert(); as alert) {
+    <a class="ui-card expiry-alert" routerLink="/pantry" role="alert">
+      <span>⚠ {{ alert }}</span>
+      <span class="alert-link">See your pantry ›</span>
+    </a>
+  }
+
   <nav class="shortcuts" aria-label="Shortcuts">
     @for (shortcut of shortcuts; track shortcut.path; let index = $index) {
       <a class="ui-card shortcut" [class.green]="index % 3 !== 0" [routerLink]="shortcut.path">
