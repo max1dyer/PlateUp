@@ -134,6 +134,17 @@
   cursor: default;
 }
 
+.export {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.export .manage:disabled {
+  color: var(--color-text-muted);
+  cursor: default;
+}
+
 /* Category cards (alternating colours) and the lines between items */
 .group-label {
   margin: 0;

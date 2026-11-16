@@ -6,7 +6,7 @@ import { errorMessage } from '../../core/api';
 import { ToastService } from '../../core/toast.service';
 import { AddItemsForm } from '../add-items-form/add-items-form';
 import { GroceryItemRow } from '../grocery-item-row/grocery-item-row';
-import { groupByCategory } from '../grocery-list-format';
+import { groupByCategory, formatListAsText } from '../grocery-list-format';
 import { GroceryList } from '../grocery-list.models';
 import { GroceryListsService } from '../grocery-lists.service';
 
@@ -52,6 +52,9 @@ export class GroceryListPage implements OnInit {
   protected readonly list = computed(
     () => this.lists().find((list) => list.id === this.selectedId()) ?? null,
   );
+  /** True where the browser can open the system share sheet (iPhone, Android, Safari). */
+  protected readonly canShare =
+    typeof navigator !== 'undefined' && typeof navigator.share === 'function';
   /** The shown list's items grouped by store section, for display. */
   protected readonly groups = computed(() => groupByCategory(this.list()?.items ?? []));
   /** Totals for the summary line ("3 of 8 items in cart"). */
@@ -59,6 +62,11 @@ export class GroceryListPage implements OnInit {
   protected readonly inCartCount = computed(
     () => this.list()?.items.filter((item) => item.purchased).length ?? 0,
   );
+  /** The shown list as plain text, or null before any list has loaded. */
+  private readonly listText = computed(() => {
+    const list = this.list();
+    return list ? formatListAsText(list.name, list.items) : null;
+  });
 
   constructor(
     private readonly groceryLists: GroceryListsService,
@@ -143,6 +151,53 @@ export class GroceryListPage implements OnInit {
       },
       error: (error: unknown) => this.actionError.set(errorMessage(error)),
     });
+  }
+
+  /** "Copy": puts the list on the clipboard as plain text. */
+  protected async copyAsText(): Promise<void> {
+    const text = this.listText();
+    if (text === null) {
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      this.actionError.set(null);
+      this.toasts.success('Grocery list copied');
+    } catch {
+      this.actionError.set("Couldn't copy the list. Try Download instead.");
+    }
+  }
+
+  /** "Download": saves the list as a .txt file. */
+  protected downloadAsText(): void {
+    const text = this.listText();
+    const list = this.list();
+    if (text === null || !list) {
+      return;
+    }
+    const url = URL.createObjectURL(new Blob([text], { type: 'text/plain;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${list.name.replace(/[^\w\- ]+/g, '').trim() || 'grocery-list'}.txt`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  /** "Share": opens the share sheet so the list can go to Notes, Messages, etc. */
+  protected async shareAsText(): Promise<void> {
+    const text = this.listText();
+    const list = this.list();
+    if (text === null || !list) {
+      return;
+    }
+    try {
+      await navigator.share({ title: list.name, text });
+    } catch (error) {
+      // Closing the sheet without choosing anything is not an error.
+      if ((error as DOMException).name !== 'AbortError') {
+        this.actionError.set("Couldn't open the share sheet. Try Copy instead.");
+      }
+    }
   }
 
   /** Shows an empty name field for a new list. */

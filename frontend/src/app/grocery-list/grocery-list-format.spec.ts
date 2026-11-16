@@ -1,4 +1,9 @@
-import { formatQuantity, groupByCategory, scaleQuantity } from './grocery-list-format';
+import {
+  formatQuantity,
+  groupByCategory,
+  scaleQuantity,
+  formatListAsText,
+} from './grocery-list-format';
 import { groceryItem } from './grocery-list.fixtures';
 
 describe('formatQuantity', () => {
@@ -39,5 +44,43 @@ describe('scaleQuantity', () => {
   it('multiplies the amount and rounds to two decimals like the backend', () => {
     expect(scaleQuantity({ amount: 1.5, unit: 'cup' }, 2)).toEqual({ amount: 3, unit: 'cup' });
     expect(scaleQuantity({ amount: 1, unit: 'lb' }, 1 / 3)).toEqual({ amount: 0.33, unit: 'lb' });
+  });
+});
+
+describe('formatListAsText', () => {
+  it('writes the name, then each category with one line per item', () => {
+    const items = [
+      groceryItem({
+        id: 'a',
+        name: 'Lettuce',
+        quantity: { amount: 1, unit: 'bag' },
+        category: 'produce',
+      }),
+      groceryItem({
+        id: 'b',
+        name: 'Chicken',
+        quantity: { amount: 3, unit: 'lb' },
+        category: 'protein',
+      }),
+      groceryItem({ id: 'c', name: 'Salt', quantity: null, category: 'protein' }),
+    ];
+
+    expect(formatListAsText('Weekly', items)).toBe(
+      [
+        'Weekly',
+        '',
+        'Protein',
+        '- 3 lb Chicken',
+        '- Salt',
+        '',
+        'Produce',
+        '- 1 bag Lettuce',
+        '',
+      ].join('\n'),
+    );
+  });
+
+  it('is just the name for an empty list', () => {
+    expect(formatListAsText('Weekly', [])).toBe('Weekly\n');
   });
 });
