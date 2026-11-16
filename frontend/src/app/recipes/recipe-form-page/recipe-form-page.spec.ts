@@ -138,7 +138,7 @@ describe('RecipeFormPage', () => {
     const { fixture, page } = await render(null, { importing: true });
 
     type(page, 'textarea[formControlName=text]', 'Rice Bowl\nIngredients\n1 cup rice\nsalt');
-    type(page, 'input[formControlName=link]', 'https://www.tiktok.com/@cook/video/1');
+    type(page, 'input[formControlName=link]', 'https://example.com/rice-bowl');
     (page.querySelector('form') as HTMLFormElement).dispatchEvent(new Event('submit'));
     fixture.detectChanges();
 
@@ -147,7 +147,7 @@ describe('RecipeFormPage', () => {
     );
     expect(
       (page.querySelector('textarea[formControlName=description]') as HTMLTextAreaElement).value,
-    ).toBe('Imported from TikTok: https://www.tiktok.com/@cook/video/1');
+    ).toBe('Imported from https://example.com/rice-bowl');
     // Salt has no amount and there are no steps, so both are marked for the user to fill in.
     expect(page.querySelector('[aria-label="Amount of ingredient 2"]')?.classList).toContain(
       'check',

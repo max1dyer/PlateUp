@@ -13,7 +13,7 @@ import { errorMessage } from '../../core/api';
 import { readImageFile } from '../../core/image-file';
 import { ToastService } from '../../core/toast.service';
 import { UNITS, Unit } from '../../grocery-list/grocery-list.models';
-import { isEmptyDraft, parseRecipeText, platformOf } from '../recipe-import';
+import { isEmptyDraft, parseRecipeText } from '../recipe-import';
 import { NewRecipe, Recipe } from '../recipe.models';
 import { RecipesService } from '../recipes.service';
 
@@ -44,8 +44,8 @@ function stepControl(text = ''): FormControl<string> {
 
 /**
  * Manual recipe upload (`/recipes/new`, UC3), editing (`/recipes/:id/edit`, UC20), and
- * import from a social-media post (`/recipes/import`, UC19): title, photo, servings,
- * ingredients, steps, nutrition, and tags. An import first asks for the post's text and
+ * import from pasted text (`/recipes/import`, UC19): title, photo, servings,
+ * ingredients, steps, nutrition, and tags. An import first asks for the recipe text and
  * fills the form with what `parseRecipeText` finds. The backend validates everything;
  * its message is shown if it refuses.
  */
@@ -70,7 +70,7 @@ export class RecipeFormPage implements OnInit {
   /** True once pasted text has been turned into a draft; empty fields are then marked. */
   protected readonly imported = signal(false);
 
-  /** The text pasted from a post, and optionally the post's link. */
+  /** The pasted recipe text, and optionally a link to where it came from. */
   protected readonly importForm = new FormGroup({
     text: new FormControl('', { nonNullable: true }),
     link: new FormControl('', { nonNullable: true }),
@@ -146,7 +146,7 @@ export class RecipeFormPage implements OnInit {
     const draft = parseRecipeText(text);
     if (isEmptyDraft(draft)) {
       this.error.set(
-        'No recipe could be found in this text. Check that you copied the ingredients and steps from the post.',
+        'No recipe could be found in this text. Check that you copied the ingredients and steps.',
       );
       return;
     }
@@ -158,9 +158,7 @@ export class RecipeFormPage implements OnInit {
     (draft.steps.length > 0 ? draft.steps : ['']).forEach((step) =>
       this.steps.push(stepControl(step)),
     );
-    const source = link.trim()
-      ? `Imported from ${platformOf(link) ?? 'a post'}: ${link.trim()}`
-      : '';
+    const source = link.trim() ? `Imported from ${link.trim()}` : '';
     this.form.patchValue({
       title: draft.title,
       description: source,

@@ -2,7 +2,7 @@
   <section class="intro">
     @if (importing()) {
       <h1 class="ui-title">Import a Recipe</h1>
-      <p class="ui-subtitle">Paste a recipe from TikTok, Instagram, or YouTube.</p>
+      <p class="ui-subtitle">Paste a recipe description and we'll turn it into a draft.</p>
     } @else {
       <h1 class="ui-title">{{ editing() ? 'Edit Recipe' : 'Upload a Recipe' }}</h1>
       <p class="ui-subtitle">
@@ -14,7 +14,7 @@
   @if (loading()) {
     <p class="ui-status">Loading recipe…</p>
   } @else if (importing() && !imported()) {
-    <!-- Import step: paste the post's text, then review the draft in the form below. -->
+    <!-- Import step: paste the recipe text, then review the draft in the form below. -->
     <form class="recipe-form ui-card" [formGroup]="importForm" (ngSubmit)="createDraft()">
       <label class="ui-label">
         Recipe text
@@ -22,12 +22,12 @@
           class="ui-field"
           rows="10"
           formControlName="text"
-          placeholder="Paste the caption or description from the post"
+          placeholder="Paste the recipe text..."
         ></textarea>
       </label>
       <label class="ui-label">
-        Link to the post (optional)
-        <input class="ui-field" formControlName="link" placeholder="https://www.tiktok.com/…" />
+        Link to the source (optional)
+        <input class="ui-field" formControlName="link" placeholder="https://…" />
       </label>
       @if (error(); as message) {
         <p class="ui-error" role="alert">{{ message }}</p>

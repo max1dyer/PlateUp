@@ -1,7 +1,7 @@
 import { isEmptyDraft, parseRecipeText } from './recipe-import';
 
 describe('parseRecipeText', () => {
-  it('reads a caption with ingredient and step headings', () => {
+  it('reads text with ingredient and step headings', () => {
     const draft = parseRecipeText(`🔥 Easy Garlic Butter Pasta! 🔥
 Ready in 20 minutes, serves 2, 520 cal per serving
 
@@ -60,7 +60,7 @@ Step 3: Toss everything together.
     ]);
   });
 
-  it('falls back to known food words when the caption has no list', () => {
+  it('falls back to known food words when the text has no list', () => {
     const draft = parseRecipeText(
       'My go-to lunch\nJust toss chicken, rice and broccoli in a pan with some soy sauce. 1 hr 15 min',
     );

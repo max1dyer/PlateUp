@@ -8,7 +8,8 @@ export interface DraftIngredient {
 }
 
 /**
- * A recipe guessed from text pasted from a social-media post (UC19). Anything the text did
+ * A recipe guessed from text pasted from anywhere: a video caption, a
+ * blog, or a cooking website (UC19). Anything the text did
  * not give is empty or null, so the form can mark it for the user to fill in.
  */
 export interface RecipeDraft {
@@ -49,7 +50,7 @@ const UNIT_WORDS: Record<string, Unit> = {
   tube: 'tube',
 };
 
-/** Common foods, used to find ingredients in a caption that has no ingredient list. */
+/** Common foods, used to find ingredients in text that has no ingredient list. */
 // prettier-ignore
 const FOOD_WORDS = [
   'chicken', 'beef', 'pork', 'turkey', 'bacon', 'sausage', 'salmon', 'tuna', 'shrimp', 'tofu',
@@ -199,16 +200,4 @@ function minutes(text: string): number | null {
 function firstNumber(text: string, pattern: RegExp): number | null {
   const match = pattern.exec(text);
   return match ? Number(match[1] ?? match[2]) : null;
-}
-
-/** The platform a post link points at, or null when it is not one we recognize. */
-export function platformOf(link: string): string | null {
-  const host = /^https?:\/\/([^/]+)/i.exec(link.trim())?.[1].toLowerCase() ?? '';
-  if (host.endsWith('tiktok.com')) {
-    return 'TikTok';
-  }
-  if (host.endsWith('instagram.com')) {
-    return 'Instagram';
-  }
-  return host.endsWith('youtube.com') || host === 'youtu.be' ? 'YouTube' : null;
 }
