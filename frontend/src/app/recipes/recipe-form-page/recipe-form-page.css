@@ -82,25 +82,10 @@
   }
 }
 
-/* Import: fields the pasted text did not fill are outlined and labelled until filled in. */
+/* Import: fields the pasted text did not fill are outlined until filled in. */
 .ui-field.check {
   border: 2px dashed var(--color-primary);
   background: #fff7ea;
-}
-
-/* A labelled field gets the same badge as the note at the top of the form. */
-.ui-label:has(> .ui-field.check)::after {
-  content: 'Please check';
-}
-
-.ui-label:has(> .ui-field.check)::after,
-.check-badge {
-  align-self: flex-start;
-  padding: 0 6px;
-  border-radius: var(--radius);
-  background: var(--color-primary);
-  color: var(--color-on-color);
-  font-size: 13px;
 }
 
 .import-note {

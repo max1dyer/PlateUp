@@ -39,8 +39,8 @@
     <form class="recipe-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
       @if (imported()) {
         <p class="ui-card import-note">
-          Fields marked <span class="check-badge">Please check</span> were not found in your
-          text. Fill them in and review the rest before saving.
+          Fields outlined in orange were not found in your text. Fill them in and review the rest
+          before saving.
         </p>
       }
       <!-- Basic details: title, description, servings, time, tags, and visibility -->
