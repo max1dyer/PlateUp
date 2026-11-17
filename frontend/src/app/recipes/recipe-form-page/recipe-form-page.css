@@ -81,3 +81,14 @@
     grid-template-columns: repeat(4, 1fr);
   }
 }
+
+/* Import: fields the pasted text did not fill are outlined until filled in. */
+.ui-field.check {
+  border: 2px dashed var(--color-primary);
+  background: #fff7ea;
+}
+
+.import-note {
+  display: block;
+  margin: 0;
+}

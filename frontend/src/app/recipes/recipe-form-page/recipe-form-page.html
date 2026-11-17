@@ -1,21 +1,58 @@
 <div class="ui-page reading">
   <section class="intro">
-    <h1 class="ui-title">{{ editing() ? 'Edit Recipe' : 'Upload a Recipe' }}</h1>
-    <p class="ui-subtitle">
-      {{ editing() ? 'Changes are saved when you press Save.' : 'Share something you cook.' }}
-    </p>
+    @if (importing()) {
+      <h1 class="ui-title">Import a Recipe</h1>
+      <p class="ui-subtitle">Paste a recipe description and we'll turn it into a draft.</p>
+    } @else {
+      <h1 class="ui-title">{{ editing() ? 'Edit Recipe' : 'Upload a Recipe' }}</h1>
+      <p class="ui-subtitle">
+        {{ editing() ? 'Changes are saved when you press Save.' : 'Share something you cook.' }}
+      </p>
+    }
   </section>
 
   @if (loading()) {
     <p class="ui-status">Loading recipe…</p>
+  } @else if (importing() && !imported()) {
+    <!-- Import step: paste the recipe text, then review the draft in the form below. -->
+    <form class="recipe-form ui-card" [formGroup]="importForm" (ngSubmit)="createDraft()">
+      <label class="ui-label">
+        Recipe text
+        <textarea
+          class="ui-field"
+          rows="10"
+          formControlName="text"
+          placeholder="Paste the recipe text..."
+        ></textarea>
+      </label>
+      <label class="ui-label">
+        Link to the source (optional)
+        <input class="ui-field" formControlName="link" placeholder="https://…" />
+      </label>
+      @if (error(); as message) {
+        <p class="ui-error" role="alert">{{ message }}</p>
+      }
+      <button type="submit" class="ui-button primary wide">Create draft</button>
+    </form>
   } @else {
     <!-- Validation happens in submit() and on the backend, so the browser's own checks are off. -->
     <form class="recipe-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      @if (imported()) {
+        <p class="ui-card import-note">
+          Fields outlined in orange were not found in your text. Fill them in and review the rest
+          before saving.
+        </p>
+      }
       <!-- Basic details: title, description, servings, time, tags, and visibility -->
       <div class="ui-card">
         <label class="ui-label">
           Title
-          <input class="ui-field" formControlName="title" placeholder="e.g. Chicken Stir Fry" />
+          <input
+            class="ui-field"
+            formControlName="title"
+            placeholder="e.g. Chicken Stir Fry"
+            [class.check]="needsCheck(form.controls.title)"
+          />
         </label>
         <label class="ui-label">
           Description
@@ -29,7 +66,14 @@
         <div class="grid">
           <label class="ui-label">
             Servings
-            <input class="ui-field" type="number" min="1" step="1" formControlName="servings" />
+            <input
+              class="ui-field"
+              type="number"
+              min="1"
+              step="1"
+              formControlName="servings"
+              [class.check]="needsCheck(form.controls.servings)"
+            />
           </label>
           <label class="ui-label">
             Time (minutes)
@@ -39,6 +83,7 @@
               min="0"
               step="1"
               formControlName="prepTimeMinutes"
+              [class.check]="needsCheck(form.controls.prepTimeMinutes)"
             />
           </label>
         </div>
@@ -90,6 +135,7 @@
               class="ui-field name"
               formControlName="name"
               placeholder="Ingredient"
+              [class.check]="needsCheck(row.controls.name)"
               [attr.aria-label]="'Ingredient ' + (index + 1)"
             />
             <input
@@ -99,6 +145,7 @@
               step="any"
               formControlName="amount"
               placeholder="Amt"
+              [class.check]="needsCheck(row.controls.amount)"
               [attr.aria-label]="'Amount of ingredient ' + (index + 1)"
             />
             <select
@@ -139,6 +186,7 @@
               rows="2"
               [formControlName]="index"
               [attr.aria-label]="'Step ' + (index + 1)"
+              [class.check]="needsCheck(step)"
             ></textarea>
             <div class="step-tools">
               <button
@@ -180,19 +228,43 @@
         <div class="grid nutrition-grid">
           <label class="ui-label">
             Calories
-            <input class="ui-field" type="number" min="0" formControlName="calories" />
+            <input
+              class="ui-field"
+              type="number"
+              min="0"
+              formControlName="calories"
+              [class.check]="needsCheck(form.controls.calories)"
+            />
           </label>
           <label class="ui-label">
             Protein (g)
-            <input class="ui-field" type="number" min="0" formControlName="protein" />
+            <input
+              class="ui-field"
+              type="number"
+              min="0"
+              formControlName="protein"
+              [class.check]="needsCheck(form.controls.protein)"
+            />
           </label>
           <label class="ui-label">
             Carbs (g)
-            <input class="ui-field" type="number" min="0" formControlName="carbohydrates" />
+            <input
+              class="ui-field"
+              type="number"
+              min="0"
+              formControlName="carbohydrates"
+              [class.check]="needsCheck(form.controls.carbohydrates)"
+            />
           </label>
           <label class="ui-label">
             Fat (g)
-            <input class="ui-field" type="number" min="0" formControlName="fat" />
+            <input
+              class="ui-field"
+              type="number"
+              min="0"
+              formControlName="fat"
+              [class.check]="needsCheck(form.controls.fat)"
+            />
           </label>
         </div>
       </div>
@@ -203,7 +275,7 @@
       <!-- Submit and cancel -->
       <div class="ui-row">
         <button type="submit" class="ui-button primary wide" [disabled]="saving()">
-          {{ editing() ? 'Save changes' : 'Upload recipe' }}
+          {{ editing() ? 'Save changes' : importing() ? 'Save recipe' : 'Upload recipe' }}
         </button>
         <a
           class="ui-button plain cancel"
