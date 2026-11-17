@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { guessCategory } from '../common/domain/ingredient-category';
 import { Quantity } from '../common/domain/quantity';
 import { isSameIngredient } from '../common/domain/ingredient-name';
@@ -27,10 +27,16 @@ import {
 } from '../notifications/entities/notification.entity';
 import { UsersService } from '../users/users.service';
 import { ShareGroceryListDto } from './dto/share-grocery-list.dto';
+import { AddListMemberDto } from './dto/add-list-member.dto';
+import { ListMember } from './entities/list-member';
 
 /**
  * Use-case layer for grocery lists: loads the user's lists, applies item changes through the
  * `GroceryList` aggregate, and coordinates with recipes and the pantry through their services.
+ *
+ * A list can be shared with other users, who can then see and edit it too, so the `ownerId`
+ * parameter below is the acting user, not necessarily the list's owner. Changes to a shared list
+ * are recorded in its activity so the others can see who did what.
  */
 @Injectable()
 export class GroceryListsService {
@@ -43,19 +49,19 @@ export class GroceryListsService {
     private readonly plannerService: PlannerService,
   ) {}
 
-  /** All of the user's lists. */
+  /** The user's own lists and the lists shared with them. */
   public findAll(ownerId: string): Promise<GroceryList[]> {
-    return this.groceryLists.findByOwner(ownerId);
+    return this.groceryLists.findAccessibleTo(ownerId);
   }
 
   /**
    * Loads one of the user's lists.
    *
-   * @throws NotFoundException if it does not exist or belongs to someone else.
+   * @throws NotFoundException if it does not exist or the user has no access to it.
    */
   public async findOne(ownerId: string, listId: string): Promise<GroceryList> {
     const list = await this.groceryLists.findById(listId);
-    if (!list || !list.isOwnedBy(ownerId)) {
+    if (!list || !list.isAccessibleTo(ownerId)) {
       throw new NotFoundException(`Grocery list ${listId} not found.`);
     }
     return list;
@@ -73,14 +79,73 @@ export class GroceryListsService {
     dto: UpdateGroceryListDto,
   ): Promise<GroceryList> {
     const list = await this.findOne(ownerId, listId);
+    const oldName = list.name;
     list.rename(dto.name);
+    await this.log(list, ownerId, `renamed the list from ${oldName}`);
     return this.groceryLists.save(list);
   }
 
-  /** Deletes one of the user's lists. */
+  /**
+   * Deletes one of the user's lists (for everyone it is shared with).
+   *
+   * @throws ForbiddenException if the user is a member rather than the owner.
+   */
   public async remove(ownerId: string, listId: string): Promise<void> {
-    await this.findOne(ownerId, listId);
+    const list = await this.findOne(ownerId, listId);
+    if (!list.isOwnedBy(ownerId)) {
+      throw new ForbiddenException('Only the owner can delete this list. Leave it instead.');
+    }
     await this.groceryLists.delete(listId);
+  }
+
+  /**
+   * Shares the list with another user by username; they can then see and edit it.
+   *
+   * @throws ForbiddenException if the acting user is not the owner.
+   * @throws NotFoundException if no user has that username.
+   * @throws DomainValidationError if they already have the list.
+   */
+  public async addMember(
+    ownerId: string,
+    listId: string,
+    dto: AddListMemberDto,
+  ): Promise<GroceryList> {
+    const list = await this.findOne(ownerId, listId);
+    if (!list.isOwnedBy(ownerId)) {
+      throw new ForbiddenException('Only the owner can share this list.');
+    }
+    const user = await this.usersService.findByUsername(dto.username ?? '');
+    list.addMember({ id: user.id, name: user.displayName });
+    await this.log(list, ownerId, `shared the list with ${user.displayName}`);
+    return this.groceryLists.save(list);
+  }
+
+  /**
+   * Stops sharing the list with a member. The owner can remove anyone; a member can only remove
+   * themselves ("Leave list").
+   *
+   * @throws ForbiddenException if a member tries to remove someone else.
+   * @throws NotFoundException if that user is not a member.
+   */
+  public async removeMember(
+    ownerId: string,
+    listId: string,
+    memberId: string,
+  ): Promise<GroceryList> {
+    const list = await this.findOne(ownerId, listId);
+    if (!list.isOwnedBy(ownerId) && memberId !== ownerId) {
+      throw new ForbiddenException('Only the owner can remove other people from this list.');
+    }
+    const member = list.members.find((each) => each.id === memberId);
+    if (!member || !list.removeMember(memberId)) {
+      throw new NotFoundException(`User ${memberId} is not on this list.`);
+    }
+    await this.log(
+      list,
+      ownerId,
+      memberId === ownerId ? 'left the list' : `removed ${member.name} from the list`,
+    );
+    return this.groceryLists.save(list);
   }
 
   /** Adds an item to a list, combining it with a matching line if there is one. */
@@ -90,7 +155,13 @@ export class GroceryListsService {
     dto: AddGroceryItemDto,
   ): Promise<GroceryList> {
     const list = await this.findOne(ownerId, listId);
-    list.addItem(dto.name, this.toQuantity(dto.quantity), dto.category);
+    const item = list.addItem(
+      dto.name,
+      this.toQuantity(dto.quantity),
+      dto.category,
+      await this.member(ownerId),
+    );
+    await this.log(list, ownerId, `added ${item.name}`);
     return this.groceryLists.save(list);
   }
 
@@ -119,7 +190,9 @@ export class GroceryListsService {
           quantity: ingredient.quantity,
           category: guessCategory(ingredient.name),
         })),
+      await this.member(ownerId),
     );
+    await this.log(list, ownerId, `added the ingredients for ${recipe.title}`);
     return this.groceryLists.save(list);
   }
 
@@ -161,10 +234,11 @@ export class GroceryListsService {
 
     const added: string[] = [];
     const skipped: SkippedNeed[] = [...combined.skipped];
+    const addedBy = await this.member(ownerId);
     for (const need of toBuy) {
       // One at a time, so an ingredient the list holds in another unit doesn't block the rest.
       try {
-        list.addItem(need.name, need.quantity, guessCategory(need.name));
+        list.addItem(need.name, need.quantity, guessCategory(need.name), addedBy);
         added.push(need.name);
       } catch (error) {
         if (!(error instanceof DomainValidationError)) {
@@ -172,6 +246,9 @@ export class GroceryListsService {
         }
         skipped.push({ name: need.name, reason: error.message });
       }
+    }
+    if (added.length > 0) {
+      await this.log(list, ownerId, `added ${count(added.length)} from the meal plan`);
     }
     return {
       list: await this.groceryLists.save(list),
@@ -202,6 +279,9 @@ export class GroceryListsService {
     if (!list.updateItem(itemId, changes)) {
       throw this.itemNotFound(itemId);
     }
+    const onlyChecked = Object.keys(dto).length === 1 && dto.purchased !== undefined;
+    const action = onlyChecked ? (dto.purchased ? 'checked off' : 'unchecked') : 'edited';
+    await this.log(list, ownerId, `${action} ${list.findItem(itemId)?.name ?? 'an item'}`);
     return this.groceryLists.save(list);
   }
 
@@ -212,9 +292,11 @@ export class GroceryListsService {
    */
   public async removeItem(ownerId: string, listId: string, itemId: string): Promise<GroceryList> {
     const list = await this.findOne(ownerId, listId);
+    const name = list.findItem(itemId)?.name;
     if (!list.removeItem(itemId)) {
       throw this.itemNotFound(itemId);
     }
+    await this.log(list, ownerId, `removed ${name}`);
     return this.groceryLists.save(list);
   }
 
@@ -237,6 +319,7 @@ export class GroceryListsService {
     // Add to the pantry first: if it refuses the item, this throws and the list is not changed.
     await this.addToPantry(ownerId, item);
     list.removeItem(itemId);
+    await this.log(list, ownerId, `moved ${item.name} to their pantry`);
     return this.groceryLists.save(list);
   }
 
@@ -264,13 +347,19 @@ export class GroceryListsService {
       list.removeItem(item.id);
       moved.push(item.name);
     }
+    if (moved.length > 0) {
+      await this.log(list, ownerId, `moved ${count(moved.length)} to their pantry`);
+    }
     return { list: await this.groceryLists.save(list), moved, skipped };
   }
 
   /** "Remove Checked Items": drops every purchased item from a list. */
   public async removePurchasedItems(ownerId: string, listId: string): Promise<GroceryList> {
     const list = await this.findOne(ownerId, listId);
-    list.removePurchasedItems();
+    const removed = list.removePurchasedItems();
+    if (removed > 0) {
+      await this.log(list, ownerId, `removed ${count(removed)} that were checked off`);
+    }
     return this.groceryLists.save(list);
   }
 
@@ -344,6 +433,25 @@ export class GroceryListsService {
     await this.notificationsService.resolve(userId, notificationId, NotificationStatus.Rejected);
   }
 
+  /** Records a change in a shared list's activity (personal lists keep none). */
+  private async log(list: GroceryList, userId: string, message: string): Promise<void> {
+    if (list.isShared) {
+      list.recordActivity(await this.member(userId), message);
+    }
+  }
+
+  /** The user's id and display name, or their id twice if they have no account. */
+  private async member(userId: string): Promise<ListMember> {
+    try {
+      return { id: userId, name: (await this.usersService.findOne(userId)).displayName };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        return { id: userId, name: userId };
+      }
+      throw error;
+    }
+  }
+
   /** The pantry needs an amount, so an item without one is refused. */
   private async addToPantry(ownerId: string, item: GroceryListItem): Promise<void> {
     if (item.quantity === null) {
@@ -363,4 +471,9 @@ export class GroceryListsService {
   private itemNotFound(itemId: string): NotFoundException {
     return new NotFoundException(`Grocery item ${itemId} not found.`);
   }
+}
+
+/** "1 item" / "3 items". */
+function count(n: number): string {
+  return `${n} ${n === 1 ? 'item' : 'items'}`;
 }

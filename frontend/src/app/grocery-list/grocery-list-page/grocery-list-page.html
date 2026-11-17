@@ -1,54 +1,5 @@
 <div class="page">
-  <section class="intro">
-    <h1 class="title">Your Grocery List</h1>
-    <p class="description">Easy management for the whole household.</p>
-    @if (!loading() && !loadError()) {
-      <!-- List picker, or the name field while creating or renaming a list -->
-      <div class="household">
-        <svg
-          class="household-icon"
-          viewBox="0 0 24 24"
-          aria-hidden="true"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2.27"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
-          <rect x="9" y="3" width="6" height="4" rx="1" />
-          <path d="M9 12h6M9 16h4" />
-        </svg>
-        @if (listMode() === 'view') {
-          <select
-            class="list-picker"
-            aria-label="Grocery list"
-            [value]="selectedId()"
-            (change)="onSelect($event)"
-          >
-            @for (option of lists(); track option.id) {
-              <option [value]="option.id" [selected]="option.id === selectedId()">
-                {{ option.name }}
-              </option>
-            }
-          </select>
-          <button type="button" class="manage" (click)="startRenaming()">Rename</button>
-          <button type="button" class="manage" (click)="startCreating()">+ New</button>
-        } @else {
-          <form class="list-name-form" [formGroup]="listForm" (ngSubmit)="saveListName()">
-            <input
-              class="list-name"
-              formControlName="name"
-              [attr.aria-label]="listMode() === 'create' ? 'New list name' : 'List name'"
-              [placeholder]="listMode() === 'create' ? 'New list name' : ''"
-            />
-            <button type="submit" class="manage">Save</button>
-            <button type="button" class="manage" (click)="listMode.set('view')">Cancel</button>
-          </form>
-        }
-      </div>
-    }
-  </section>
+  <h1 class="title">Grocery</h1>
 
   @if (loading()) {
     <p class="status">Loading your grocery list…</p>
@@ -58,7 +9,109 @@
       <button type="button" class="action" (click)="load()">Try again</button>
     </div>
   } @else if (list(); as list) {
-    <!-- "+ Add items" button, which opens the inline add form -->
+    <!--
+      The list header: the picker with icon buttons to rename or delete the shown list, or, while
+      naming a new list or renaming this one, a name field in the picker's place.
+    -->
+    <section class="list-header">
+      @if (listMode() !== 'view') {
+        <form class="list-name-form" [formGroup]="listForm" (ngSubmit)="saveListName()">
+          <input
+            #nameInput
+            class="list-name"
+            formControlName="name"
+            [attr.aria-label]="listMode() === 'create' ? 'New list name' : 'List name'"
+            [placeholder]="listMode() === 'create' ? 'Name your new list' : 'List name'"
+            (keydown.escape)="cancelNaming()"
+          />
+          <button type="submit" class="manage">Save</button>
+          <button type="button" class="manage" (click)="cancelNaming()">Cancel</button>
+        </form>
+      } @else if (confirmingDelete()) {
+        <div class="picker-row delete-list">
+          <span class="confirm-text">Delete “{{ list.name }}”?</span>
+          <button type="button" class="manage danger" (click)="deleteList()">Delete</button>
+          <button type="button" class="manage" (click)="confirmingDelete.set(false)">Cancel</button>
+        </div>
+      } @else {
+        <div class="picker-row">
+          <select
+            class="list-picker"
+            aria-label="Grocery list"
+            [value]="selectedId()"
+            (change)="onSelect($event)"
+          >
+            @for (option of lists(); track option.id) {
+              <option [value]="option.id" [selected]="option.id === selectedId()">
+                {{ pickerLabel(option) }}
+              </option>
+            }
+          </select>
+          <button
+            type="button"
+            class="icon-button"
+            aria-label="Rename list"
+            title="Rename list"
+            (click)="startRenaming()"
+          >
+            ✎
+          </button>
+          @if (isOwner()) {
+            <button
+              type="button"
+              class="icon-button"
+              aria-label="Delete list"
+              title="Delete list"
+              (click)="confirmingDelete.set(true)"
+            >
+              🗑
+            </button>
+          }
+          <button type="button" class="manage new-list" (click)="startCreating()">+ New</button>
+        </div>
+      }
+
+      @if (listMode() === 'create') {
+        @if (actionError(); as message) {
+          <p class="error" role="alert">{{ message }}</p>
+        }
+      } @else {
+      <!-- Shared lists: who has it, live status, and the latest change by someone else -->
+      @if (isShared()) {
+        <div class="collab">
+          @if (isOwner()) {
+            @for (member of list.members; track member.id) {
+              <span class="member">
+                👥 {{ member.name }}
+                <button
+                  type="button"
+                  class="remove-member"
+                  [attr.aria-label]="'Stop sharing with ' + member.name"
+                  (click)="removeMember(member.id)"
+                >
+                  ✕
+                </button>
+              </span>
+            }
+          } @else {
+            <span class="member">👥 Shared with you</span>
+            <button type="button" class="manage leave" (click)="leaveList()">Leave</button>
+          }
+          <span class="live" [title]="'Checks for changes every ' + liveSeconds + ' seconds'">
+            ● Live · {{ liveSeconds }}s
+          </span>
+        </div>
+        @if (liveUpdate(); as message) {
+          <p class="live-update" role="status">{{ message }}</p>
+        }
+      }
+      }
+    </section>
+
+    @if (listMode() === 'create') {
+      <p class="status">A new, empty list. Type a name above and press Enter.</p>
+    } @else {
+
     @if (adding()) {
       <app-add-items-form
         [listId]="list.id"
@@ -70,79 +123,27 @@
     }
 
     <section class="items">
-      <h2 class="heading">All items ({{ itemCount() }})</h2>
-      <!-- Cart summary and bulk actions on the checked items -->
+      <!-- Count, plus bulk actions that only appear once something is checked -->
       <div class="summary">
-        <p class="summary-text">
-          {{ inCartCount() }} of {{ itemCount() }} in cart<br />
-          <!-- Placeholder until ingredient pricing exists. -->
-          est. $—
-        </p>
-        <div class="summary-actions">
-          <button
-            type="button"
-            class="remove-selected"
-            [disabled]="inCartCount() === 0"
-            (click)="removeSelected()"
-          >
-            🗑️ Remove Selected
-          </button>
-          <button
-            type="button"
-            class="move-to-pantry"
-            [disabled]="inCartCount() === 0"
-            (click)="moveSelectedToPantry()"
-          >
-            📦 Move to Pantry
-          </button>
+        <div>
+          <h2 class="heading">Items ({{ itemCount() }})</h2>
+          @if (inCartCount() > 0) {
+            <p class="summary-text">{{ inCartCount() }} of {{ itemCount() }} in cart</p>
+          }
         </div>
+        @if (inCartCount() > 0) {
+          <div class="summary-actions">
+            <button type="button" class="remove-selected" (click)="removeSelected()">
+              Remove checked
+            </button>
+            <button type="button" class="move-to-pantry" (click)="moveSelectedToPantry()">
+              To pantry
+            </button>
+          </div>
+        }
       </div>
       @if (actionError(); as message) {
         <p class="error" role="alert">{{ message }}</p>
-      }
-
-      <!-- Export the list as plain text for a notes app -->
-      <div class="export">
-        <button type="button" class="manage" [disabled]="itemCount() === 0" (click)="copyAsText()">
-          📋 Copy as text
-        </button>
-        <button
-          type="button"
-          class="manage"
-          [disabled]="itemCount() === 0"
-          (click)="downloadAsText()"
-        >
-          ⬇️ Download .txt
-        </button>
-        @if (canShare) {
-          <button type="button" class="manage" [disabled]="itemCount() === 0" (click)="shareAsText()">
-            📤 Share…
-          </button>
-        }
-      </div>
-
-      <!-- Send a copy of this list to another user -->
-      <div class="share">
-        <button
-          type="button"
-          class="manage"
-          [disabled]="itemCount() === 0"
-          (click)="startSharing()"
-        >
-          👥 Send to user
-        </button>
-      </div>
-      @if (sharing()) {
-        <form class="share-form" [formGroup]="shareForm" (ngSubmit)="sendList()">
-          <input
-            class="share-name"
-            formControlName="username"
-            aria-label="Username to send this list to"
-            placeholder="Their username"
-          />
-          <button type="submit" class="manage">Send</button>
-          <button type="button" class="manage" (click)="sharing.set(false)">Cancel</button>
-        </form>
       }
 
       <!-- Items grouped by store section; the cards alternate colours -->
@@ -153,6 +154,7 @@
             <app-grocery-item-row
               [listId]="list.id"
               [item]="item"
+              [addedByName]="addedByName(item)"
               (listChanged)="onListChanged($event)"
             />
             @if (!last) {
@@ -161,24 +163,102 @@
           }
         </div>
       } @empty {
-        <p class="status">
-          Your Grocery List is empty. Use “+ Add items”, or open a recipe and choose “Add all to
-          Grocery”.
-        </p>
+        <p class="status">Your list is empty. Add ingredients here or from a recipe.</p>
       }
     </section>
 
-    <!-- Delete the whole list, with a confirmation step -->
-    <div class="delete-list">
-      @if (confirmingDelete()) {
-        <span>Delete “{{ list.name }}” and all its items?</span>
-        <button type="button" class="remove-selected" (click)="deleteList()">Yes, delete</button>
-        <button type="button" class="manage" (click)="confirmingDelete.set(false)">Keep it</button>
-      } @else {
-        <button type="button" class="manage" (click)="confirmingDelete.set(true)">
-          Delete this list
-        </button>
-      }
-    </div>
+    @if (isShared() && activity().length > 0) {
+      <details class="activity">
+        <summary>Recent changes</summary>
+        @for (entry of activity(); track $index) {
+          <p class="activity-entry" [class.other]="isOther(entry.by.id)">
+            <strong>{{ isOther(entry.by.id) ? entry.by.name : 'You' }}</strong>
+            {{ entry.message }}
+            <span class="when">· {{ ago(entry.at) }}</span>
+          </p>
+        }
+      </details>
+    }
+
+    <!-- Sharing and exporting, tucked away until needed -->
+    <details class="list-options">
+      <summary>Share &amp; export</summary>
+
+      <div class="option-group">
+        <p class="option-label">Share with PlateUp users</p>
+        <div class="options share">
+          @if (isOwner()) {
+            <button type="button" class="manage share-list" (click)="startAddingMember()">
+              👥 Share list
+            </button>
+          }
+          <button
+            type="button"
+            class="manage send-copy"
+            [disabled]="itemCount() === 0"
+            (click)="startSharing()"
+          >
+            📨 Send a copy
+          </button>
+        </div>
+        @if (addingMember()) {
+          <form class="collab-form" [formGroup]="memberForm" (ngSubmit)="addMember()">
+            <input
+              class="share-name"
+              formControlName="username"
+              aria-label="Username to share this list with"
+              placeholder="Their username"
+            />
+            <button type="submit" class="manage">Share</button>
+            <button type="button" class="manage" (click)="addingMember.set(false)">Cancel</button>
+          </form>
+        }
+        @if (sharing()) {
+          <form class="share-form" [formGroup]="shareForm" (ngSubmit)="sendList()">
+            <input
+              class="share-name"
+              formControlName="username"
+              aria-label="Username to send a copy of this list to"
+              placeholder="Their username"
+            />
+            <button type="submit" class="manage">Send</button>
+            <button type="button" class="manage" (click)="sharing.set(false)">Cancel</button>
+          </form>
+        }
+      </div>
+
+      <div class="option-group">
+        <p class="option-label">Export as text</p>
+        <div class="options export">
+          <button
+            type="button"
+            class="manage"
+            [disabled]="itemCount() === 0"
+            (click)="copyAsText()"
+          >
+            📋 Copy
+          </button>
+          <button
+            type="button"
+            class="manage"
+            [disabled]="itemCount() === 0"
+            (click)="downloadAsText()"
+          >
+            ⬇️ Download .txt
+          </button>
+          @if (canShare) {
+            <button
+              type="button"
+              class="manage"
+              [disabled]="itemCount() === 0"
+              (click)="shareAsText()"
+            >
+              📤 Share as text…
+            </button>
+          }
+        </div>
+      </div>
+    </details>
+    }
   }
 </div>

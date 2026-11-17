@@ -22,6 +22,11 @@ export class GroceryListsService {
     return this.http.get<GroceryList[]>(this.baseUrl);
   }
 
+  /** `GET /grocery-lists/:listId`: one list (used to check a shared list for others' changes). */
+  public getList(listId: string): Observable<GroceryList> {
+    return this.http.get<GroceryList>(`${this.baseUrl}/${listId}`);
+  }
+
   /** `POST /grocery-lists`: creates an empty list. */
   public createList(name: string): Observable<GroceryList> {
     return this.http.post<GroceryList>(this.baseUrl, { name });
@@ -107,6 +112,16 @@ export class GroceryListsService {
       `${this.baseUrl}/${listId}/purchased-items/pantry`,
       {},
     );
+  }
+
+  /** `POST /grocery-lists/:listId/members`: shares the list with another user so they can edit it. */
+  public addMember(listId: string, username: string): Observable<GroceryList> {
+    return this.http.post<GroceryList>(`${this.baseUrl}/${listId}/members`, { username });
+  }
+
+  /** Stops sharing with a member, or leaves the list when `memberId` is the user's own id. */
+  public removeMember(listId: string, memberId: string): Observable<GroceryList> {
+    return this.http.delete<GroceryList>(`${this.baseUrl}/${listId}/members/${memberId}`);
   }
 
   /** `POST /grocery-lists/:listId/share`: sends a copy of the list to another user by username. */

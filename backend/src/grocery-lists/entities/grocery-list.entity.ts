@@ -5,6 +5,10 @@ import { isSameIngredient } from '../../common/domain/ingredient-name';
 import { OwnedEntity } from '../../common/domain/owned.entity';
 import { Quantity } from '../../common/domain/quantity';
 import { GroceryListItem, GroceryListItemChanges } from './grocery-list-item.entity';
+import { ListActivity, ListMember } from './list-member';
+
+/** How many recent changes a shared list keeps. */
+export const MAX_LIST_ACTIVITY = 20;
 
 /** One ingredient to add with `GroceryList.addItems`. */
 export interface NewGroceryEntry {
@@ -18,13 +22,22 @@ export interface GroceryListSnapshot {
   ownerId: string;
   name: string;
   items: GroceryListItem[];
+  /** Other users the owner shared the list with; they can see and edit it too. */
+  members: ListMember[];
+  /** Recent changes, newest first (only recorded while the list is shared). */
+  activity: ListActivity[];
 }
 
-/** Aggregate root for a user's shopping list and its items. */
+/**
+ * Aggregate root for a user's shopping list and its items. The owner can share it with other
+ * users (`members`), who can then see and edit it as well.
+ */
 export class GroceryList extends OwnedEntity<GroceryListSnapshot> {
   private listName: string;
   /** The list's items keyed by id; a Map keeps them in the order they were added. */
   private readonly itemsById = new Map<string, GroceryListItem>();
+  private readonly listMembers: ListMember[] = [];
+  private readonly recent: ListActivity[] = [];
 
   /** @throws DomainValidationError if the name is blank. */
   constructor(ownerId: string, name: string) {
@@ -35,6 +48,47 @@ export class GroceryList extends OwnedEntity<GroceryListSnapshot> {
   /** The list's display name, e.g. "Weekly shop". */
   public get name(): string {
     return this.listName;
+  }
+
+  /** A copy of the users the list is shared with (not including the owner). */
+  public get members(): ListMember[] {
+    return [...this.listMembers];
+  }
+
+  /** True once the owner has shared the list with someone. */
+  public get isShared(): boolean {
+    return this.listMembers.length > 0;
+  }
+
+  /** True if the user owns the list or it was shared with them. */
+  public isAccessibleTo(userId: string): boolean {
+    return this.isOwnedBy(userId) || this.listMembers.some((member) => member.id === userId);
+  }
+
+  /** @throws DomainValidationError if the user is the owner or already a member. */
+  public addMember(member: ListMember): void {
+    if (this.isAccessibleTo(member.id)) {
+      throw new DomainValidationError(`${member.name} already has this list.`);
+    }
+    this.listMembers.push(member);
+    this.touch();
+  }
+
+  /** Returns false if the user was not a member. */
+  public removeMember(userId: string): boolean {
+    const index = this.listMembers.findIndex((member) => member.id === userId);
+    if (index === -1) {
+      return false;
+    }
+    this.listMembers.splice(index, 1);
+    this.touch();
+    return true;
+  }
+
+  /** Adds a change to the front of the list's activity, keeping the newest `MAX_LIST_ACTIVITY`. */
+  public recordActivity(by: ListMember, message: string): void {
+    this.recent.unshift({ by, message, at: new Date().toISOString() });
+    this.recent.splice(MAX_LIST_ACTIVITY);
   }
 
   /** A copy of the items, in the order they were added. */
@@ -62,6 +116,7 @@ export class GroceryList extends OwnedEntity<GroceryListSnapshot> {
     name: string,
     quantity: Quantity | null = null,
     category: IngredientCategory = IngredientCategory.Other,
+    addedBy: ListMember | null = null,
   ): GroceryListItem {
     requireOneOf(category, IngredientCategory, 'category');
     const existing = this.findItemNamed(name);
@@ -72,11 +127,11 @@ export class GroceryList extends OwnedEntity<GroceryListSnapshot> {
             'Add it in a compatible unit, or edit the existing item.',
         );
       }
-      existing.addQuantity(quantity);
+      existing.addQuantity(quantity, addedBy);
       this.touch();
       return existing;
     }
-    const item = new GroceryListItem(name, quantity, category);
+    const item = new GroceryListItem(name, quantity, category, addedBy);
     this.itemsById.set(item.id, item);
     this.touch();
     return item;
@@ -87,7 +142,10 @@ export class GroceryList extends OwnedEntity<GroceryListSnapshot> {
    * matching line as `addItem` does. All of them are checked first, so if any
    * one is in a unit that can't be combined, nothing is added (UC6).
    */
-  public addItems(entries: readonly NewGroceryEntry[]): GroceryListItem[] {
+  public addItems(
+    entries: readonly NewGroceryEntry[],
+    addedBy: ListMember | null = null,
+  ): GroceryListItem[] {
     // Validate every entry before changing anything, so a refused entry leaves the list untouched.
     entries.forEach((entry, index) => {
       const existing = this.findItemNamed(entry.name);
@@ -105,7 +163,9 @@ export class GroceryList extends OwnedEntity<GroceryListSnapshot> {
         );
       }
     });
-    return entries.map((entry) => this.addItem(entry.name, entry.quantity, entry.category));
+    return entries.map((entry) =>
+      this.addItem(entry.name, entry.quantity, entry.category, addedBy),
+    );
   }
 
   /**
@@ -152,7 +212,13 @@ export class GroceryList extends OwnedEntity<GroceryListSnapshot> {
 
   /** The list-specific fields for `toJSON()`. */
   protected snapshot(): GroceryListSnapshot {
-    return { ownerId: this.ownerId, name: this.listName, items: this.items };
+    return {
+      ownerId: this.ownerId,
+      name: this.listName,
+      items: this.items,
+      members: this.members,
+      activity: [...this.recent],
+    };
   }
 
   /** True if two amounts can be summed: either is missing, or their units are compatible. */
