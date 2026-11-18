@@ -4,20 +4,27 @@ import { errorMessage } from '../../core/api';
 import { SessionService } from '../../core/session.service';
 import { ToastService } from '../../core/toast.service';
 import { GroceryListsService } from '../../grocery-list/grocery-lists.service';
-import {
-  GroceryListInviteNotification,
-  NotificationStatus,
-  UserNotification,
-} from '../notification.models';
+import { GroceryListInviteNotification, UserNotification } from '../notification.models';
 import { NotificationsService } from '../notifications.service';
 
-/** How many of the newest notifications the panel lists. */
+/** How many notifications the panel lists at once. */
 const MAX_SHOWN = 5;
 
+/** What the user did with a notification this visit, shown in place of its buttons. */
+interface Outcome {
+  message: string;
+  /** A list to link to ("View list"), if the action created or kept one. */
+  listId?: string;
+}
+
 /**
- * "Notifications (n)" panel for the home page. A shared grocery list shows Accept and Reject
- * buttons; accepting creates a new list in the user's account. An invite to a live list links to
- * the list (the user is already a member) and lets them leave it.
+ * "Notifications (n)" panel for the home page: an inbox of what still needs the user's attention.
+ *
+ * Every notification follows the same rule. The panel lists only unhandled (unread) ones. Acting
+ * on one (Accept, Reject, Leave list) marks it handled and shows the outcome in place of its
+ * buttons until the user leaves the page, so it is gone on the next visit. Opening a link (Open
+ * list, View recipe) marks it handled too, and Dismiss removes it at once. Nothing is lost: lists
+ * live on the grocery page and shared recipes on their own pages.
  */
 @Component({
   selector: 'app-notifications-panel',
@@ -26,20 +33,24 @@ const MAX_SHOWN = 5;
   styleUrl: './notifications-panel.css',
 })
 export class NotificationsPanel implements OnInit {
-  /** All of the user's notifications, newest first. */
+  /** Unhandled notifications from the last load, newest first, plus any handled this visit. */
   protected readonly notifications = signal<UserNotification[]>([]);
   /** True if the notifications could not be loaded. */
   protected readonly loadError = signal(false);
-  /** The last error from accepting or rejecting, or null. */
+  /** The last error from acting on a notification, or null. */
   protected readonly actionError = signal<string | null>(null);
   /** Id of the notification being answered, so its buttons can't be pressed twice. */
   protected readonly busyId = signal<string | null>(null);
-  /** For notifications accepted this visit: the id of the list that was created. */
-  protected readonly acceptedLists = signal<Record<string, string>>({});
+  /** Outcomes of notifications handled this visit, by id. */
+  protected readonly outcomes = signal<Record<string, Outcome>>({});
 
   /** The notifications the panel lists. */
   protected readonly shown = computed(() => this.notifications().slice(0, MAX_SHOWN));
-  /** The number in the heading: notifications not yet answered. */
+  /** How many more there are than the panel lists. */
+  protected readonly hiddenCount = computed(() =>
+    Math.max(0, this.notifications().length - MAX_SHOWN),
+  );
+  /** The number in the heading: notifications still waiting for the user. */
   protected readonly unreadCount = computed(
     () => this.notifications().filter((item) => !item.read).length,
   );
@@ -51,40 +62,36 @@ export class NotificationsPanel implements OnInit {
     private readonly session: SessionService,
   ) {}
 
-  /** Loads the notifications when the panel appears. */
+  /** Loads the notifications still waiting for the user. */
   public ngOnInit(): void {
     this.notificationsService.getNotifications().subscribe({
-      next: (notifications) => this.notifications.set(notifications),
+      next: (notifications) => this.notifications.set(notifications.filter((item) => !item.read)),
       error: () => this.loadError.set(true),
     });
   }
 
-  /** "Accept": the backend creates a new list from the shared one. */
+  /** "Accept" on a list copy: the backend creates a new list from it. */
   protected accept(item: UserNotification): void {
     this.busyId.set(item.id);
     this.groceryLists.acceptShare(item.id).subscribe({
       next: (list) => {
-        this.acceptedLists.update((lists) => ({ ...lists, [item.id]: list.id }));
-        this.answered(item, 'accepted');
+        this.handled(item, { message: 'Added to your grocery lists', listId: list.id });
         this.toasts.success(`Added “${list.name}” to your grocery lists`);
       },
       error: (error: unknown) => this.fail(error),
     });
   }
 
-  /** "Reject": nothing is added to the user's account. */
+  /** "Reject" on a list copy: nothing is added to the user's account. */
   protected reject(item: UserNotification): void {
     this.busyId.set(item.id);
     this.groceryLists.rejectShare(item.id).subscribe({
-      next: () => this.answered(item, 'rejected'),
+      next: () => this.handled(item, { message: 'Rejected' }),
       error: (error: unknown) => this.fail(error),
     });
   }
 
-  /**
-   * "Leave list" on a live list invite: removes the user from the list. The backend deletes the
-   * invite too, so it is dropped from the panel.
-   */
+  /** "Leave list" on a live list invite: removes the user from the list (and the invite). */
   protected leave(item: GroceryListInviteNotification): void {
     const userId = this.session.userId();
     if (userId === null) {
@@ -92,36 +99,36 @@ export class NotificationsPanel implements OnInit {
     }
     this.busyId.set(item.id);
     this.groceryLists.removeMember(item.payload.listId, userId).subscribe({
+      next: () => this.handled(item, { message: 'You left this list' }),
+      error: (error: unknown) => this.fail(error),
+    });
+  }
+
+  /** "Open list" / "View recipe": the link navigates away; this records it as handled. */
+  protected opened(item: UserNotification): void {
+    this.notificationsService.markRead(item.id).subscribe({
+      error: (error: unknown) => this.actionError.set(errorMessage(error)),
+    });
+  }
+
+  /** "Dismiss": marks it handled and removes it from the panel at once. */
+  protected dismiss(item: UserNotification): void {
+    this.busyId.set(item.id);
+    this.notificationsService.markRead(item.id).subscribe({
       next: () => {
         this.notifications.update((all) => all.filter((existing) => existing.id !== item.id));
         this.busyId.set(null);
         this.actionError.set(null);
-        this.toasts.success(`You left “${item.payload.listName}”`);
       },
       error: (error: unknown) => this.fail(error),
     });
   }
 
-  /** Marks a notification read (opening a shared recipe or list, or dismissing a revoked notice). */
-  protected markRead(item: UserNotification): void {
-    if (item.read) {
-      return;
-    }
-    this.notificationsService.markRead(item.id).subscribe({
-      next: () =>
-        this.notifications.update((all) =>
-          all.map((existing) => (existing.id === item.id ? { ...existing, read: true } : existing)),
-        ),
-      error: (error: unknown) => this.actionError.set(errorMessage(error)),
-    });
-  }
-
-  /** Shows the notification as answered (and read) without reloading. */
-  private answered(item: UserNotification, status: NotificationStatus): void {
+  /** Shows the outcome in place of the buttons, and stops counting it as waiting. */
+  private handled(item: UserNotification, outcome: Outcome): void {
+    this.outcomes.update((outcomes) => ({ ...outcomes, [item.id]: outcome }));
     this.notifications.update((all) =>
-      all.map((existing) =>
-        existing.id === item.id ? { ...existing, status, read: true } : existing,
-      ),
+      all.map((existing) => (existing.id === item.id ? { ...existing, read: true } : existing)),
     );
     this.busyId.set(null);
     this.actionError.set(null);
