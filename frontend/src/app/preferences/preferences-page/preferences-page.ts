@@ -29,11 +29,14 @@ interface PreferencesForm {
   carbohydrates: number | null;
   fat: number | null;
   blockRecipeShares: boolean;
+  blockListInvites: boolean;
+  blockListCopies: boolean;
 }
 
 /**
  * Preferences page (`/preferences`, UC10): the user's default serving size,
- * dietary restrictions, and daily calorie and macro goals. The recipe feed
+ * dietary restrictions, daily calorie and macro goals, and what other users
+ * may share with them. The recipe feed
  * and recipe page read them through `PreferencesService`.
  */
 @Component({
@@ -76,6 +79,8 @@ export class PreferencesPage implements OnInit {
     carbohydrates: new FormControl<number | null>(null),
     fat: new FormControl<number | null>(null),
     blockRecipeShares: new FormControl(false, { nonNullable: true }),
+    blockListInvites: new FormControl(false, { nonNullable: true }),
+    blockListCopies: new FormControl(false, { nonNullable: true }),
   });
 
   /** The form's values as a signal, so `plan` recomputes as the user types. */
@@ -217,6 +222,8 @@ export class PreferencesPage implements OnInit {
       defaultServings: preferences.defaultServings,
       dailyCalories: preferences.dailyCalories,
       blockRecipeShares: preferences.blockRecipeShares,
+      blockListInvites: preferences.blockListInvites,
+      blockListCopies: preferences.blockListCopies,
       ...preferences.macroGoals,
     });
   }
@@ -243,6 +250,8 @@ export class PreferencesPage implements OnInit {
       dailyCalories: numberOrNull(values.dailyCalories),
       macroGoals,
       blockRecipeShares: values.blockRecipeShares,
+      blockListInvites: values.blockListInvites,
+      blockListCopies: values.blockListCopies,
     };
   }
 }

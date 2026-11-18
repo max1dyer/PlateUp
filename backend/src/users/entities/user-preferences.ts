@@ -1,5 +1,5 @@
 import { DietaryRestriction } from '../../common/domain/dietary-restriction';
-import { requireIntegerInRange, requireOneOf } from '../../common/domain/guards';
+import { requireBoolean, requireIntegerInRange, requireOneOf } from '../../common/domain/guards';
 import { DomainValidationError } from '../../common/errors/domain-validation.error';
 
 /** Servings new accounts start with (spec 3.4: "a default serving size of ~2"). */
@@ -34,6 +34,10 @@ export interface UserPreferencesProps {
   macroGoals: MacroGoals;
   /** When true, other users cannot share recipes with this user. */
   blockRecipeShares: boolean;
+  /** When true, other users cannot add this user to a live (shared) grocery list. */
+  blockListInvites: boolean;
+  /** When true, other users cannot send this user a copy of a grocery list. */
+  blockListCopies: boolean;
 }
 
 /** A partial edit; `macroGoals` may name only the macros that change. */
@@ -89,7 +93,8 @@ export function deriveDailyTargets(calories: number | null, macros: MacroGoals):
 
 /**
  * A user's personal settings (UC10): default servings, dietary restrictions,
- * and a daily calorie goal with gram goals per macro. Immutable value object;
+ * a daily calorie goal with gram goals per macro, and what other users may
+ * share with them (recipes, live grocery lists, list copies). Immutable value object;
  * `with()` returns a validated copy.
  */
 export class UserPreferences {
@@ -98,6 +103,8 @@ export class UserPreferences {
   public readonly dailyCalories: number | null;
   public readonly macroGoals: Readonly<MacroGoals>;
   public readonly blockRecipeShares: boolean;
+  public readonly blockListInvites: boolean;
+  public readonly blockListCopies: boolean;
 
   /** @throws DomainValidationError if any value is out of range or not recognised. */
   constructor(props: UserPreferencesProps) {
@@ -118,10 +125,9 @@ export class UserPreferences {
             'Daily calories',
           );
     this.macroGoals = UserPreferences.validateMacroGoals(props.macroGoals);
-    if (typeof props.blockRecipeShares !== 'boolean') {
-      throw new DomainValidationError('Block recipe shares must be true or false.');
-    }
-    this.blockRecipeShares = props.blockRecipeShares;
+    this.blockRecipeShares = requireBoolean(props.blockRecipeShares, 'Block recipe shares');
+    this.blockListInvites = requireBoolean(props.blockListInvites, 'Block live list invites');
+    this.blockListCopies = requireBoolean(props.blockListCopies, 'Block grocery list copies');
   }
 
   /** What a new account starts with: default servings, no restrictions, no goals. */
@@ -132,6 +138,8 @@ export class UserPreferences {
       dailyCalories: null,
       macroGoals: { protein: null, carbohydrates: null, fat: null },
       blockRecipeShares: false,
+      blockListInvites: false,
+      blockListCopies: false,
     });
   }
 
@@ -164,6 +172,8 @@ export class UserPreferences {
       dailyCalories: this.dailyCalories,
       macroGoals: { ...this.macroGoals },
       blockRecipeShares: this.blockRecipeShares,
+      blockListInvites: this.blockListInvites,
+      blockListCopies: this.blockListCopies,
     };
   }
 

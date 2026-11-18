@@ -106,7 +106,7 @@ export class GroceryListsService {
    * Shares the list with another user by username; they can then see and edit it, and they get a
    * notification on their home page linking to it.
    *
-   * @throws ForbiddenException if the acting user is not the owner.
+   * @throws ForbiddenException if the acting user is not the owner, or the user blocks live lists.
    * @throws NotFoundException if no user has that username.
    * @throws DomainValidationError if they already have the list.
    */
@@ -120,6 +120,10 @@ export class GroceryListsService {
       throw new ForbiddenException('Only the owner can share this list.');
     }
     const user = await this.usersService.findByUsername(dto.username ?? '');
+    // Someone who already has the list (including the owner) gets addMember's "already has" error.
+    if (!list.isAccessibleTo(user.id) && user.preferences.blockListInvites) {
+      throw new ForbiddenException(`${user.displayName} isn't accepting shared grocery lists.`);
+    }
     list.addMember({ id: user.id, name: user.displayName });
     await this.log(list, ownerId, `shared the list with ${user.displayName}`);
     const saved = await this.groceryLists.save(list);
@@ -382,6 +386,7 @@ export class GroceryListsService {
    * or reject. Nothing is added to the recipient's account until they accept.
    *
    * @throws NotFoundException if the list or the recipient is not found.
+   * @throws ForbiddenException if the recipient blocks grocery list copies.
    * @throws DomainValidationError if the user tries to send a list to themselves.
    */
   public async share(ownerId: string, listId: string, dto: ShareGroceryListDto): Promise<void> {
@@ -389,6 +394,9 @@ export class GroceryListsService {
     const recipient = await this.usersService.findByUsername(dto.recipientUsername);
     if (recipient.id === ownerId) {
       throw new DomainValidationError("You can't send a grocery list to yourself.");
+    }
+    if (recipient.preferences.blockListCopies) {
+      throw new ForbiddenException(`${recipient.displayName} isn't accepting grocery list copies.`);
     }
     const sender = await this.usersService.findOne(ownerId);
     await this.notificationsService.create(

@@ -385,6 +385,16 @@ describe('GroceryListsService', () => {
       expect(await notifications.findAll(recipient.id)).toHaveLength(0);
     });
 
+    it('share refuses a recipient who blocks grocery list copies', async () => {
+      const { sender, recipient, list } = await setUp();
+      await users.updatePreferences(recipient.id, { blockListCopies: true });
+
+      await expect(service.share(sender.id, list.id, { recipientUsername: 'bob' })).rejects.toThrow(
+        ForbiddenException,
+      );
+      expect(await notifications.findAll(recipient.id)).toHaveLength(0);
+    });
+
     it('acceptShare creates an independent list in the recipient account', async () => {
       const { sender, recipient, list } = await setUp();
       await service.share(sender.id, list.id, { recipientUsername: 'bob' });
@@ -643,6 +653,19 @@ describe('GroceryListsService', () => {
         DomainValidationError,
       );
       expect(await notifications.findAll(bob.id)).toHaveLength(1);
+    });
+
+    it('refuses adding someone who blocks live lists, without notifying them', async () => {
+      const alice = await register('alice');
+      const bob = await register('bob');
+      await users.updatePreferences(bob.id, { blockListInvites: true });
+      const list = await service.create(alice.id, { name: 'Shared' });
+
+      await expect(service.addMember(alice.id, list.id, { username: 'bob' })).rejects.toThrow(
+        ForbiddenException,
+      );
+      expect((await service.findOne(alice.id, list.id)).members).toHaveLength(0);
+      expect(await notifications.findAll(bob.id)).toHaveLength(0);
     });
 
     it('refuses sharing with someone who already has the list', async () => {

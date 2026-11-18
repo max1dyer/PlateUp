@@ -13,6 +13,22 @@
     </div>
   } @else {
     <form class="preferences" [formGroup]="form" (ngSubmit)="save()">
+      <fieldset class="ui-card green">
+        <legend class="ui-heading">Sharing</legend>
+        <label class="restriction">
+          <input id="block-recipe-shares" type="checkbox" formControlName="blockRecipeShares" />
+          Don't let others share recipes with me
+        </label>
+        <label class="restriction">
+          <input id="block-list-copies" type="checkbox" formControlName="blockListCopies" />
+          Don't let others send me copies of their grocery lists
+        </label>
+        <label class="restriction">
+          <input id="block-list-invites" type="checkbox" formControlName="blockListInvites" />
+          Don't let others add me to their live grocery lists
+        </label>
+      </fieldset>
+
       <fieldset class="ui-card">
         <!-- Default servings recipes open at -->
         <legend class="ui-heading">Serving size</legend>
@@ -179,18 +195,6 @@
           @if (plan().status !== 'empty') {
             <button type="button" class="link-button" (click)="clearGoals()">Clear goals</button>
           }
-        </p>
-      </fieldset>
-
-      <fieldset class="ui-card green">
-        <legend class="ui-heading">Recipe sharing</legend>
-        <label class="restriction">
-          <input id="block-recipe-shares" type="checkbox" formControlName="blockRecipeShares" />
-          Don't send me recipes
-        </label>
-        <p class="ui-hint">
-          When this is on, other users get an error if they try to share a recipe with you. Recipes
-          already shared with you stay visible.
         </p>
       </fieldset>
 

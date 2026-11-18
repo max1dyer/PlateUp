@@ -77,6 +77,8 @@ describe('PreferencesPage', () => {
       dailyCalories: 2000,
       macroGoals: { protein: 150, carbohydrates: 200, fat: null },
       blockRecipeShares: false,
+      blockListInvites: false,
+      blockListCopies: false,
     });
   });
 
@@ -165,19 +167,28 @@ describe('PreferencesPage', () => {
     expect(page.querySelector('.ui-status')?.textContent).toContain("couldn't load");
   });
 
-  it('shows and saves the "don\'t send me recipes" setting', async () => {
-    service.load.mockReturnValue(of(preferences({ blockRecipeShares: true })));
-    service.update.mockReturnValue(of(preferences({ blockRecipeShares: false })));
+  it('shows and saves the sharing settings', async () => {
+    service.load.mockReturnValue(
+      of(preferences({ blockRecipeShares: true, blockListInvites: false, blockListCopies: true })),
+    );
+    service.update.mockReturnValue(of(preferences()));
     const page = await render();
 
     expect(input(page, 'block-recipe-shares').checked).toBe(true);
+    expect(input(page, 'block-list-invites').checked).toBe(false);
+    expect(input(page, 'block-list-copies').checked).toBe(true);
 
     input(page, 'block-recipe-shares').click();
+    input(page, 'block-list-invites').click();
     (page.querySelector('button[type="submit"]') as HTMLButtonElement).click();
     await TestBed.inject(ApplicationRef).whenStable();
 
     expect(service.update).toHaveBeenCalledWith(
-      expect.objectContaining({ blockRecipeShares: false }),
+      expect.objectContaining({
+        blockRecipeShares: false,
+        blockListInvites: true,
+        blockListCopies: true,
+      }),
     );
   });
 });
