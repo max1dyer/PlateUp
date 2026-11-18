@@ -5,6 +5,8 @@ import { groceryItem, groceryList } from '../grocery-list.fixtures';
 import { DEFAULT_LIST_NAME, GroceryListPage } from './grocery-list-page';
 import { GroceryListsService } from '../grocery-lists.service';
 import { HttpErrorResponse } from '@angular/common/http';
+import { signal } from '@angular/core';
+import { SessionService } from '../../core/session.service';
 
 describe('GroceryListPage', () => {
   const service = {
@@ -15,6 +17,9 @@ describe('GroceryListPage', () => {
     removePurchasedItems: vi.fn(),
     movePurchasedToPantry: vi.fn(),
     shareList: vi.fn(),
+    addMember: vi.fn(),
+    removeMember: vi.fn(),
+    getList: vi.fn(),
   };
 
   async function render(url = '/grocery'): Promise<{
@@ -26,6 +31,8 @@ describe('GroceryListPage', () => {
       providers: [
         provideRouter([{ path: 'grocery', component: GroceryListPage }]),
         { provide: GroceryListsService, useValue: service },
+        // Signed in as the fixtures' list owner.
+        { provide: SessionService, useValue: { userId: signal('demo-user') } },
       ],
     }).compileComponents();
     await TestBed.inject(Router).navigateByUrl(url);
@@ -58,7 +65,7 @@ describe('GroceryListPage', () => {
 
     const { page } = await render();
 
-    expect(text(page, '.heading')).toEqual(['All items (3)']);
+    expect(text(page, '.heading')).toEqual(['Items (3)']);
     expect(text(page, '.summary-text')[0]).toContain('1 of 3 in cart');
     expect(text(page, '.group-label')).toEqual(['Protein', 'Produce']);
     expect(text(page, '.name')).toEqual(['Chicken breast', 'Eggs', 'Shredded Lettuce']);
@@ -74,7 +81,7 @@ describe('GroceryListPage', () => {
     const { page } = await render();
 
     expect(service.createList).toHaveBeenCalledWith(DEFAULT_LIST_NAME);
-    expect(text(page, '.status')[0]).toContain('Your Grocery List is empty.');
+    expect(text(page, '.status')[0]).toContain('Your list is empty.');
   });
 
   it('shows an error with a retry when the list cannot be loaded', async () => {
@@ -94,7 +101,7 @@ describe('GroceryListPage', () => {
     fixture.detectChanges();
 
     expect(service.removePurchasedItems).toHaveBeenCalledWith('list-1');
-    expect(text(page, '.heading')).toEqual(['All items (0)']);
+    expect(text(page, '.heading')).toEqual(['Items (0)']);
   });
 
   it('+ Add items opens the add form', async () => {
@@ -158,15 +165,16 @@ describe('GroceryListPage', () => {
     fixture.detectChanges();
 
     expect(service.movePurchasedToPantry).toHaveBeenCalledWith('list-1');
-    expect(text(page, '.heading')).toEqual(['All items (1)']);
+    expect(text(page, '.heading')).toEqual(['Items (1)']);
     expect(text(page, '.error')[0]).toContain('Give Chips an amount');
   });
 
-  it('Move to Pantry is disabled when nothing is checked', async () => {
+  it('hides the bulk actions until something is checked', async () => {
     service.getLists.mockReturnValue(of([groceryList([groceryItem()])]));
     const { page } = await render();
 
-    expect((page.querySelector('.move-to-pantry') as HTMLButtonElement).disabled).toBe(true);
+    expect(page.querySelector('.move-to-pantry')).toBeNull();
+    expect(page.querySelector('.remove-selected')).toBeNull();
   });
 
   it('Send to user sends the list to the typed username', async () => {
@@ -174,7 +182,7 @@ describe('GroceryListPage', () => {
     service.shareList.mockReturnValue(of(undefined));
     const { fixture, page } = await render();
 
-    (page.querySelector('.share .manage') as HTMLButtonElement).click();
+    (page.querySelector('.send-copy') as HTMLButtonElement).click();
     fixture.detectChanges();
     const input = page.querySelector('.share-name') as HTMLInputElement;
     input.value = 'bob';
@@ -200,7 +208,7 @@ describe('GroceryListPage', () => {
     );
     const { fixture, page } = await render();
 
-    (page.querySelector('.share .manage') as HTMLButtonElement).click();
+    (page.querySelector('.send-copy') as HTMLButtonElement).click();
     fixture.detectChanges();
     const input = page.querySelector('.share-name') as HTMLInputElement;
     input.value = 'zed';
@@ -260,5 +268,124 @@ describe('GroceryListPage', () => {
     const buttons = [...page.querySelectorAll<HTMLButtonElement>('.export .manage')];
     expect(buttons).toHaveLength(2);
     expect(buttons.every((button) => button.disabled)).toBe(true);
+  });
+
+  it('Share adds the typed username as a member of the list', async () => {
+    const shared = groceryList([], { members: [{ id: 'bob-id', name: 'Bob' }] });
+    service.getLists.mockReturnValue(of([groceryList()]));
+    service.addMember.mockReturnValue(of(shared));
+    const { fixture, page } = await render();
+
+    (page.querySelector('.share-list') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    const input = page.querySelector('.collab-form input') as HTMLInputElement;
+    input.value = 'bob';
+    input.dispatchEvent(new Event('input'));
+    (page.querySelector('.collab-form') as HTMLFormElement).dispatchEvent(new Event('submit'));
+    fixture.detectChanges();
+
+    expect(service.addMember).toHaveBeenCalledWith('list-1', 'bob');
+    expect(text(page, '.member')[0]).toContain('Bob');
+  });
+
+  it('tags items another member added to a shared list', async () => {
+    service.getLists.mockReturnValue(
+      of([
+        groceryList(
+          [
+            groceryItem({ id: 'a', name: 'Milk', addedBy: { id: 'bob-id', name: 'Bob' } }),
+            groceryItem({ id: 'b', name: 'Eggs', addedBy: { id: 'demo-user', name: 'Me' } }),
+          ],
+          { members: [{ id: 'bob-id', name: 'Bob' }] },
+        ),
+      ]),
+    );
+    const { page } = await render();
+
+    expect(text(page, '.added-by')).toEqual(['Bob']);
+  });
+
+  it('a member sees Leave instead of Delete', async () => {
+    service.getLists.mockReturnValue(of([groceryList([], { ownerId: 'alice-id' })]));
+    const { page } = await render();
+
+    expect(text(page, '.collab')[0]).toContain('Shared with you');
+    expect(page.querySelector('.delete-list')).toBeNull();
+    expect(page.querySelector('[aria-label="Delete list"]')).toBeNull();
+    expect(text(page, '.collab .leave')).toEqual(['Leave']);
+  });
+
+  it('picks up another member’s change to a shared list and notes it', async () => {
+    const before = groceryList([], { members: [{ id: 'bob-id', name: 'Bob' }] });
+    const after = groceryList([groceryItem({ id: 'm', name: 'Milk' })], {
+      members: before.members,
+      updatedAt: '2026-10-28T00:00:00.000Z',
+      activity: [
+        { by: { id: 'bob-id', name: 'Bob' }, message: 'added Milk', at: '2026-10-28T00:00:00Z' },
+      ],
+    });
+    service.getLists.mockReturnValue(of([before]));
+    service.getList.mockReturnValue(of(after));
+    const { fixture, page } = await render();
+
+    fixture.componentInstance['pollSharedList']();
+    fixture.detectChanges();
+
+    expect(service.getList).toHaveBeenCalledWith('list-1');
+    expect(text(page, '.name')).toEqual(['Milk']);
+    expect(text(page, '.live-update')[0]).toContain('Bob added Milk');
+  });
+
+  it('does not poll a list that is not shared', async () => {
+    service.getLists.mockReturnValue(of([groceryList()]));
+    const { fixture } = await render();
+
+    fixture.componentInstance['pollSharedList']();
+
+    expect(service.getList).not.toHaveBeenCalled();
+  });
+
+  it('+ New hides the current list and shows the name field in the picker’s place', async () => {
+    service.getLists.mockReturnValue(of([groceryList([groceryItem({ name: 'Eggs' })])]));
+    const { fixture, page } = await render();
+
+    (page.querySelector('.new-list') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(page.querySelector('.list-picker')).toBeNull();
+    expect(page.querySelector('.list-name')).not.toBeNull();
+    expect(text(page, '.name')).toEqual([]);
+  });
+
+  it('the rename icon edits the list name in place', async () => {
+    service.getLists.mockReturnValue(of([groceryList()]));
+    service.renameList.mockReturnValue(of(groceryList([], { name: 'Weekly' })));
+    const { fixture, page } = await render();
+
+    (page.querySelector('[aria-label="Rename list"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    const input = page.querySelector('.list-name') as HTMLInputElement;
+    expect(input.value).toBe('Grocery list');
+    input.value = 'Weekly';
+    input.dispatchEvent(new Event('input'));
+    (page.querySelector('.list-name-form') as HTMLFormElement).dispatchEvent(new Event('submit'));
+    fixture.detectChanges();
+
+    expect(service.renameList).toHaveBeenCalledWith('list-1', 'Weekly');
+    expect(page.querySelector('.list-picker')).not.toBeNull();
+  });
+
+  it('the delete icon asks first, then deletes the list', async () => {
+    service.getLists.mockReturnValue(of([groceryList(), groceryList([], { id: 'list-2' })]));
+    service.deleteList.mockReturnValue(of(undefined));
+    const { fixture, page } = await render();
+
+    (page.querySelector('[aria-label="Delete list"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(text(page, '.confirm-text')[0]).toContain('Delete “Grocery list”?');
+    (page.querySelector('.delete-list .danger') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(service.deleteList).toHaveBeenCalledWith('list-1');
   });
 });

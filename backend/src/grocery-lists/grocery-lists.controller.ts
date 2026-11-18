@@ -11,6 +11,7 @@ import { MoveToPantryResult } from './dto/move-to-pantry-result';
 import { GroceryList } from './entities/grocery-list.entity';
 import { GroceryListsService } from './grocery-lists.service';
 import { ShareGroceryListDto } from './dto/share-grocery-list.dto';
+import { AddListMemberDto } from './dto/add-list-member.dto';
 
 /**
  * HTTP routes under `/grocery-lists` for a user's shopping lists and their items, including adding
@@ -59,6 +60,29 @@ export class GroceryListsController {
   @HttpCode(204)
   public remove(@CurrentUserId() userId: string, @Param('listId') listId: string): Promise<void> {
     return this.groceryListsService.remove(userId, listId);
+  }
+
+  /** `POST /grocery-lists/:listId/members`: shares the list with another user by username. */
+  @Post(':listId/members')
+  public addMember(
+    @CurrentUserId() userId: string,
+    @Param('listId') listId: string,
+    @Body() dto: AddListMemberDto,
+  ): Promise<GroceryList> {
+    return this.groceryListsService.addMember(userId, listId, dto);
+  }
+
+  /**
+   * `DELETE /grocery-lists/:listId/members/:memberId`: stops sharing with a member (or, with your
+   * own id, leaves a list someone shared with you).
+   */
+  @Delete(':listId/members/:memberId')
+  public removeMember(
+    @CurrentUserId() userId: string,
+    @Param('listId') listId: string,
+    @Param('memberId') memberId: string,
+  ): Promise<GroceryList> {
+    return this.groceryListsService.removeMember(userId, listId, memberId);
   }
 
   /** `POST /grocery-lists/:listId/items`: adds an item, combining it with a matching line. */

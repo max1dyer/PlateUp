@@ -9,8 +9,8 @@ export class InMemoryGroceryListRepository
   extends InMemoryRepository<GroceryList>
   implements GroceryListRepository
 {
-  /** Every list owned by this user. */
-  public findByOwner(ownerId: string): Promise<GroceryList[]> {
-    return this.findWhere((list) => list.isOwnedBy(ownerId));
+  /** Every list this user owns or was given access to. */
+  public findAccessibleTo(userId: string): Promise<GroceryList[]> {
+    return this.findWhere((list) => list.isAccessibleTo(userId));
   }
 }

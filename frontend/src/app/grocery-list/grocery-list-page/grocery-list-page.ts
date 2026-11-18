@@ -1,13 +1,32 @@
-import { Component, OnInit, computed, signal } from '@angular/core';
+import {
+  Component,
+  DestroyRef,
+  ElementRef,
+  Injector,
+  OnInit,
+  afterNextRender,
+  computed,
+  signal,
+  viewChild,
+} from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Observable } from 'rxjs';
+import { Observable, interval } from 'rxjs';
 import { errorMessage } from '../../core/api';
+import { SessionService } from '../../core/session.service';
 import { ToastService } from '../../core/toast.service';
 import { AddItemsForm } from '../add-items-form/add-items-form';
 import { GroceryItemRow } from '../grocery-item-row/grocery-item-row';
 import { groupByCategory, formatListAsText } from '../grocery-list-format';
-import { GroceryList } from '../grocery-list.models';
+import { GroceryList, GroceryListItem } from '../grocery-list.models';
+
+/** How many recent changes "Recent changes" shows. */
+export const ACTIVITY_SHOWN = 10;
+/** How often a shared list is checked for other people's changes, in milliseconds. */
+export const LIVE_POLL_MS = 10_000;
+/** How long the "Bob added Milk" note stays up, in milliseconds. */
+export const LIVE_NOTE_MS = 8_000;
 import { GroceryListsService } from '../grocery-lists.service';
 
 /** Name given to the list created for a user who has none yet. */
@@ -41,12 +60,25 @@ export class GroceryListPage implements OnInit {
   /** True while the "+ Add items" form is open. */
   protected readonly adding = signal(false);
   protected readonly listMode = signal<ListMode>('view');
+  /** The list-name field shown while creating or renaming, focused as soon as it appears. */
+  private readonly nameInput = viewChild<ElementRef<HTMLInputElement>>('nameInput');
   /** True while the "Delete this list?" confirmation is showing. */
   protected readonly confirmingDelete = signal(false);
   /** True while the "Send to user" username field is open. */
   protected readonly sharing = signal(false);
   /** The username field used when sending a copy of the list to another user. */
   protected readonly shareForm = new FormGroup({
+    username: new FormControl('', { nonNullable: true }),
+  });
+  /** The latest change someone else made to the shown shared list, e.g. "Bob added Milk". */
+  protected readonly liveUpdate = signal<string | null>(null);
+  /** How often shared lists refresh, shown next to "Live". */
+  protected readonly liveSeconds = LIVE_POLL_MS / 1000;
+  private liveNoteTimer: ReturnType<typeof setTimeout> | undefined;
+  /** True while the "Share with" username field is open. */
+  protected readonly addingMember = signal(false);
+  /** The username field for sharing the list with another user. */
+  protected readonly memberForm = new FormGroup({
     username: new FormControl('', { nonNullable: true }),
   });
   /** The name field used when creating or renaming a list. */
@@ -57,6 +89,16 @@ export class GroceryListPage implements OnInit {
   /** The list being shown, or null before any have loaded. */
   protected readonly list = computed(
     () => this.lists().find((list) => list.id === this.selectedId()) ?? null,
+  );
+  /** True if the signed-in user owns the shown list (only the owner can share or delete it). */
+  protected readonly isOwner = computed(() => this.list()?.ownerId === this.session.userId());
+  /** True if the shown list is shared: the owner added members, or someone shared it with us. */
+  protected readonly isShared = computed(() => {
+    const list = this.list();
+    return !!list && (list.members.length > 0 || !this.isOwner());
+  });
+  protected readonly activity = computed(
+    () => this.list()?.activity.slice(0, ACTIVITY_SHOWN) ?? [],
   );
   /** True where the browser can open the system share sheet (iPhone, Android, Safari). */
   protected readonly canShare =
@@ -76,14 +118,22 @@ export class GroceryListPage implements OnInit {
 
   constructor(
     private readonly groceryLists: GroceryListsService,
+    private readonly session: SessionService,
     private readonly toasts: ToastService,
     private readonly route: ActivatedRoute,
     private readonly router: Router,
+    private readonly destroyRef: DestroyRef,
+    private readonly injector: Injector,
   ) {}
 
   /** Loads the user's lists when the page opens. */
   public ngOnInit(): void {
     this.load();
+    // "Live" shared lists: poll the shown list while it is shared (a simple stand-in for push).
+    interval(LIVE_POLL_MS)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.pollSharedList());
+    this.destroyRef.onDestroy(() => clearTimeout(this.liveNoteTimer));
   }
 
   /**
@@ -105,6 +155,93 @@ export class GroceryListPage implements OnInit {
         this.loading.set(false);
       },
       error: () => this.failLoading(),
+    });
+  }
+
+  /** "👥 " in front of shared lists in the picker. */
+  protected pickerLabel(list: GroceryList): string {
+    const shared = list.members.length > 0 || list.ownerId !== this.session.userId();
+    return shared ? `👥 ${list.name}` : list.name;
+  }
+
+  /** True if someone other than the signed-in user made this change. */
+  protected isOther(userId: string): boolean {
+    return userId !== this.session.userId();
+  }
+
+  /** On a shared list, the name of whoever else added `item`; null for the user's own items. */
+  protected addedByName(item: GroceryListItem): string | null {
+    return this.isShared() && item.addedBy && this.isOther(item.addedBy.id)
+      ? item.addedBy.name
+      : null;
+  }
+
+  /** "just now", "5m ago", "3h ago", or "2d ago". */
+  protected ago(at: string): string {
+    const minutes = Math.floor((Date.now() - new Date(at).getTime()) / 60_000);
+    if (minutes < 1) {
+      return 'just now';
+    }
+    if (minutes < 60) {
+      return `${minutes}m ago`;
+    }
+    const hours = Math.floor(minutes / 60);
+    return hours < 24 ? `${hours}h ago` : `${Math.floor(hours / 24)}d ago`;
+  }
+
+  /** Opens an empty username field for "Share with". */
+  protected startAddingMember(): void {
+    this.memberForm.setValue({ username: '' });
+    this.sharing.set(false);
+    this.addingMember.set(true);
+  }
+
+  /** Shares the shown list with the typed username, so they can see and edit it. */
+  protected addMember(): void {
+    const list = this.list();
+    const username = this.memberForm.getRawValue().username.trim();
+    if (!list) {
+      return;
+    }
+    if (username.length === 0) {
+      this.actionError.set('Enter the username to share the list with.');
+      return;
+    }
+    this.groceryLists.addMember(list.id, username).subscribe({
+      next: (updated) => {
+        this.onListChanged(updated);
+        this.addingMember.set(false);
+        this.toasts.success(`Shared “${list.name}” with ${username}`);
+      },
+      error: (error: unknown) => this.actionError.set(errorMessage(error)),
+    });
+  }
+
+  /** The owner stops sharing with a member. */
+  protected removeMember(memberId: string): void {
+    const list = this.list();
+    if (!list) {
+      return;
+    }
+    this.groceryLists.removeMember(list.id, memberId).subscribe({
+      next: (updated) => this.onListChanged(updated),
+      error: (error: unknown) => this.actionError.set(errorMessage(error)),
+    });
+  }
+
+  /** A member leaves a list someone shared with them; it disappears from their lists. */
+  protected leaveList(): void {
+    const list = this.list();
+    const userId = this.session.userId();
+    if (!list || !userId) {
+      return;
+    }
+    this.groceryLists.removeMember(list.id, userId).subscribe({
+      next: () => {
+        this.toasts.success(`Left ${list.name}`);
+        this.dropList(list.id);
+      },
+      error: (error: unknown) => this.actionError.set(errorMessage(error)),
     });
   }
 
@@ -162,6 +299,7 @@ export class GroceryListPage implements OnInit {
   /** Opens an empty username field for "Send to user". */
   protected startSharing(): void {
     this.shareForm.setValue({ username: '' });
+    this.addingMember.set(false);
     this.sharing.set(true);
   }
 
@@ -237,12 +375,42 @@ export class GroceryListPage implements OnInit {
   protected startCreating(): void {
     this.listForm.setValue({ name: '' });
     this.listMode.set('create');
+    this.closeForms();
+    this.focusNameInput();
+  }
+
+  /** Leaves the name field (Cancel or Escape) and goes back to the shown list. */
+  protected cancelNaming(): void {
+    this.listMode.set('view');
+    this.actionError.set(null);
   }
 
   /** Shows the name field filled with the current list's name. */
   protected startRenaming(): void {
     this.listForm.setValue({ name: this.list()?.name ?? '' });
     this.listMode.set('rename');
+    this.focusNameInput();
+  }
+
+  /** Focuses (and selects) the list-name field once it has rendered. */
+  private focusNameInput(): void {
+    afterNextRender(
+      () => {
+        const input = this.nameInput()?.nativeElement;
+        input?.focus();
+        input?.select();
+      },
+      { injector: this.injector },
+    );
+  }
+
+  /** Closes the add, share, and delete forms. */
+  private closeForms(): void {
+    this.adding.set(false);
+    this.confirmingDelete.set(false);
+    this.sharing.set(false);
+    this.addingMember.set(false);
+    this.actionError.set(null);
   }
 
   /** Creates a new list or renames the current one, depending on `listMode`. */
@@ -287,16 +455,61 @@ export class GroceryListPage implements OnInit {
       next: () => {
         this.confirmingDelete.set(false);
         this.toasts.success(`Deleted ${list.name}`);
-        const remaining = this.lists().filter((other) => other.id !== list.id);
-        if (remaining.length === 0) {
-          this.createFirstList();
-          return;
-        }
-        this.lists.set(remaining);
-        this.select(remaining[0].id);
+        this.dropList(list.id);
       },
       error: (error: unknown) => this.actionError.set(errorMessage(error)),
     });
+  }
+
+  /**
+   * Fetches the shown list if it is shared and, when it changed, swaps in the new copy and briefly
+   * notes the newest change someone else made. Errors (e.g. access removed) are ignored.
+   */
+  private pollSharedList(): void {
+    const list = this.list();
+    if (!list || !this.isShared()) {
+      return;
+    }
+    this.groceryLists.getList(list.id).subscribe({
+      next: (latest) => {
+        if (
+          latest.updatedAt === list.updatedAt &&
+          latest.activity.length === list.activity.length
+        ) {
+          return;
+        }
+        const seenUntil = list.activity[0]?.at ?? '';
+        const fresh = latest.activity.filter(
+          (entry) => entry.at > seenUntil && this.isOther(entry.by.id),
+        );
+        this.lists.update((lists) =>
+          lists.map((existing) => (existing.id === latest.id ? latest : existing)),
+        );
+        if (fresh.length > 0) {
+          const more = fresh.length > 1 ? ` (+${fresh.length - 1} more)` : '';
+          this.showLiveUpdate(`${fresh[0].by.name} ${fresh[0].message}${more}`);
+        }
+      },
+      error: () => undefined,
+    });
+  }
+
+  /** Shows the live-update note for a few seconds. */
+  private showLiveUpdate(message: string): void {
+    clearTimeout(this.liveNoteTimer);
+    this.liveUpdate.set(message);
+    this.liveNoteTimer = setTimeout(() => this.liveUpdate.set(null), LIVE_NOTE_MS);
+  }
+
+  /** Removes a list from the page and selects another (creating one if none are left). */
+  private dropList(listId: string): void {
+    const remaining = this.lists().filter((other) => other.id !== listId);
+    if (remaining.length === 0) {
+      this.createFirstList();
+      return;
+    }
+    this.lists.set(remaining);
+    this.select(remaining[0].id);
   }
 
   /** Shows the given list, closing any open forms and clearing errors. */
@@ -306,6 +519,8 @@ export class GroceryListPage implements OnInit {
     this.confirmingDelete.set(false);
     this.actionError.set(null);
     this.sharing.set(false);
+    this.addingMember.set(false);
+    this.liveUpdate.set(null);
     // Keep the address in step so the page can be bookmarked or refreshed.
     void this.router.navigate([], {
       relativeTo: this.route,

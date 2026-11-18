@@ -30,6 +30,8 @@ export class GroceryItemRow {
   public readonly listId = input.required<string>();
   /** The item shown on this row. */
   public readonly item = input.required<GroceryListItem>();
+  /** On a shared list, the name of the other user who added the item (shown as a tag); else null. */
+  public readonly addedByName = input<string | null>(null);
   /** Emits the updated list after any change to this item. */
   public readonly listChanged = output<GroceryList>();
 

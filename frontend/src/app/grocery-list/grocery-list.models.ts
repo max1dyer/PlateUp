@@ -74,6 +74,19 @@ export interface Quantity {
   unit: Unit;
 }
 
+/** A user as shown on a shared list. */
+export interface ListMember {
+  id: string;
+  name: string;
+}
+
+/** One recent change to a shared list, e.g. Sam "added Milk". */
+export interface ListActivity {
+  by: ListMember;
+  message: string;
+  at: string;
+}
+
 /** One line on a grocery list, as returned by the backend. */
 export interface GroceryListItem {
   id: string;
@@ -83,6 +96,8 @@ export interface GroceryListItem {
   quantity: Quantity | null;
   category: IngredientCategory;
   purchased: boolean;
+  /** Who last added this item; null if unknown. */
+  addedBy: ListMember | null;
 }
 
 /** A grocery list with its items, as returned by `GET /grocery-lists`. */
@@ -93,6 +108,10 @@ export interface GroceryList {
   ownerId: string;
   name: string;
   items: GroceryListItem[];
+  /** Other users the owner shared the list with. */
+  members: ListMember[];
+  /** Recent changes to a shared list, newest first. */
+  activity: ListActivity[];
 }
 
 /** Body of `POST /grocery-lists/:listId/items`. */

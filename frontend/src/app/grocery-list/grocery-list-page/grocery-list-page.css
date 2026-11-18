@@ -1,60 +1,42 @@
-/* Measurements from the Figma "Grocery" frame. */
+/* Grocery page: the list and its items first; less-used actions live under "List options". */
 .page {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
   max-width: var(--page-width);
   margin: 0 auto;
   padding: 24px 20px 28px;
 }
 
-/* Page heading and list picker */
-.intro {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
 .title {
   margin: 0;
-  font-size: 40px;
+  font-size: 36px;
   line-height: 110%;
   font-weight: 400;
   color: var(--color-text);
 }
 
-.description {
-  margin: 0;
-  font-size: 20px;
-  line-height: 110%;
-  color: var(--color-text-muted);
-}
-
-.household {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 8px;
-}
-
-.household-icon {
-  flex: none;
-  width: 18px;
-  height: 18px;
-  color: var(--color-icon-green);
-}
-
+/* Text-style buttons used throughout the page */
 .manage {
   padding: 0;
   border: 0;
   background: none;
-  font-size: 18px;
-  line-height: 17px;
+  font-size: 17px;
+  line-height: 20px;
   color: var(--color-primary);
   cursor: pointer;
 }
 
-/* "+ Add items" and "Try again" buttons */
+.manage:disabled {
+  color: var(--color-text-muted);
+  cursor: default;
+}
+
+.manage.danger {
+  color: var(--color-error);
+}
+
+/* "+ Add items" and "Try again" */
 .action {
   width: 100%;
   height: 44px;
@@ -62,93 +44,167 @@
   border: 0;
   border-radius: var(--radius);
   background: var(--color-primary);
-  font-size: 22px;
-  line-height: 21px;
+  font-size: 20px;
   color: var(--color-on-color);
   cursor: pointer;
 }
 
-/* Item list: heading, cart summary, and bulk actions */
+/* List picker, sharing status, and live note */
+.list-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.picker-row,
+.list-name-form {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.list-picker,
+.list-name,
+.share-name {
+  flex: 1;
+  min-width: 0;
+  height: 36px;
+  padding: 0 8px;
+  border: 1px solid var(--color-checkbox-border);
+  border-radius: var(--radius);
+  background: #ffffff;
+  font-size: 18px;
+}
+
+/* Rename and delete icons beside the picker */
+.icon-button {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid var(--color-checkbox-border);
+  border-radius: var(--radius);
+  background: #ffffff;
+  font-size: 17px;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.icon-button:hover {
+  border-color: var(--color-primary);
+}
+
+.new-list {
+  flex: none;
+  white-space: nowrap;
+}
+
+/* "Delete “Weekly shop”?" shown in the picker's place */
+.confirm-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 17px;
+  color: var(--color-text);
+}
+
+.collab {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 15px;
+}
+
+.member {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--radius);
+  background: var(--color-card-green);
+  color: var(--color-text);
+}
+
+.remove-member {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.live {
+  margin-left: auto;
+  font-size: 13px;
+  color: var(--color-icon-green);
+}
+
+.live-update {
+  margin: 0;
+  padding: 4px 8px;
+  border-left: 3px solid var(--color-primary);
+  border-radius: var(--radius);
+  background: var(--color-card-cream);
+  font-size: 15px;
+  color: var(--color-text);
+}
+
+/* Items: count, bulk actions on checked items, and the category cards */
 .items {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
+.summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .heading {
   margin: 0;
-  font-size: 28px;
+  font-size: 24px;
   line-height: 110%;
   font-weight: 400;
   color: var(--color-text);
 }
 
-.summary {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-right: 11px;
-}
-
 .summary-text {
-  margin: 0;
-  font-size: 16px;
-  line-height: 110%;
+  margin: 2px 0 0;
+  font-size: 14px;
   color: var(--color-text-muted);
-}
-
-.remove-selected {
-  width: 148px;
-  height: 37px;
-  padding: 0;
-  border: 0;
-  border-radius: var(--radius);
-  background: var(--color-danger-tint);
-  font-size: 16px;
-  line-height: 110%;
-  color: var(--color-text-strong);
-  cursor: pointer;
 }
 
 .summary-actions {
   display: flex;
-  flex-direction: column;
   gap: 6px;
 }
 
+.remove-selected,
 .move-to-pantry {
-  width: 148px;
-  height: 37px;
-  padding: 0;
+  height: 32px;
+  padding: 0 10px;
   border: 0;
   border-radius: var(--radius);
-  background: var(--color-card-green);
-  font-size: 16px;
-  line-height: 110%;
+  font-size: 14px;
   color: var(--color-text-strong);
   cursor: pointer;
 }
 
-.remove-selected:disabled,
-.move-to-pantry:disabled {
-  cursor: default;
+.remove-selected {
+  background: var(--color-danger-tint);
 }
 
-.export {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
+.move-to-pantry {
+  background: var(--color-card-green);
 }
 
-.export .manage:disabled {
-  color: var(--color-text-muted);
-  cursor: default;
-}
-
-/* Category cards (alternating colours) and the lines between items */
 .group-label {
-  margin: 0;
-  font-size: 20px;
+  margin: 6px 0 0;
+  font-size: 18px;
   line-height: 110%;
   font-weight: 400;
   color: var(--color-text-strong);
@@ -168,7 +224,7 @@
 }
 
 .divider {
-  height: 3px;
+  height: 2px;
   border-radius: var(--radius);
   background: var(--color-primary);
 }
@@ -180,8 +236,8 @@
 /* Loading, empty, and error messages */
 .status {
   margin: 0;
-  font-size: 18px;
-  line-height: 110%;
+  font-size: 17px;
+  line-height: 130%;
   color: var(--color-text-muted);
 }
 
@@ -191,68 +247,76 @@
 
 .error {
   margin: 0;
-  font-size: 16px;
-  line-height: 110%;
+  font-size: 15px;
+  line-height: 130%;
   color: var(--color-error);
 }
 
-.list-picker,
-/* Creating, renaming, and deleting lists */
-.list-name {
-  flex: 1;
-  min-width: 0;
-  padding: 2px 6px;
-  border: 1px solid var(--color-checkbox-border);
-  border-radius: var(--radius);
-  background: #ffffff;
-  font-size: 18px;
+/* Collapsed sections: "Recent changes" and "List options" */
+.activity,
+.list-options {
+  border-top: 1px solid var(--color-checkbox-border);
+  padding-top: 10px;
+  font-size: 15px;
+  color: var(--color-text);
 }
 
-.list-name-form {
+.activity summary,
+.list-options summary {
+  cursor: pointer;
+  color: var(--color-text-muted);
+}
+
+.activity-entry {
+  margin: 6px 0 0;
+}
+
+.activity-entry.other {
+  padding-left: 6px;
+  border-left: 3px solid var(--color-primary);
+}
+
+.when {
+  color: var(--color-text-muted);
+}
+
+.option-group {
   display: flex;
-  flex: 1;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
 }
 
-.delete-list {
+.option-label {
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.options {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
-  font-size: 16px;
+  gap: 8px 18px;
 }
 
-/* Send a copy of the list to another user */
-.share .manage:disabled {
-  color: var(--color-text-muted);
-  cursor: default;
-}
-
+.collab-form,
 .share-form {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.share-name {
-  flex: 1;
-  min-width: 0;
-  padding: 2px 6px;
-  border: 1px solid var(--color-checkbox-border);
-  border-radius: var(--radius);
-  background: #ffffff;
-  font-size: 18px;
-}
-
-/* Desktop: wider column; the main actions stop stretching edge to edge. */
+/* Desktop: same stacked layout, just wider. */
 @media (min-width: 768px) {
   .page {
     max-width: var(--reading-width);
     padding: 36px 32px 48px;
   }
 
-  .household {
+  .list-header {
     max-width: var(--form-width);
   }
 
@@ -260,9 +324,5 @@
     align-self: flex-start;
     width: auto;
     padding: 0 28px;
-  }
-
-  .summary-actions {
-    flex-direction: row;
   }
 }

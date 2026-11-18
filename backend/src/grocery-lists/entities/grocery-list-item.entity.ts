@@ -3,6 +3,7 @@ import { requireBoolean, requireOneOf, requireText } from '../../common/domain/g
 import { IngredientCategory } from '../../common/domain/ingredient-category';
 import { isSameIngredient } from '../../common/domain/ingredient-name';
 import { Quantity } from '../../common/domain/quantity';
+import { ListMember } from './list-member';
 
 /** The fields a grocery item serializes to. */
 export interface GroceryListItemSnapshot {
@@ -10,10 +11,12 @@ export interface GroceryListItemSnapshot {
   quantity: Quantity | null;
   category: IngredientCategory;
   purchased: boolean;
+  /** Who last added this item (or more of it), shown on shared lists; null if unknown. */
+  addedBy: ListMember | null;
 }
 
 /** The fields of an item that can be edited; omitted fields stay unchanged. */
-export type GroceryListItemChanges = Partial<GroceryListItemSnapshot>;
+export type GroceryListItemChanges = Partial<Omit<GroceryListItemSnapshot, 'addedBy'>>;
 
 /**
  * A line on a grocery list. Only created and changed through its GroceryList,
@@ -24,17 +27,20 @@ export class GroceryListItem extends BaseEntity<GroceryListItemSnapshot> {
   private itemQuantity: Quantity | null;
   private itemCategory: IngredientCategory;
   private isPurchased = false;
+  private addedByMember: ListMember | null;
 
   /** @throws DomainValidationError if the name is blank or the category is unknown. */
   constructor(
     name: string,
     quantity: Quantity | null = null,
     category: IngredientCategory = IngredientCategory.Other,
+    addedBy: ListMember | null = null,
   ) {
     super();
     this.itemName = requireText(name, 'Grocery item name');
     this.itemQuantity = quantity;
     this.itemCategory = requireOneOf(category, IngredientCategory, 'category');
+    this.addedByMember = addedBy;
   }
 
   // Read-only views of the item's state; changes go through the methods below.
@@ -52,6 +58,10 @@ export class GroceryListItem extends BaseEntity<GroceryListItemSnapshot> {
 
   public get purchased(): boolean {
     return this.isPurchased;
+  }
+
+  public get addedBy(): ListMember | null {
+    return this.addedByMember;
   }
 
   /** True if `name` refers to the same ingredient as this item. */
@@ -72,12 +82,13 @@ export class GroceryListItem extends BaseEntity<GroceryListItemSnapshot> {
    * Adds more of this item. The total keeps this item's unit, and the item
    * leaves the cart because more is now needed. Name and category are kept.
    */
-  public addQuantity(quantity: Quantity | null): void {
+  public addQuantity(quantity: Quantity | null, addedBy: ListMember | null = null): void {
     if (quantity !== null) {
       this.itemQuantity = this.itemQuantity === null ? quantity : this.itemQuantity.plus(quantity);
     }
     // Taking it out of the cart reminds the shopper to buy the extra amount.
     this.isPurchased = false;
+    this.addedByMember = addedBy ?? this.addedByMember;
     this.touch();
   }
 
@@ -112,6 +123,7 @@ export class GroceryListItem extends BaseEntity<GroceryListItemSnapshot> {
       quantity: this.itemQuantity,
       category: this.itemCategory,
       purchased: this.isPurchased,
+      addedBy: this.addedByMember,
     };
   }
 }

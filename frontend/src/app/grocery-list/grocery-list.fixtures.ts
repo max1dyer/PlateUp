@@ -10,6 +10,7 @@ export function groceryItem(overrides: Partial<GroceryListItem> = {}): GroceryLi
     quantity: { amount: 1, unit: 'carton' },
     category: 'protein',
     purchased: false,
+    addedBy: null,
     ...overrides,
   };
 }
@@ -26,6 +27,8 @@ export function groceryList(
     ownerId: 'demo-user',
     name: 'Grocery list',
     items,
+    members: [],
+    activity: [],
     ...overrides,
   };
 }

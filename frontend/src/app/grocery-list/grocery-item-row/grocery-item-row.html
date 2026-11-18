@@ -22,6 +22,9 @@
       (click)="startEditing()"
     >
       <span class="name">{{ item().name }}</span>
+      @if (addedByName(); as who) {
+        <span class="added-by">{{ who }}</span>
+      }
       <span class="quantity">{{ formatQuantity(item().quantity) }}</span>
     </button>
   </div>

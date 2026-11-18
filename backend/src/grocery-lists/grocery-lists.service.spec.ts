@@ -1,4 +1,4 @@
-import { NotFoundException, ConflictException } from '@nestjs/common';
+import { NotFoundException, ConflictException, ForbiddenException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { IngredientCategory } from '../common/domain/ingredient-category';
 import { Quantity, Unit } from '../common/domain/quantity';
@@ -547,6 +547,62 @@ describe('GroceryListsService', () => {
 
       await expect(service.addPlannerWeek('alice', list.id, week)).rejects.toThrow(
         NotFoundException,
+      );
+    });
+  });
+
+  describe('shared lists', () => {
+    const register = (username: string) => users.register({ username, displayName: username });
+
+    it('lets members see and edit the list, tags their items, and logs activity', async () => {
+      const alice = await register('alice');
+      const bob = await register('bob');
+      const list = await service.create(alice.id, { name: 'Shared' });
+      await service.addMember(alice.id, list.id, { username: 'bob' });
+
+      const updated = await service.addItem(bob.id, list.id, { name: 'Milk' });
+
+      expect(updated.items[0].addedBy).toEqual({ id: bob.id, name: 'bob' });
+      expect(updated.toJSON().activity[0]).toMatchObject({
+        by: { id: bob.id },
+        message: 'added Milk',
+      });
+      expect((await service.findAll(bob.id)).map((each) => each.id)).toEqual([list.id]);
+      await expect(service.findOne('carol', list.id)).rejects.toThrow(NotFoundException);
+    });
+
+    it('only lets the owner share, remove others, or delete the list', async () => {
+      const alice = await register('alice');
+      const bob = await register('bob');
+      await register('carol');
+      const list = await service.create(alice.id, { name: 'Shared' });
+      await service.addMember(alice.id, list.id, { username: 'bob' });
+
+      await expect(service.addMember(bob.id, list.id, { username: 'carol' })).rejects.toThrow(
+        ForbiddenException,
+      );
+      await expect(service.removeMember(bob.id, list.id, alice.id)).rejects.toThrow(
+        ForbiddenException,
+      );
+      await expect(service.remove(bob.id, list.id)).rejects.toThrow(ForbiddenException);
+    });
+
+    it('lets a member leave, after which they lose access', async () => {
+      const alice = await register('alice');
+      const bob = await register('bob');
+      const list = await service.create(alice.id, { name: 'Shared' });
+      await service.addMember(alice.id, list.id, { username: 'bob' });
+
+      await service.removeMember(bob.id, list.id, bob.id);
+
+      await expect(service.findOne(bob.id, list.id)).rejects.toThrow(NotFoundException);
+    });
+
+    it('refuses sharing with someone who already has the list', async () => {
+      const alice = await register('alice');
+      const list = await service.create(alice.id, { name: 'Mine' });
+      await expect(service.addMember(alice.id, list.id, { username: 'alice' })).rejects.toThrow(
+        DomainValidationError,
       );
     });
   });
