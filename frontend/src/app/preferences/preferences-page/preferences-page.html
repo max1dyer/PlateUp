@@ -2,6 +2,23 @@
   <section class="intro">
     <h1 class="ui-title">Preferences</h1>
     <p class="ui-subtitle">Tailor recipes to how you cook and eat.</p>
+    <!-- Changes save on their own; this says where that stands -->
+    <p class="save-state {{ saveState() }}" role="status" aria-live="polite">
+      @switch (saveState()) {
+        @case ('saving') {
+          Saving…
+        }
+        @case ('saved') {
+          ✓ All changes saved
+        }
+        @case ('error') {
+          ⚠ Some changes couldn't be saved. See below.
+        }
+        @default {
+          Changes save automatically.
+        }
+      }
+    </p>
   </section>
 
   @if (loading()) {
@@ -12,21 +29,30 @@
       <button type="button" class="ui-button primary" (click)="load()">Try again</button>
     </div>
   } @else {
-    <form class="preferences" [formGroup]="form" (ngSubmit)="save()">
+    <form class="preferences" [formGroup]="form">
       <fieldset class="ui-card green">
         <legend class="ui-heading">Sharing</legend>
         <label class="restriction">
-          <input id="block-recipe-shares" type="checkbox" formControlName="blockRecipeShares" />
+          <input id="block-recipe-shares" type="checkbox" formControlName="blockRecipeShares"
+            (change)="saveSharing('blockRecipeShares')"
+          />
           Don't let others share recipes with me
         </label>
         <label class="restriction">
-          <input id="block-list-copies" type="checkbox" formControlName="blockListCopies" />
+          <input id="block-list-copies" type="checkbox" formControlName="blockListCopies"
+            (change)="saveSharing('blockListCopies')"
+          />
           Don't let others send me copies of their grocery lists
         </label>
         <label class="restriction">
-          <input id="block-list-invites" type="checkbox" formControlName="blockListInvites" />
+          <input id="block-list-invites" type="checkbox" formControlName="blockListInvites"
+            (change)="saveSharing('blockListInvites')"
+          />
           Don't let others add me to their live grocery lists
         </label>
+        @if (errors().sharing; as message) {
+          <p class="ui-error" role="alert">{{ message }}</p>
+        }
       </fieldset>
 
       <fieldset class="ui-card">
@@ -43,11 +69,15 @@
               [attr.max]="maxServings"
               step="1"
               formControlName="defaultServings"
+              (change)="saveServings()"
             />
             servings
           </span>
           <span class="ui-hint">You can still change servings on any recipe.</span>
         </label>
+        @if (errors().servings; as message) {
+          <p class="ui-error" role="alert">{{ message }}</p>
+        }
       </fieldset>
 
       <fieldset class="ui-card green">
@@ -68,6 +98,9 @@
           }
         </div>
         <p class="disclaimer">{{ disclaimer }}</p>
+        @if (errors().restrictions; as message) {
+          <p class="ui-error" role="alert">{{ message }}</p>
+        }
       </fieldset>
 
       <fieldset class="ui-card goals">
@@ -94,6 +127,7 @@
               step="50"
               [placeholder]="previewFor('calories') ?? 'No goal'"
               formControlName="dailyCalories"
+              (change)="saveGoals()"
             />
             kcal
           </span>
@@ -123,6 +157,7 @@
                   step="1"
                   [placeholder]="previewFor(macro.value) ?? '—'"
                   [formControlName]="macro.value"
+                  (change)="saveGoals()"
                 />
                 g
               </span>
@@ -196,22 +231,13 @@
             <button type="button" class="link-button" (click)="clearGoals()">Clear goals</button>
           }
         </p>
+        @if (errors().goals; as message) {
+          <p class="ui-error" role="alert">{{ message }}</p>
+        }
       </fieldset>
 
-      @if (error(); as message) {
-        <p class="ui-error" role="alert">{{ message }}</p>
-      }
-      <!-- Save, back, and the "Saved" confirmation -->
       <div class="ui-row">
-        <button type="submit" class="ui-button primary" [disabled]="saving()">
-          {{ saving() ? 'Saving…' : 'Save preferences' }}
-        </button>
         <a class="ui-button plain" routerLink="/profile">Back to profile</a>
-        <span class="save-state" role="status" aria-live="polite">
-          @if (saved()) {
-            <span class="saved">✓ Saved</span>
-          }
-        </span>
       </div>
     </form>
   }

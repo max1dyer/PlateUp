@@ -187,15 +187,30 @@ input.over {
 }
 
 /* "Saved" confirmation next to the save button */
+/*
+ * Fixed height on one line: the ✓ and ⚠ come from taller fallback fonts, and the line would
+ * otherwise change height with each status and shift the page below it.
+ */
 .save-state {
-  display: inline-flex;
-  align-items: center;
+  height: 20px;
+  margin: 0;
+  overflow: hidden;
+  font-size: 14px;
+  line-height: 20px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--color-text-muted);
 }
 
-.saved {
+.save-state.saved {
   color: #3d6b2c;
   font-weight: 600;
   animation: saved-in 200ms ease-out;
+}
+
+.save-state.error {
+  color: var(--color-error);
+  font-weight: 600;
 }
 
 @keyframes saved-in {
