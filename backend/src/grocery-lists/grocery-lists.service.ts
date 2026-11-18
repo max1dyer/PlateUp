@@ -86,7 +86,8 @@ export class GroceryListsService {
   }
 
   /**
-   * Deletes one of the user's lists (for everyone it is shared with).
+   * Deletes one of the user's lists (for everyone it is shared with). Members' invite
+   * notifications are removed too, since their link would no longer work.
    *
    * @throws ForbiddenException if the user is a member rather than the owner.
    */
@@ -96,10 +97,14 @@ export class GroceryListsService {
       throw new ForbiddenException('Only the owner can delete this list. Leave it instead.');
     }
     await this.groceryLists.delete(listId);
+    await Promise.all(
+      list.members.map((member) => this.notificationsService.removeListInvites(member.id, listId)),
+    );
   }
 
   /**
-   * Shares the list with another user by username; they can then see and edit it.
+   * Shares the list with another user by username; they can then see and edit it, and they get a
+   * notification on their home page linking to it.
    *
    * @throws ForbiddenException if the acting user is not the owner.
    * @throws NotFoundException if no user has that username.
@@ -117,12 +122,19 @@ export class GroceryListsService {
     const user = await this.usersService.findByUsername(dto.username ?? '');
     list.addMember({ id: user.id, name: user.displayName });
     await this.log(list, ownerId, `shared the list with ${user.displayName}`);
-    return this.groceryLists.save(list);
+    const saved = await this.groceryLists.save(list);
+    const owner = await this.member(ownerId);
+    await this.notificationsService.create(user.id, ownerId, NotificationType.GroceryListInvite, {
+      senderName: owner.name,
+      listId: list.id,
+      listName: list.name,
+    });
+    return saved;
   }
 
   /**
    * Stops sharing the list with a member. The owner can remove anyone; a member can only remove
-   * themselves ("Leave list").
+   * themselves ("Leave list"). Their invite notification is removed, since its link no longer works.
    *
    * @throws ForbiddenException if a member tries to remove someone else.
    * @throws NotFoundException if that user is not a member.
@@ -145,7 +157,9 @@ export class GroceryListsService {
       ownerId,
       memberId === ownerId ? 'left the list' : `removed ${member.name} from the list`,
     );
-    return this.groceryLists.save(list);
+    const saved = await this.groceryLists.save(list);
+    await this.notificationsService.removeListInvites(memberId, listId);
+    return saved;
   }
 
   /** Adds an item to a list, combining it with a matching line if there is one. */

@@ -76,17 +76,35 @@ export class NotificationsService {
   }
 
   /** Deletes a user's `RecipeShare` notifications about one recipe (e.g. after it is revoked). */
-  public async removeRecipeShares(recipientId: string, recipeId: string): Promise<void> {
+  public removeRecipeShares(recipientId: string, recipeId: string): Promise<void> {
+    return this.removeWhere(
+      recipientId,
+      (notification) =>
+        notification.type === NotificationType.RecipeShare &&
+        'recipeId' in notification.payload &&
+        notification.payload.recipeId === recipeId,
+    );
+  }
+
+  /** Deletes a user's `GroceryListInvite` notifications about one list (e.g. after they leave it). */
+  public removeListInvites(recipientId: string, listId: string): Promise<void> {
+    return this.removeWhere(
+      recipientId,
+      (notification) =>
+        notification.type === NotificationType.GroceryListInvite &&
+        'listId' in notification.payload &&
+        notification.payload.listId === listId,
+    );
+  }
+
+  /** Deletes the user's notifications that match `predicate`. */
+  private async removeWhere(
+    recipientId: string,
+    predicate: (notification: Notification) => boolean,
+  ): Promise<void> {
     const all = await this.notifications.findByRecipient(recipientId);
     await Promise.all(
-      all
-        .filter(
-          (notification) =>
-            notification.type === NotificationType.RecipeShare &&
-            'recipeId' in notification.payload &&
-            notification.payload.recipeId === recipeId,
-        )
-        .map((notification) => this.notifications.delete(notification.id)),
+      all.filter(predicate).map((notification) => this.notifications.delete(notification.id)),
     );
   }
 }

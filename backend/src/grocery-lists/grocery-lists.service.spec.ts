@@ -25,6 +25,7 @@ import { NotificationsService } from '../notifications/notifications.service';
 import {
   GroceryListSharePayload,
   NotificationStatus,
+  NotificationType,
 } from '../notifications/entities/notification.entity';
 import { InMemoryNotificationRepository } from '../notifications/repositories/in-memory-notification.repository';
 import { NotificationRepository } from '../notifications/repositories/notification.repository';
@@ -596,6 +597,52 @@ describe('GroceryListsService', () => {
       await service.removeMember(bob.id, list.id, bob.id);
 
       await expect(service.findOne(bob.id, list.id)).rejects.toThrow(NotFoundException);
+    });
+
+    it('sends the new member an invite notification linking to the list', async () => {
+      const alice = await register('alice');
+      const bob = await register('bob');
+      const list = await service.create(alice.id, { name: 'Shared' });
+
+      await service.addMember(alice.id, list.id, { username: 'bob' });
+
+      const [invite] = await notifications.findAll(bob.id);
+      expect(invite.type).toBe(NotificationType.GroceryListInvite);
+      expect(invite.senderId).toBe(alice.id);
+      expect(invite.payload).toEqual({ senderName: 'alice', listId: list.id, listName: 'Shared' });
+      expect(await notifications.findAll(alice.id)).toHaveLength(0);
+    });
+
+    it('removes the invite when the member leaves, is removed, or the list is deleted', async () => {
+      const alice = await register('alice');
+      const bob = await register('bob');
+      const carol = await register('carol');
+      const dave = await register('dave');
+      const list = await service.create(alice.id, { name: 'Shared' });
+      for (const username of ['bob', 'carol', 'dave']) {
+        await service.addMember(alice.id, list.id, { username });
+      }
+
+      await service.removeMember(bob.id, list.id, bob.id);
+      await service.removeMember(alice.id, list.id, carol.id);
+      expect(await notifications.findAll(bob.id)).toHaveLength(0);
+      expect(await notifications.findAll(carol.id)).toHaveLength(0);
+      expect(await notifications.findAll(dave.id)).toHaveLength(1);
+
+      await service.remove(alice.id, list.id);
+      expect(await notifications.findAll(dave.id)).toHaveLength(0);
+    });
+
+    it('does not notify anyone when sharing is refused', async () => {
+      const alice = await register('alice');
+      const bob = await register('bob');
+      const list = await service.create(alice.id, { name: 'Shared' });
+      await service.addMember(alice.id, list.id, { username: 'bob' });
+
+      await expect(service.addMember(alice.id, list.id, { username: 'bob' })).rejects.toThrow(
+        DomainValidationError,
+      );
+      expect(await notifications.findAll(bob.id)).toHaveLength(1);
     });
 
     it('refuses sharing with someone who already has the list', async () => {

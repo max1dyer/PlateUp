@@ -50,6 +50,9 @@
 }
 
 .accept {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
   background: var(--color-primary);
   color: var(--color-on-color);
 }

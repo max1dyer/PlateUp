@@ -17,6 +17,13 @@ export interface GroceryListSharePayload {
   items: SharedGroceryItem[];
 }
 
+/** Payload of a live list invite: who added the recipient to which shared list. */
+export interface GroceryListInvitePayload {
+  senderName: string;
+  listId: string;
+  listName: string;
+}
+
 /** Payload of a recipe share and of its revoked notice. */
 export interface RecipeSharePayload {
   senderName: string;
@@ -33,6 +40,12 @@ interface NotificationBase {
   senderId: string;
   status: NotificationStatus;
   read: boolean;
+}
+
+/** The recipient was added to a live (shared) grocery list; it is in their lists at once. */
+export interface GroceryListInviteNotification extends NotificationBase {
+  type: 'grocery-list-invite';
+  payload: GroceryListInvitePayload;
 }
 
 /** A shared grocery list the recipient can accept or reject. */
@@ -55,7 +68,10 @@ export interface RecipeShareRevokedNotification extends NotificationBase {
 
 /** A notification as returned by `GET /notifications`; narrow it by `type`. */
 export type UserNotification =
-  GroceryListShareNotification | RecipeShareNotification | RecipeShareRevokedNotification;
+  | GroceryListInviteNotification
+  | GroceryListShareNotification
+  | RecipeShareNotification
+  | RecipeShareRevokedNotification;
 
 /** Mirrors the backend `NotificationType` enum values. */
 export type NotificationType = UserNotification['type'];

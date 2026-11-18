@@ -1,9 +1,14 @@
 import { Component, OnInit, computed, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { errorMessage } from '../../core/api';
+import { SessionService } from '../../core/session.service';
 import { ToastService } from '../../core/toast.service';
 import { GroceryListsService } from '../../grocery-list/grocery-lists.service';
-import { NotificationStatus, UserNotification } from '../notification.models';
+import {
+  GroceryListInviteNotification,
+  NotificationStatus,
+  UserNotification,
+} from '../notification.models';
 import { NotificationsService } from '../notifications.service';
 
 /** How many of the newest notifications the panel lists. */
@@ -11,7 +16,8 @@ const MAX_SHOWN = 5;
 
 /**
  * "Notifications (n)" panel for the home page. A shared grocery list shows Accept and Reject
- * buttons; accepting creates a new list in the user's account.
+ * buttons; accepting creates a new list in the user's account. An invite to a live list links to
+ * the list (the user is already a member) and lets them leave it.
  */
 @Component({
   selector: 'app-notifications-panel',
@@ -42,6 +48,7 @@ export class NotificationsPanel implements OnInit {
     private readonly notificationsService: NotificationsService,
     private readonly groceryLists: GroceryListsService,
     private readonly toasts: ToastService,
+    private readonly session: SessionService,
   ) {}
 
   /** Loads the notifications when the panel appears. */
@@ -74,7 +81,28 @@ export class NotificationsPanel implements OnInit {
     });
   }
 
-  /** Marks a notification read (opening a shared recipe, or dismissing a revoked notice). */
+  /**
+   * "Leave list" on a live list invite: removes the user from the list. The backend deletes the
+   * invite too, so it is dropped from the panel.
+   */
+  protected leave(item: GroceryListInviteNotification): void {
+    const userId = this.session.userId();
+    if (userId === null) {
+      return;
+    }
+    this.busyId.set(item.id);
+    this.groceryLists.removeMember(item.payload.listId, userId).subscribe({
+      next: () => {
+        this.notifications.update((all) => all.filter((existing) => existing.id !== item.id));
+        this.busyId.set(null);
+        this.actionError.set(null);
+        this.toasts.success(`You left “${item.payload.listName}”`);
+      },
+      error: (error: unknown) => this.fail(error),
+    });
+  }
+
+  /** Marks a notification read (opening a shared recipe or list, or dismissing a revoked notice). */
   protected markRead(item: UserNotification): void {
     if (item.read) {
       return;

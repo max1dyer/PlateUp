@@ -8,7 +8,29 @@
     <ul class="list">
       @for (item of shown(); track item.id) {
         <li class="item">
-          @if (item.type === 'grocery-list-share') {
+          @if (item.type === 'grocery-list-invite') {
+            <p class="message">
+              <strong>{{ item.payload.senderName }}</strong> added you to the live grocery list
+              “{{ item.payload.listName }}”
+            </p>
+            <div class="buttons">
+              <a
+                class="accept"
+                [routerLink]="['/grocery']"
+                [queryParams]="{ list: item.payload.listId }"
+                (click)="markRead(item)"
+                >Open list</a
+              >
+              <button
+                type="button"
+                class="reject leave"
+                [disabled]="busyId() !== null"
+                (click)="leave(item)"
+              >
+                Leave list
+              </button>
+            </div>
+          } @else if (item.type === 'grocery-list-share') {
             <p class="message">
               <strong>{{ item.payload.senderName }}</strong> sent you a grocery list:
               “{{ item.payload.listName }}” ({{ item.payload.items.length }}

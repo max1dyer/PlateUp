@@ -1,10 +1,13 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { signal } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
+import { SessionService } from '../../core/session.service';
 import { groceryList } from '../../grocery-list/grocery-list.fixtures';
 import { GroceryListsService } from '../../grocery-list/grocery-lists.service';
 import {
+  listInviteNotification,
   notification,
   recipeRevokedNotification,
   recipeShareNotification,
@@ -14,7 +17,8 @@ import { NotificationsPanel } from './notifications-panel';
 
 describe('NotificationsPanel', () => {
   const notifications = { getNotifications: vi.fn(), markRead: vi.fn() };
-  const groceryLists = { acceptShare: vi.fn(), rejectShare: vi.fn() };
+  const groceryLists = { acceptShare: vi.fn(), rejectShare: vi.fn(), removeMember: vi.fn() };
+  const session = { userId: signal<string | null>('bob') };
 
   async function render(): Promise<{
     fixture: ComponentFixture<NotificationsPanel>;
@@ -26,6 +30,7 @@ describe('NotificationsPanel', () => {
         provideRouter([{ path: '**', children: [] }]),
         { provide: NotificationsService, useValue: notifications },
         { provide: GroceryListsService, useValue: groceryLists },
+        { provide: SessionService, useValue: session },
       ],
     }).compileComponents();
     const fixture = TestBed.createComponent(NotificationsPanel);
@@ -148,5 +153,54 @@ describe('NotificationsPanel', () => {
     expect(notifications.markRead).toHaveBeenCalledWith('n4');
     expect(panel.querySelector('.dismiss')).toBeNull();
     expect(panel.querySelector('h2')?.textContent).toContain('Notifications (0)');
+  });
+
+  it('shows a live list invite that links to the list and marks it read', async () => {
+    notifications.getNotifications.mockReturnValue(of([listInviteNotification()]));
+    notifications.markRead.mockReturnValue(of(listInviteNotification({ read: true })));
+    const { fixture, panel } = await render();
+
+    const message = panel.querySelector('.message')?.textContent ?? '';
+    expect(message).toContain('Peter');
+    expect(message).toContain('added you to the live grocery list');
+    expect(message).toContain('Household');
+    const link = panel.querySelector('a.accept') as HTMLAnchorElement;
+    expect(link.getAttribute('href')).toContain('list=list-7');
+
+    link.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(notifications.markRead).toHaveBeenCalledWith('n5');
+    expect(panel.querySelector('h2')?.textContent).toContain('Notifications (0)');
+  });
+
+  it('Leave list removes the user from the list and drops the invite', async () => {
+    notifications.getNotifications.mockReturnValue(of([listInviteNotification()]));
+    groceryLists.removeMember.mockReturnValue(of(groceryList([], { id: 'list-7' })));
+    const { fixture, panel } = await render();
+
+    click(panel, '.leave');
+    fixture.detectChanges();
+
+    expect(groceryLists.removeMember).toHaveBeenCalledWith('list-7', 'bob');
+    expect(panel.querySelector('.leave')).toBeNull();
+    expect(panel.querySelector('.status')?.textContent).toContain('No notifications yet.');
+  });
+
+  it("shows the backend's message when leaving fails", async () => {
+    notifications.getNotifications.mockReturnValue(of([listInviteNotification()]));
+    groceryLists.removeMember.mockReturnValue(
+      throwError(
+        () => new HttpErrorResponse({ status: 404, error: { message: 'Grocery list not found.' } }),
+      ),
+    );
+    const { fixture, panel } = await render();
+
+    click(panel, '.leave');
+    fixture.detectChanges();
+
+    expect(panel.querySelector('.error')?.textContent).toContain('Grocery list not found.');
+    expect((panel.querySelector('.leave') as HTMLButtonElement).disabled).toBe(false);
   });
 });
