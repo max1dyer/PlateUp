@@ -269,6 +269,24 @@
         </div>
       </div>
 
+      <div class="ui-card">
+        <!-- Optional cost; left blank, the app estimates it from typical ingredient prices -->
+        <h2 class="ui-heading">Cost per serving</h2>
+        <label class="ui-label">
+          Cost per serving ($, optional)
+          <input
+            id="cost-per-serving"
+            class="ui-field"
+            type="number"
+            min="0"
+            step="0.01"
+            placeholder="Estimate it for me"
+            formControlName="costPerServing"
+          />
+          <span class="ui-hint">Leave blank to estimate it from typical ingredient prices.</span>
+        </label>
+      </div>
+
       @if (error(); as message) {
         <p class="ui-error" role="alert">{{ message }}</p>
       }

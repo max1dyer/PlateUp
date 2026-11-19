@@ -16,4 +16,6 @@ export class UpdateRecipeDto {
   public readonly nutrition?: NutritionInfo;
   public readonly visibility?: RecipeVisibility;
   public readonly tags?: string[];
+  /** Dollars per serving; null switches back to the ingredient estimate. */
+  public readonly costPerServing?: number | null;
 }

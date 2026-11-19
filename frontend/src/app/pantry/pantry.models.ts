@@ -12,6 +12,20 @@ export interface PantryItem {
   expiresOn: string | null;
 }
 
+/** How the pantry compares with an ingredient amount (mirrors the backend's `StockStatus`). */
+export type StockStatus = 'enough' | 'partial' | 'missing' | 'unknown';
+
+/** One line of `POST /pantry/stock-check`'s response. */
+export interface StockLevel {
+  name: string;
+  needed: Quantity;
+  /** The pantry's amount in the needed unit, or null if it has none that compares. */
+  onHand: Quantity | null;
+  /** The pantry's amount in its own unit, or null if it has none. */
+  held: Quantity | null;
+  status: StockStatus;
+}
+
 /** Body of `POST /pantry`; an ingredient already held is combined with it. */
 export interface NewPantryItem {
   name: string;

@@ -74,6 +74,16 @@ describe('GroceryListPage', () => {
     expect(service.createList).not.toHaveBeenCalled();
   });
 
+  it('shows the estimated total of the list', async () => {
+    service.getLists.mockReturnValue(
+      of([groceryList([groceryItem({ estimatedCost: 4.2 })], { estimatedTotal: 4.2 })]),
+    );
+
+    const { page } = await render();
+
+    expect(text(page, '.estimated-total')).toEqual(['Estimated total: about $4.20']);
+  });
+
   it('creates a list when the user has none', async () => {
     service.getLists.mockReturnValue(of([]));
     service.createList.mockReturnValue(of(groceryList()));

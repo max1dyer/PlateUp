@@ -33,7 +33,7 @@
 
         <p class="recipe-stats">
           {{ recipe.prepTimeMinutes }} Minutes | {{ recipe.steps.length }} Steps |
-          <span class="rating-stars" aria-hidden="true">{{ starText() }}</span>
+          <app-star-rating class="rating-stars" [rating]="recipe.rating" />
           {{ recipe.rating ?? '—' }}
           ({{ recipe.numRatings }})
         </p>
@@ -135,6 +135,18 @@
           Per serving: {{ recipe.nutrition.calories }} kcal · {{ recipe.nutrition.protein }} g
           protein · {{ recipe.nutrition.carbohydrates }} g carbs · {{ recipe.nutrition.fat }} g fat
         </p>
+        <p class="cost">
+          {{ recipe.costIsEstimate ? 'About' : '' }}
+          {{ formatMoney(recipe.estimatedCostPerServing) }} per serving
+          @if (recipe.costIsEstimate) {
+            <span class="ui-hint">(estimated from typical ingredient prices)</span>
+          }
+        </p>
+        @if (overBudget()) {
+          <p class="budget-warning" role="note">
+            ⚠ This is over your {{ formatMoney(budget() ?? 0) }} per serving budget.
+          </p>
+        }
         @if (goalShares().length > 0) {
           <p class="goal-shares">
             Of your daily goals:
@@ -177,36 +189,89 @@
         </p>
       }
 
-      <!-- Ingredients checklist -->
+      <!-- Ingredients: what the pantry holds of each, and which to add to a grocery list -->
       <section class="ingredients-section">
         <div class="section-heading">
           <h2>Ingredients</h2>
-          <span>{{ pantryCount() }} of {{ recipe.ingredients.length }} in your pantry</span>
+          <span>{{ enoughCount() }} of {{ recipe.ingredients.length }} fully in your pantry</span>
+        </div>
+        <div class="selection-bar">
+          <span class="selection-count">{{ selected().size }} selected for your grocery list</span>
+          <span class="selection-actions">
+            <button type="button" class="link-button" id="select-all" (click)="selectAll()">
+              Select all
+            </button>
+            <button type="button" class="link-button" id="clear-all" (click)="clearAll()">
+              Clear all
+            </button>
+          </span>
         </div>
 
         <ul class="ingredient-list">
-          @for (ingredient of scaledIngredients(); track $index) {
-            <li class="ingredient-row">
-              <button
-                type="button"
-                class="pantry-status"
-                [class.in-pantry]="isInPantry(ingredient.name)"
-                (click)="togglePantryStatus(ingredient.name)"
-                [attr.aria-label]="
-                  isInPantry(ingredient.name)
-                    ? 'Mark ' + ingredient.name + ' as missing'
-                    : 'Mark ' + ingredient.name + ' as in pantry'
-                "
-              >
-                {{ isInPantry(ingredient.name) ? '✓' : 'X' }}
-              </button>
+          @for (row of stock(); track $index) {
+            <li class="ingredient-row {{ row.status }}">
+              <input
+                type="checkbox"
+                class="ingredient-select"
+                [checked]="isSelected(row.name)"
+                [attr.aria-label]="'Add ' + row.name + ' to the grocery list'"
+                (change)="toggleSelected(row.name)"
+              />
 
-              <span class="ingredient-name">
-                {{ ingredient.name }}
+              <span class="ingredient-main">
+                <span class="ingredient-name">{{ row.name }}</span>
+                <!-- How much the pantry holds, next to how much the recipe needs -->
+                <span class="pantry-stock">
+                  <span class="pantry-status" aria-hidden="true">
+                    @switch (row.status) {
+                      @case ('enough') {
+                        ✓
+                      }
+                      @case ('partial') {
+                        ◐
+                      }
+                      @case ('unknown') {
+                        ?
+                      }
+                      @default {
+                        ✗
+                      }
+                    }
+                  </span>
+                  <span class="pantry-text">
+                    @switch (row.status) {
+                      @case ('enough') {
+                        In your pantry: {{ formatQuantity(row.onHand) }}
+                      }
+                      @case ('partial') {
+                        You have {{ formatQuantity(row.onHand) }} of
+                        {{ formatQuantity(row.quantity) }}
+                      }
+                      @case ('unknown') {
+                        You have {{ formatQuantity(row.held) }} (a different unit)
+                      }
+                      @default {
+                        Not in your pantry
+                      }
+                    }
+                  </span>
+                </span>
+                @if (row.status === 'partial' || row.status === 'enough') {
+                  <span
+                    class="stock-meter"
+                    role="meter"
+                    aria-valuemin="0"
+                    aria-valuemax="100"
+                    [attr.aria-valuenow]="row.percent"
+                    [attr.aria-label]="row.name + ' on hand'"
+                  >
+                    <span class="stock-fill" [style.width.%]="row.percent"></span>
+                  </span>
+                }
               </span>
 
               <span class="ingredient-quantity">
-                {{ formatQuantity(ingredient.quantity) }}
+                {{ formatQuantity(row.quantity) }}
               </span>
             </li>
           }
@@ -217,7 +282,7 @@
       <app-add-to-grocery-panel
         [recipe]="recipe"
         [servings]="servings()"
-        [owned]="pantryIngredients()"
+        [additions]="additions()"
       />
 
       <!-- Cooking instructions -->
@@ -239,7 +304,7 @@
       @for (review of recipe.reviews; track review.reviewerId) {
         <article class="recipe-review">
           <p class="review-user">{{ nameOf(review.reviewerId) }}</p>
-          <p class="review-rating">{{ review.rating }} / 5</p>
+          <app-star-rating class="review-rating" [rating]="review.rating" />
           @if (review.comment) {
             <p class="review-comment">{{ review.comment }}</p>
           }

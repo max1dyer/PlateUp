@@ -187,7 +187,9 @@ export class GroceryListsService {
    * Generates grocery items from a recipe the user can see, with every
    * ingredient scaled to `servings` and merged into matching lines (UC6).
    * Ingredients named in `excludeIngredients` (e.g. already in the pantry)
-   * are left off.
+   * are left off. With `onlyMissing`, what the pantry already holds is
+   * subtracted first (as `addPlannerWeek` does), so a half-stocked ingredient
+   * is added only for the rest.
    */
   public async addRecipe(
     ownerId: string,
@@ -198,16 +200,21 @@ export class GroceryListsService {
     const recipe = await this.recipesService.findOne(dto.recipeId, ownerId);
     const servings = dto.servings ?? recipe.servings;
     const excluded = dto.excludeIngredients ?? [];
+    // Skip ingredients the user chose to leave off.
+    const wanted: IngredientNeed[] = recipe
+      .ingredientsFor(servings)
+      .filter((ingredient) => !excluded.some((name) => isSameIngredient(name, ingredient.name)));
+    const needs =
+      dto.onlyMissing === true
+        ? shortfall(wanted, await this.pantryService.findAll(ownerId)).toBuy
+        : wanted;
     list.addItems(
-      recipe
-        .ingredientsFor(servings)
-        // Skip ingredients the user chose to leave off, then guess a store section for each.
-        .filter((ingredient) => !excluded.some((name) => isSameIngredient(name, ingredient.name)))
-        .map((ingredient) => ({
-          name: ingredient.name,
-          quantity: ingredient.quantity,
-          category: guessCategory(ingredient.name),
-        })),
+      // Guess a store section for each.
+      needs.map((ingredient) => ({
+        name: ingredient.name,
+        quantity: ingredient.quantity,
+        category: guessCategory(ingredient.name),
+      })),
       await this.member(ownerId),
     );
     await this.log(list, ownerId, `added the ingredients for ${recipe.title}`);

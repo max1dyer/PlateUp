@@ -51,11 +51,13 @@ export class GroceryListsService {
     recipeId: string,
     servings: number,
     excludeIngredients: readonly string[] = [],
+    onlyMissing = false,
   ): Observable<GroceryList> {
     return this.http.post<GroceryList>(`${this.baseUrl}/${listId}/recipes`, {
       recipeId,
       servings,
       excludeIngredients,
+      onlyMissing,
     });
   }
 

@@ -91,6 +91,8 @@ export class RecipeFormPage implements OnInit {
     protein: new FormControl<number | null>(0),
     fat: new FormControl<number | null>(0),
     carbohydrates: new FormControl<number | null>(0),
+    /** Blank means "estimate it from the ingredients". */
+    costPerServing: new FormControl<number | null>(null),
   });
 
   /**
@@ -271,6 +273,7 @@ export class RecipeFormPage implements OnInit {
       visibility: recipe.visibility,
       tags: recipe.tags.join(', '),
       ...recipe.nutrition,
+      costPerServing: recipe.costPerServing ?? null,
     });
   }
 
@@ -316,6 +319,7 @@ export class RecipeFormPage implements OnInit {
         fat: value.fat ?? 0,
         carbohydrates: value.carbohydrates ?? 0,
       },
+      costPerServing: value.costPerServing ?? null,
     };
   }
 }

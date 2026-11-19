@@ -37,6 +37,11 @@ export interface RecipeDetails {
   visibility: RecipeVisibility;
   /** Cuisine and mood labels such as "Italian" or "Comfort Food". */
   tags: string[];
+  /**
+   * The author's own cost per serving in US dollars, or null to estimate it from the ingredients
+   * (see `estimatedCostPerServing`).
+   */
+  costPerServing: number | null;
 }
 
 /** Everything a recipe serializes to: its details plus derived review and diet information. */
@@ -51,6 +56,10 @@ export interface RecipeSnapshot extends RecipeDetails {
    * break it (an estimate from ingredient names, not allergy advice).
    */
   dietaryConflicts: Partial<Record<DietaryRestriction, string[]>>;
+  /** Cost of one serving in US dollars: the author's figure, or else the ingredient estimate. */
+  estimatedCostPerServing: number;
+  /** True when `estimatedCostPerServing` comes from ingredient prices rather than the author. */
+  costIsEstimate: boolean;
 }
 
 /** A user-contributed recipe. The owner is the recipe's author. */
@@ -185,6 +194,23 @@ export class Recipe extends OwnedEntity<RecipeSnapshot> {
     return restrictions.every((restriction) => conflicts[restriction] === undefined);
   }
 
+  /**
+   * Cost of one serving in US dollars: the author's `costPerServing` when given, otherwise the
+   * sum of the ingredients' estimated prices divided by the servings, to the cent.
+   */
+  public get estimatedCostPerServing(): number {
+    if (this.details.costPerServing !== null) {
+      return this.details.costPerServing;
+    }
+    const total = this.details.ingredients.reduce((sum, item) => sum + item.estimatedCost, 0);
+    return Math.round((total / this.details.servings) * 100) / 100;
+  }
+
+  /** Whether one serving costs at most `maxCostPerServing` dollars. */
+  public fitsBudget(maxCostPerServing: number): boolean {
+    return this.estimatedCostPerServing <= maxCostPerServing;
+  }
+
   /** Public recipes are visible to everyone; private ones to their author and who they're shared with. */
   public isVisibleTo(userId: string): boolean {
     return (
@@ -212,6 +238,8 @@ export class Recipe extends OwnedEntity<RecipeSnapshot> {
       numRatings: this.numRatings,
       reviews: this.reviews,
       dietaryConflicts: this.dietaryConflicts,
+      estimatedCostPerServing: this.estimatedCostPerServing,
+      costIsEstimate: this.details.costPerServing === null,
     };
   }
 
@@ -246,7 +274,16 @@ export class Recipe extends OwnedEntity<RecipeSnapshot> {
         carbohydrates: requireNonNegative(details.nutrition.carbohydrates, 'Carbohydrates'),
       },
       tags: Recipe.validateTags(details.tags),
+      costPerServing: Recipe.validateCost(details.costPerServing),
     };
+  }
+
+  /** Null (estimate it) or a non-negative dollar amount, rounded to the cent. */
+  private static validateCost(cost: number | null | undefined): number | null {
+    if (cost === null || cost === undefined) {
+      return null;
+    }
+    return Math.round(requireNonNegative(cost, 'Cost per serving') * 100) / 100;
   }
 
   /** Trims tags and drops repeats that differ only in case, keeping the first spelling. */

@@ -178,4 +178,44 @@ describe('PantryService', () => {
 
     expect(await service.findAll('alice')).toHaveLength(0);
   });
+
+  it('checkStock compares the pantry with each ingredient in the ingredient unit', async () => {
+    await service.add('alice', { name: 'Rolled oats', quantity: { amount: 0.5, unit: Unit.Cup } });
+    await service.add('alice', { name: 'Butter', quantity: { amount: 1, unit: Unit.Pound } });
+    await service.add('alice', { name: 'Rice', quantity: { amount: 1, unit: Unit.Bag } });
+
+    const levels = await service.checkStock('alice', {
+      ingredients: [
+        { name: 'rolled oats', quantity: { amount: 1, unit: Unit.Cup } },
+        { name: 'Butter', quantity: { amount: 100, unit: Unit.Gram } },
+        { name: 'Rice', quantity: { amount: 2, unit: Unit.Cup } },
+        { name: 'Bananas', quantity: { amount: 2, unit: Unit.Piece } },
+      ],
+    });
+
+    expect(levels.map((level) => level.status)).toEqual([
+      'partial',
+      'enough',
+      'unknown',
+      'missing',
+    ]);
+    expect(levels[0].onHand).toEqual(new Quantity(0.5, Unit.Cup));
+    // 1 lb of butter is about 453.59 g, shown in the recipe's grams.
+    expect(levels[1].onHand).toEqual(new Quantity(453.59, Unit.Gram));
+    expect(levels[2]).toMatchObject({ onHand: null, held: new Quantity(1, Unit.Bag) });
+    expect(levels[3]).toMatchObject({ onHand: null, held: null });
+  });
+
+  it("checkStock only looks at the user's own pantry and rejects bad lines", async () => {
+    await service.add('bob', eggs);
+
+    const [level] = await service.checkStock('alice', { ingredients: [eggs] });
+
+    expect(level.status).toBe('missing');
+    await expect(
+      service.checkStock('alice', {
+        ingredients: [{ name: ' ', quantity: { amount: 1, unit: Unit.Cup } }],
+      }),
+    ).rejects.toThrow(DomainValidationError);
+  });
 });

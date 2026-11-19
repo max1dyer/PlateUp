@@ -11,6 +11,7 @@ export function groceryItem(overrides: Partial<GroceryListItem> = {}): GroceryLi
     category: 'protein',
     purchased: false,
     addedBy: null,
+    estimatedCost: null,
     ...overrides,
   };
 }
@@ -29,6 +30,7 @@ export function groceryList(
     items,
     members: [],
     activity: [],
+    estimatedTotal: 0,
     ...overrides,
   };
 }

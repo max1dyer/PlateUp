@@ -204,6 +204,28 @@ describe('PreferencesPage', () => {
     expect(page.querySelector('.ui-status')?.textContent).toContain("couldn't load");
   });
 
+  it('shows and saves the budget switch and the limit per serving', async () => {
+    const start = preferences({ maxCostPerServing: 4 });
+    service.load.mockReturnValue(of(start));
+    saveLikeBackend(start);
+    const page = await render();
+
+    expect(input(page, 'budget-enabled').checked).toBe(false);
+    expect(input(page, 'max-cost-per-serving').value).toBe('4');
+
+    input(page, 'budget-enabled').click();
+    enter(input(page, 'max-cost-per-serving'), '3.5');
+    enter(input(page, 'max-cost-per-serving'), '');
+    await settle();
+
+    expect(service.update.mock.calls.map(([changes]) => changes)).toEqual([
+      { budgetEnabled: true },
+      { maxCostPerServing: 3.5 },
+      { maxCostPerServing: null },
+    ]);
+    expect(input(page, 'budget-enabled').checked).toBe(true);
+  });
+
   it('shows and saves each sharing setting when clicked', async () => {
     const start = preferences({
       blockRecipeShares: true,

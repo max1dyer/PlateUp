@@ -277,6 +277,27 @@ describe('GroceryListsService', () => {
       expect(updated.items.map((item) => item.name)).toEqual(names.slice(1));
     });
 
+    it('addRecipe with onlyMissing adds only what the pantry lacks', async () => {
+      // The recipe needs 400 g of chicken breast and 1 cup of rice.
+      const recipe = await recipes.create('alice', buildCreateRecipeDto());
+      await pantry.add('alice', {
+        name: 'Chicken breast',
+        quantity: { amount: 150, unit: Unit.Gram },
+      });
+      await pantry.add('alice', { name: 'Rice', quantity: { amount: 2, unit: Unit.Cup } });
+      const list = await service.create('alice', { name: 'Weekly' });
+
+      const updated = await service.addRecipe('alice', list.id, {
+        recipeId: recipe.id,
+        onlyMissing: true,
+      });
+
+      expect(updated.items.map((item) => [item.name, item.quantity])).toEqual([
+        ['Chicken breast', new Quantity(250, Unit.Gram)],
+      ]);
+      expect(updated.estimatedTotal).toBe(updated.items[0].estimatedCost);
+    });
+
     it('moveItemToPantry adds the item to the pantry and removes it from the list', async () => {
       const list = await service.create('alice', { name: 'Weekly' });
       await service.addItem('alice', list.id, { name: 'Milk', quantity: liter(1) });

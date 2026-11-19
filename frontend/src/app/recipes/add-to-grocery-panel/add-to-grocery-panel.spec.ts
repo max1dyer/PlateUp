@@ -1,3 +1,4 @@
+import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
 import { of } from 'rxjs';
@@ -5,17 +6,34 @@ import { ToastService } from '../../core/toast.service';
 import { groceryList } from '../../grocery-list/grocery-list.fixtures';
 import { GroceryList } from '../../grocery-list/grocery-list.models';
 import { GroceryListsService } from '../../grocery-list/grocery-lists.service';
-import { AddToGroceryPanel, DEFAULT_LIST_NAME, NEW_LIST } from './add-to-grocery-panel';
+import { preferences } from '../../preferences/preferences.fixtures';
+import { UserPreferences } from '../../preferences/preferences.models';
+import { PreferencesService } from '../../preferences/preferences.service';
+import {
+  AddToGroceryPanel,
+  DEFAULT_LIST_NAME,
+  GroceryAddition,
+  NEW_LIST,
+} from './add-to-grocery-panel';
 import { recipe } from '../recipe.fixtures';
 
 describe('AddToGroceryPanel', () => {
   const groceryLists = { getLists: vi.fn(), createList: vi.fn(), addRecipe: vi.fn() };
+  const preferencesService = { preferences: signal<UserPreferences | null>(null) };
   let fixture: ComponentFixture<AddToGroceryPanel>;
   let panel: HTMLElement;
 
+  const chicken: GroceryAddition = {
+    name: 'Chicken breast',
+    cost: 6,
+    missingCost: 6,
+    covered: false,
+  };
+  const rice: GroceryAddition = { name: 'Rice', cost: 1, missingCost: 0.5, covered: false };
+
   async function render(
     lists: GroceryList[] = [groceryList([], { name: 'Weekly' })],
-    owned: string[] = [],
+    additions: GroceryAddition[] = [chicken, rice],
     servings = 2,
   ): Promise<void> {
     groceryLists.getLists.mockReturnValue(of(lists));
@@ -24,13 +42,17 @@ describe('AddToGroceryPanel', () => {
     );
     await TestBed.configureTestingModule({
       imports: [AddToGroceryPanel],
-      providers: [provideRouter([]), { provide: GroceryListsService, useValue: groceryLists }],
+      providers: [
+        provideRouter([]),
+        { provide: GroceryListsService, useValue: groceryLists },
+        { provide: PreferencesService, useValue: preferencesService },
+      ],
     }).compileComponents();
     vi.spyOn(TestBed.inject(Router), 'navigate');
     fixture = TestBed.createComponent(AddToGroceryPanel);
     fixture.componentRef.setInput('recipe', recipe());
     fixture.componentRef.setInput('servings', servings);
-    fixture.componentRef.setInput('owned', new Set(owned));
+    fixture.componentRef.setInput('additions', additions);
     fixture.detectChanges();
     await fixture.whenStable();
     panel = fixture.nativeElement as HTMLElement;
@@ -43,7 +65,10 @@ describe('AddToGroceryPanel', () => {
     await fixture.whenStable();
   }
 
-  beforeEach(() => vi.resetAllMocks());
+  beforeEach(() => {
+    vi.resetAllMocks();
+    preferencesService.preferences.set(null);
+  });
 
   it('shows the target list up front, picking the first existing list', async () => {
     await render();
@@ -56,19 +81,20 @@ describe('AddToGroceryPanel', () => {
     ]);
   });
 
-  it('counts only the missing ingredients on the button', async () => {
-    await render(undefined, ['Rice']);
+  it('counts only the ticked ingredients on the button', async () => {
+    await render(undefined, [chicken]);
 
     expect(buttons()[0].textContent).toContain('Add 1 to Grocery');
   });
 
-  it('adds the missing ingredients in one click and stays on the page', async () => {
-    await render(undefined, ['Rice'], 4);
+  it('adds the ticked ingredients in one click and stays on the page', async () => {
+    await render(undefined, [chicken], 4);
 
     await click(buttons()[0]);
 
-    // The recipe endpoint scales and categorizes every ingredient it adds.
-    expect(groceryLists.addRecipe).toHaveBeenCalledWith('list-1', 'recipe-1', 4, ['Rice']);
+    // The recipe endpoint scales and categorizes every ingredient it adds, and subtracts the
+    // pantry since "only what's missing" starts ticked.
+    expect(groceryLists.addRecipe).toHaveBeenCalledWith('list-1', 'recipe-1', 4, ['Rice'], true);
     expect(TestBed.inject(Router).navigate).not.toHaveBeenCalled();
     expect(TestBed.inject(ToastService).toasts()[0].message).toBe('Added 1 ingredient to Weekly');
   });
@@ -79,21 +105,21 @@ describe('AddToGroceryPanel', () => {
 
     const select = panel.querySelector('select') as HTMLSelectElement;
     expect(select.value).toBe(NEW_LIST);
-    const name = panel.querySelector('input') as HTMLInputElement;
+    const name = panel.querySelector('input[formcontrolname="newListName"]') as HTMLInputElement;
     expect(name.value).toBe(DEFAULT_LIST_NAME);
 
     await click(buttons()[0]);
 
     expect(groceryLists.createList).toHaveBeenCalledWith(DEFAULT_LIST_NAME);
-    expect(groceryLists.addRecipe).toHaveBeenCalledWith('list-2', 'recipe-1', 2, []);
+    expect(groceryLists.addRecipe).toHaveBeenCalledWith('list-2', 'recipe-1', 2, [], true);
     expect(select.value).toBe('list-2');
-    expect(panel.querySelector('input')).toBeNull();
+    expect(panel.querySelector('input[formcontrolname="newListName"]')).toBeNull();
   });
 
   it('asks for a name before creating an unnamed list', async () => {
     await render([]);
 
-    const name = panel.querySelector('input') as HTMLInputElement;
+    const name = panel.querySelector('input[formcontrolname="newListName"]') as HTMLInputElement;
     name.value = '  ';
     name.dispatchEvent(new Event('input'));
     await click(buttons()[0]);
@@ -102,9 +128,39 @@ describe('AddToGroceryPanel', () => {
     expect(panel.querySelector('.ui-error')?.textContent).toContain('Name the new list.');
   });
 
-  it('disables the button when everything is marked as owned', async () => {
-    await render(undefined, ['Chicken breast', 'Rice']);
+  it('disables the button when nothing is ticked', async () => {
+    await render(undefined, []);
 
     expect(buttons()[0].disabled).toBe(true);
+  });
+
+  it('skips fully stocked ingredients and costs only what is missing, unless told otherwise', async () => {
+    await render(undefined, [chicken, rice, { ...rice, name: 'Salt', covered: true }]);
+    const estimate = () => panel.querySelector('.estimate')?.textContent ?? '';
+
+    expect(buttons()[0].textContent).toContain('Add 2 to Grocery');
+    expect(estimate()).toContain('about $6.50');
+
+    (panel.querySelector('#only-missing') as HTMLInputElement).click();
+    await fixture.whenStable();
+
+    expect(buttons()[0].textContent).toContain('Add 3 to Grocery');
+    expect(estimate()).toContain('about $8.00');
+    await click(buttons()[0]);
+    expect(groceryLists.addRecipe).toHaveBeenCalledWith('list-1', 'recipe-1', 2, [], false);
+  });
+
+  it('compares the estimate with the budget for the chosen servings', async () => {
+    preferencesService.preferences.set(preferences({ budgetEnabled: true, maxCostPerServing: 4 }));
+    await render(undefined, [chicken, rice], 2);
+    const estimate = () => panel.querySelector('.estimate') as HTMLElement;
+
+    expect(estimate().textContent).toContain('within your $8.00 budget for 2 servings');
+
+    fixture.componentRef.setInput('servings', 1);
+    await fixture.whenStable();
+
+    expect(estimate().textContent).toContain('$2.50 over your $4.00 budget for 1 serving');
+    expect(estimate().classList).toContain('over');
   });
 });

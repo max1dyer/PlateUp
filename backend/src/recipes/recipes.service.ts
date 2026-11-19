@@ -42,7 +42,7 @@ export class RecipesService {
 
   /**
    * Creates and stores a recipe by `authorId`. Missing optional fields default to an empty
-   * description, no photo, no tags, and public visibility.
+   * description, no photo, no tags, public visibility, and an estimated cost.
    */
   public async create(authorId: string, dto: CreateRecipeDto): Promise<Recipe> {
     const recipe = new Recipe(authorId, {
@@ -56,6 +56,7 @@ export class RecipesService {
       nutrition: dto.nutrition,
       visibility: dto.visibility ?? RecipeVisibility.Public,
       tags: dto.tags ?? [],
+      costPerServing: dto.costPerServing ?? null,
     });
     return this.recipes.save(recipe);
   }

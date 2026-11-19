@@ -1,10 +1,13 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { requireCalendarDateOrNull } from '../common/domain/calendar-date';
+import { requireText } from '../common/domain/guards';
 import { Quantity } from '../common/domain/quantity';
 import { DomainValidationError } from '../common/errors/domain-validation.error';
+import { CheckStockDto } from './dto/check-stock.dto';
 import { CreatePantryItemDto } from './dto/create-pantry-item.dto';
 import { UpdatePantryItemDto } from './dto/update-pantry-item.dto';
 import { PantryItem } from './entities/pantry-item.entity';
+import { StockLevel, checkStock } from './entities/stock-level';
 import { PantryItemRepository } from './repositories/pantry-item.repository';
 
 /**
@@ -18,6 +21,23 @@ export class PantryService {
   /** Every item in the user's pantry. */
   public findAll(ownerId: string): Promise<PantryItem[]> {
     return this.pantryItems.findByOwner(ownerId);
+  }
+
+  /**
+   * How much of each listed ingredient the user's pantry holds, converted to the listed unit, so a
+   * recipe page can show "you have 1/2 cup of 1 cup" (issue #38).
+   *
+   * @throws DomainValidationError if the list is missing or a line is invalid.
+   */
+  public async checkStock(ownerId: string, dto: CheckStockDto): Promise<StockLevel[]> {
+    if (!Array.isArray(dto.ingredients)) {
+      throw new DomainValidationError('Ingredients must be a list.');
+    }
+    const needs = dto.ingredients.map((line) => ({
+      name: requireText(line.name, 'Ingredient name'),
+      quantity: new Quantity(line.quantity?.amount, line.quantity?.unit),
+    }));
+    return checkStock(needs, await this.findAll(ownerId));
   }
 
   /**

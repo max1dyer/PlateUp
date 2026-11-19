@@ -8,4 +8,9 @@ export class AddRecipeToListDto {
    * their pantry. Matched like any ingredient name (case and spacing ignored).
    */
   public readonly excludeIngredients?: string[];
+  /**
+   * When true, only what the pantry is missing is added: an ingredient the pantry partly holds is
+   * added for the remainder, and one it fully holds is left off. Defaults to false (full amounts).
+   */
+  public readonly onlyMissing?: boolean;
 }

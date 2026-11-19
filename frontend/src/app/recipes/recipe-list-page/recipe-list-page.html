@@ -7,7 +7,7 @@
   <a class="ui-button primary wide" routerLink="/recipes/new">+ Upload a recipe</a>
   <a class="ui-button wide" routerLink="/recipes/import">Import a recipe from text</a>
 
-  <!-- Search box, Filters dropdown (diet and tags), and sort menu -->
+  <!-- Search box, Filters dropdown (diet, budget, tags, ranges), and sort menu -->
   <div class="filters">
     <label class="ui-visually-hidden" for="recipe-search">Search recipes</label>
     <input
@@ -22,8 +22,8 @@
       <details class="filter-menu">
         <summary class="ui-button">
           Filters
-          @if (tag() !== null) {
-            <span class="badge">1</span>
+          @if (activeFilters() > 0) {
+            <span class="badge">{{ activeFilters() }}</span>
           }
         </summary>
         <div class="filter-panel">
@@ -46,6 +46,56 @@
           }
           <p class="panel-note disclaimer">{{ disclaimer }}</p>
 
+          <p class="panel-heading">Budget</p>
+          @if (budget(); as limit) {
+            <label class="diet-toggle">
+              <input
+                id="hide-over-budget"
+                type="checkbox"
+                [checked]="hideOverBudget()"
+                (change)="onHideOverBudget($event)"
+              />
+              Hide recipes over {{ formatMoney(limit) }} per serving
+            </label>
+          } @else {
+            <p class="panel-note">
+              No budget set.
+              <a routerLink="/preferences">Turn one on in Preferences</a>
+            </p>
+          }
+
+          <p class="panel-heading">Nutrition per serving and steps</p>
+          <div class="ranges" role="group" aria-label="Filter by ranges">
+            @for (field of rangeFields; track field.value) {
+              <span class="range-label">
+                {{ field.label }}
+                @if (field.unit) {
+                  <span class="range-unit">({{ field.unit }})</span>
+                }
+              </span>
+              <input
+                class="ui-field range-input"
+                type="number"
+                min="0"
+                placeholder="Min"
+                [id]="'range-' + field.value + '-min'"
+                [attr.aria-label]="'Minimum ' + field.label.toLowerCase()"
+                [value]="ranges()[field.value].min ?? ''"
+                (input)="onRange(field.value, 'min', $event)"
+              />
+              <input
+                class="ui-field range-input"
+                type="number"
+                min="0"
+                placeholder="Max"
+                [id]="'range-' + field.value + '-max'"
+                [attr.aria-label]="'Maximum ' + field.label.toLowerCase()"
+                [value]="ranges()[field.value].max ?? ''"
+                (input)="onRange(field.value, 'max', $event)"
+              />
+            }
+          </div>
+
           @if (tags().length > 0) {
             <p class="panel-heading">Tags</p>
             <div class="tag-filter" role="group" aria-label="Filter by tag">
@@ -65,17 +115,33 @@
               <button type="button" class="clear" (click)="tag.set(null)">Clear tag</button>
             }
           }
+          @if (activeFilters() > 0) {
+            <button type="button" class="clear" (click)="clearFilters()">Clear filters</button>
+          }
         </div>
       </details>
 
-      <label class="sort">
-        <span>Sort by</span>
-        <select id="recipe-sort" class="ui-field" [value]="sort()" (change)="onSort($event)">
-          @for (option of sortOptions; track option.value) {
-            <option [value]="option.value">{{ option.label }}</option>
-          }
-        </select>
-      </label>
+      <div class="sort-group">
+        <label class="sort">
+          <span>Sort by</span>
+          <select id="recipe-sort" class="ui-field" [value]="sort()" (change)="onSort($event)">
+            @for (option of sortOptions; track option.value) {
+              <option [value]="option.value">{{ option.label }}</option>
+            }
+          </select>
+        </label>
+        <button
+          type="button"
+          id="reverse-sort"
+          class="ui-button reverse"
+          [class.active]="reversed()"
+          [attr.aria-pressed]="reversed()"
+          title="Reverse the order"
+          (click)="toggleReversed()"
+        >
+          ⇅ <span class="ui-visually-hidden">Reverse order</span>
+        </button>
+      </div>
     </div>
   </div>
 
@@ -85,6 +151,15 @@
       {{ hiddenByDiet() }} {{ hiddenByDiet() === 1 ? 'recipe is' : 'recipes are' }} hidden by your
       dietary preferences.
       <button type="button" class="clear" (click)="hideUnsuitable.set(false)">Show them</button>
+    </p>
+  }
+
+  <!-- Note about recipes hidden by the budget filter -->
+  @if (hiddenByBudget() > 0) {
+    <p class="diet-note budget-note">
+      {{ hiddenByBudget() }} {{ hiddenByBudget() === 1 ? 'recipe is' : 'recipes are' }} over your
+      {{ formatMoney(budget() ?? 0) }} per serving budget.
+      <button type="button" class="clear" (click)="hideOverBudget.set(false)">Show them</button>
     </p>
   }
 
@@ -110,14 +185,14 @@
         <li class="ui-card ui-span-all">
           @if (recipes().length === 0) {
             <p class="ui-status">No recipes yet. Be the first to upload one!</p>
-          } @else if (search().trim() === '' && tag() === null && hiddenByDiet() > 0) {
+          } @else if (
+            search().trim() === '' && activeFilters() === 0 && hiddenByDiet() + hiddenByBudget() > 0
+          ) {
             <p class="ui-status">
-              There are no recipes that fit your dietary preferences right now. Try removing a
-              restriction in your <a routerLink="/preferences">preferences</a>.
+              There are no recipes that fit your dietary preferences and budget right now. Try
+              changing them in your <a routerLink="/preferences">preferences</a>.
             </p>
-            <button type="button" class="ui-button" (click)="hideUnsuitable.set(false)">
-              Show all recipes
-            </button>
+            <button type="button" class="ui-button" (click)="showAll()">Show all recipes</button>
           } @else {
             <p class="ui-status">No recipes match your search.</p>
             @if (hiddenByDiet() > 0) {

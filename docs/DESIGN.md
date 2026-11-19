@@ -73,7 +73,7 @@ Other techniques (not on the course list): **Repository**, **Value Object** (`Qu
 | **Factory Method** + **Strategy** | Social-media import (TikTok, Instagram, YouTube Shorts).                                                                               | Spec 3.5 requires that a new platform needs only one new parser module. Use a `RecipeTextParser` interface and a factory that picks the parser for a source. |
 | **Observer**                      | Household shared grocery list (live updates within 2 s).                                                                               | WebSocket gateway publishes list changes. The Angular client subscribes through an RxJS `Observable`.                                                        |
 | **Facade** + **Proxy**            | External API clients (Kroger, USDA, API Ninjas).                                                                                       | A facade gives one interface over all external calls. A caching proxy handles caching and the shared 15-second timeout.                                      |
-| **Null Object**                   | Missing price or nutrition data.                                                                                                       | Lets calculations continue and label figures as unavailable (Reliability 3.3).                                                                               |
+| **Null Object**                   | Missing price or nutrition data.                                                                                                       | Lets calculations continue and label figures as unavailable (Reliability 3.3). Until then, `estimateCost()` falls back to category prices.                   |
 
 ---
 
@@ -101,7 +101,13 @@ DTOs (`CreateRecipeDto`, `LogInDto`, `AddRecipeToListDto`, ...) are plain reques
 
 A grocery list can be shared with other users by username (`GroceryList.addMember`); the new member gets a `GroceryListInvite` notification (shown in the home page's notifications panel with "Open list" and "Leave list"), which `NotificationsService.removeListInvites` deletes when they leave, are removed, or the list is deleted. Members can see and edit it (`GroceryList.isAccessibleTo`), but only the owner can share it, remove members, or delete it, and a member can leave. Each `GroceryListItem` records who added it (`addedBy`), and changes to a shared list are kept in its `activity` (newest 20, `GroceryList.recordActivity`), so the grocery page can tag items other people added and show "Recent changes". `ListMember` and `ListActivity` (`grocery-lists/entities/list-member.ts`) are plain value shapes. The Sharing section of the Preferences page lets a user refuse what others can share with them: `UserPreferences.blockRecipeShares`, `blockListInvites` (being added to a live list), and `blockListCopies` (being sent a list copy). `RecipeSharesService.share`, `GroceryListsService.addMember`, and `GroceryListsService.share` check the recipient's setting and answer 403 with a message naming them.
 
-`combineNeeds()` and `shortfall()` (`grocery-lists/entities/shopping-needs.ts`) merge the ingredients of a planned week across meals and subtract what the pantry already holds; `GroceryListsService.addPlannerWeek()` uses them to build a grocery list from the planner (UC6).
+`combineNeeds()` and `shortfall()` (`grocery-lists/entities/shopping-needs.ts`) merge the ingredients of a planned week across meals and subtract what the pantry already holds; `GroceryListsService.addPlannerWeek()` uses them to build a grocery list from the planner (UC6). `GroceryListsService.addRecipe()` uses `shortfall()` too when `onlyMissing` is set, so a half-stocked ingredient is added only for the rest.
+
+`checkStock()` and `StockStatus` (`pantry/entities/stock-level.ts`) compare a list of ingredient amounts with the user's pantry, converting the pantry amount into each ingredient's unit (`enough`, `partial`, `missing`, or `unknown` when the units can't be compared). `PantryService.checkStock()` serves it at `POST /pantry/stock-check`; the recipe page shows "You have 1/2 cup of 1 cup" with a meter per ingredient, ticks the ones the pantry doesn't fully cover, and offers Select all / Clear all (issue #38). The frontend's `stockRows()` and `defaultSelection()` (`recipes/pantry-stock.ts`) recompute the status as the servings change.
+
+`estimateCost()` (`common/domain/ingredient-pricing.ts`) is a PLACEHOLDER price list (issue #39): rough US retail prices by ingredient keyword, falling back to the store section from `guessCategory()`. It is the only place prices come from, so story 2.5's per-user prices and the planned pricing API (Facade + Proxy below) replace this one function. `RecipeIngredient.estimatedCost`, `Recipe.estimatedCostPerServing` (the author's optional `costPerServing`, else the ingredient sum divided by the servings), `GroceryListItem.estimatedCost`, and `GroceryList.estimatedTotal` are all derived from it. `UserPreferences.budgetEnabled` and `maxCostPerServing` store the budget; `activeBudget` is the limit while it is switched on. The recipe feed hides (or flags) recipes over it, the recipe page warns, and the grocery panel compares the estimated cost of what it will add with the budget for that many servings.
+
+The recipe feed's sorting and filtering live in `recipes/recipe-filter.ts`: `sortRecipes()` (trending, newest, rating, reviews, protein, calories, fat, carbs, cost, ingredients, time, steps; any of them reversible), `trendingScore()` (each review's stars and the upload itself, halving in weight every 7 days), `filterByRanges()` (min/max calories, protein, carbs, fat, and number of steps), and `filterByBudget()`. Trending is the default sort (supplemental spec). `StarRating` (`recipes/star-rating/`) draws a read-only star rating, including part-filled stars for averages, on the recipe header and on each review (issue #30).
 
 Frontend classes (paths relative to `frontend/src/app/`). Services, models, and helpers sit at the top of each feature folder; each component has its own subfolder named after it (e.g. `recipes/recipe-page/recipe-page.ts`):
 
@@ -112,6 +118,7 @@ Frontend classes (paths relative to `frontend/src/app/`). Services, models, and 
 | `PreferencesService`, `PreferencesPage`                                                   | preferences      | `preferences/`              |
 | `RecipesService`, `SavedRecipesService`, `RecipeListPage`, `RecipePage`, `RecipeFormPage` | recipes          | `recipes/`                  |
 | `SavedRecipesPage`, `RecipeCard`, `SaveButton`, `AddToGroceryPanel`, `ReviewForm`         | recipes          | `recipes/`                  |
+| `StarRating`                                                                              | recipes          | `recipes/`                  |
 | `PantryService`, `PantryPage`, `PantryItemRow`                                            | pantry           | `pantry/`                   |
 | `GroceryListsService`, `GroceryListPage`, `GroceryItemRow`, `AddItemsForm`                | grocery lists    | `grocery-list/`             |
 | `ContactService`, `ContactPage`                                                           | contact          | `contact/`                  |
@@ -163,6 +170,8 @@ classDiagram
     +review(reviewerId, rating, comment) RecipeReview
     +dietaryConflicts: Partial~Record~DietaryRestriction, string[]~~
     +suits(restrictions) boolean
+    +estimatedCostPerServing: number
+    +fitsBudget(maxCostPerServing) boolean
     +isVisibleTo(userId) boolean
     +ingredientsFor(servings) RecipeIngredient[]
   }
@@ -176,6 +185,9 @@ classDiagram
     +blockRecipeShares: boolean
     +blockListInvites: boolean
     +blockListCopies: boolean
+    +budgetEnabled: boolean
+    +maxCostPerServing: number | null
+    +activeBudget: number | null
     +defaults()$ UserPreferences
     +with(changes) UserPreferences
     +toJSON() UserPreferencesJson
@@ -183,6 +195,7 @@ classDiagram
   class RecipeIngredient {
     +name: string
     +quantity: Quantity
+    +estimatedCost: number
     +scale(factor) RecipeIngredient
   }
   class RecipeReview {
@@ -217,12 +230,14 @@ classDiagram
     +addMember(member) void
     +removeMember(userId) boolean
     +recordActivity(by, message) void
+    +estimatedTotal: number
   }
   class GroceryListItem {
     +name: string
     +quantity: Quantity
     -isPurchased: boolean
     -addedByMember: ListMember
+    +estimatedCost: number | null
     +setPurchased(purchased) void
   }
   class ContactMessage {
@@ -243,6 +258,7 @@ classDiagram
     <<value object>>
     +amount: number
     +unit: Unit
+    +dimension: Dimension
     +scale(factor) Quantity
     +minus(other) Quantity
     +equals(other) boolean

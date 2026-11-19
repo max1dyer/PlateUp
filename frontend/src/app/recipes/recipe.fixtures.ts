@@ -27,14 +27,17 @@ export function recipe(overrides: Partial<Recipe> = {}): Recipe {
     nutrition: { calories: 550, protein: 45, fat: 10, carbohydrates: 60 },
     tags: ['High Protein'],
     ingredients: [
-      { name: 'Chicken breast', quantity: { amount: 1.5, unit: 'lb' } },
-      { name: 'Rice', quantity: { amount: 1, unit: 'cup' } },
+      { name: 'Chicken breast', quantity: { amount: 1.5, unit: 'lb' }, estimatedCost: 5.99 },
+      { name: 'Rice', quantity: { amount: 1, unit: 'cup' }, estimatedCost: 0.71 },
     ],
     steps: ['Cook the rice.', 'Grill the chicken.'],
     rating: null,
     numRatings: 0,
     reviews: [],
     dietaryConflicts: {},
+    costPerServing: null,
+    estimatedCostPerServing: 3.35,
+    costIsEstimate: true,
     ...overrides,
   };
 }

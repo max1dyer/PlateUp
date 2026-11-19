@@ -10,6 +10,8 @@ export const MIN_DAILY_CALORIES = 500;
 export const MAX_DAILY_CALORIES = 10000;
 /** Most grams per day accepted for any one macro. */
 export const MAX_MACRO_GRAMS = 1000;
+/** Most dollars per serving accepted for a budget. */
+export const MAX_BUDGET_PER_SERVING = 1000;
 
 /** Energy per gram of each macronutrient. */
 export const KCAL_PER_GRAM = { protein: 4, carbohydrates: 4, fat: 9 } as const;
@@ -38,6 +40,10 @@ export interface UserPreferencesProps {
   blockListInvites: boolean;
   /** When true, other users cannot send this user a copy of a grocery list. */
   blockListCopies: boolean;
+  /** When true, the budget below is used when searching recipes and building grocery lists. */
+  budgetEnabled: boolean;
+  /** Most the user wants to spend per serving, in US dollars, or null for no limit. */
+  maxCostPerServing: number | null;
 }
 
 /** A partial edit; `macroGoals` may name only the macros that change. */
@@ -93,8 +99,9 @@ export function deriveDailyTargets(calories: number | null, macros: MacroGoals):
 
 /**
  * A user's personal settings (UC10): default servings, dietary restrictions,
- * a daily calorie goal with gram goals per macro, and what other users may
- * share with them (recipes, live grocery lists, list copies). Immutable value object;
+ * a daily calorie goal with gram goals per macro, what other users may
+ * share with them (recipes, live grocery lists, list copies), and a budget per serving that can be
+ * turned on or off. Immutable value object;
  * `with()` returns a validated copy.
  */
 export class UserPreferences {
@@ -105,6 +112,8 @@ export class UserPreferences {
   public readonly blockRecipeShares: boolean;
   public readonly blockListInvites: boolean;
   public readonly blockListCopies: boolean;
+  public readonly budgetEnabled: boolean;
+  public readonly maxCostPerServing: number | null;
 
   /** @throws DomainValidationError if any value is out of range or not recognised. */
   constructor(props: UserPreferencesProps) {
@@ -128,6 +137,8 @@ export class UserPreferences {
     this.blockRecipeShares = requireBoolean(props.blockRecipeShares, 'Block recipe shares');
     this.blockListInvites = requireBoolean(props.blockListInvites, 'Block live list invites');
     this.blockListCopies = requireBoolean(props.blockListCopies, 'Block grocery list copies');
+    this.budgetEnabled = requireBoolean(props.budgetEnabled, 'Use my budget');
+    this.maxCostPerServing = UserPreferences.validateBudget(props.maxCostPerServing);
   }
 
   /** What a new account starts with: default servings, no restrictions, no goals. */
@@ -140,6 +151,8 @@ export class UserPreferences {
       blockRecipeShares: false,
       blockListInvites: false,
       blockListCopies: false,
+      budgetEnabled: false,
+      maxCostPerServing: null,
     });
   }
 
@@ -152,6 +165,14 @@ export class UserPreferences {
       // Merge macro goals separately so changing one macro keeps the other two.
       macroGoals: { ...current.macroGoals, ...changes.macroGoals },
     });
+  }
+
+  /**
+   * The per-serving limit to apply right now: the saved limit while the budget is turned on,
+   * otherwise null (no limit).
+   */
+  public get activeBudget(): number | null {
+    return this.budgetEnabled ? this.maxCostPerServing : null;
   }
 
   /** The goals in effect, including the one the others determine. */
@@ -174,7 +195,27 @@ export class UserPreferences {
       blockRecipeShares: this.blockRecipeShares,
       blockListInvites: this.blockListInvites,
       blockListCopies: this.blockListCopies,
+      budgetEnabled: this.budgetEnabled,
+      maxCostPerServing: this.maxCostPerServing,
     };
+  }
+
+  /** Null (no limit) or more than $0 and at most `MAX_BUDGET_PER_SERVING`, rounded to the cent. */
+  private static validateBudget(dollars: number | null | undefined): number | null {
+    if (dollars === null || dollars === undefined) {
+      return null;
+    }
+    if (
+      typeof dollars !== 'number' ||
+      !Number.isFinite(dollars) ||
+      dollars <= 0 ||
+      dollars > MAX_BUDGET_PER_SERVING
+    ) {
+      throw new DomainValidationError(
+        `Budget per serving must be more than $0 and at most $${MAX_BUDGET_PER_SERVING}.`,
+      );
+    }
+    return Math.round(dollars * 100) / 100;
   }
 
   /** Checks each value and drops repeats, keeping the display order. */

@@ -10,6 +10,7 @@ describe('PantryController', () => {
     add: jest.fn(),
     update: jest.fn(),
     remove: jest.fn(),
+    checkStock: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -41,5 +42,12 @@ describe('PantryController', () => {
   it('remove delegates the deletion', async () => {
     await controller.remove('alice', 'p1');
     expect(service.remove).toHaveBeenCalledWith('alice', 'p1');
+  });
+
+  it('checkStock delegates the ingredient list', async () => {
+    const dto = { ingredients: [{ name: 'Oats', quantity: { amount: 1, unit: Unit.Cup } }] };
+    service.checkStock.mockResolvedValue([]);
+    await expect(controller.checkStock('alice', dto)).resolves.toEqual([]);
+    expect(service.checkStock).toHaveBeenCalledWith('alice', dto);
   });
 });

@@ -1,5 +1,6 @@
 import { Component, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { formatMoney } from '../../preferences/preferences.models';
 import { Recipe } from '../recipe.models';
 import { SaveButton } from '../save-button/save-button';
 
@@ -15,6 +16,11 @@ export class RecipeCard {
   public readonly recipe = input.required<Recipe>();
   /** Alternates the card colour like the grocery list's category cards. */
   public readonly green = input(false);
-  /** Dietary warnings, e.g. "Not dairy-free (Milk)"; shown when the recipe breaks a preference. */
+  /**
+   * Warnings, e.g. "Not dairy-free (Milk)" or "Over your $3.00/serving budget"; shown when the
+   * recipe breaks a preference.
+   */
   public readonly warnings = input<readonly string[]>([]);
+
+  protected readonly formatMoney = formatMoney;
 }

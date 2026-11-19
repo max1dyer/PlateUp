@@ -11,6 +11,8 @@ export function preferences(overrides: Partial<UserPreferences> = {}): UserPrefe
     blockRecipeShares: false,
     blockListInvites: false,
     blockListCopies: false,
+    budgetEnabled: false,
+    maxCostPerServing: null,
     ...overrides,
   };
 }

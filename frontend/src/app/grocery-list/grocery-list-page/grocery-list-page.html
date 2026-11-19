@@ -130,6 +130,11 @@
           @if (inCartCount() > 0) {
             <p class="summary-text">{{ inCartCount() }} of {{ itemCount() }} in cart</p>
           }
+          @if (estimatedTotal() > 0) {
+            <p class="summary-text estimated-total">
+              Estimated total: about {{ formatMoney(estimatedTotal()) }}
+            </p>
+          }
         </div>
         @if (inCartCount() > 0) {
           <div class="summary-actions">
