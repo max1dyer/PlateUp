@@ -5,6 +5,7 @@ import { DomainValidationError } from '../../common/errors/domain-validation.err
 
 /** What a notification is about. Add a value here for each new kind (e.g. a rating). */
 export enum NotificationType {
+  GroceryListInvite = 'grocery-list-invite',
   GroceryListShare = 'grocery-list-share',
   RecipeShare = 'recipe-share',
   RecipeShareRevoked = 'recipe-share-revoked',
@@ -31,6 +32,13 @@ export interface GroceryListSharePayload {
   items: SharedGroceryItem[];
 }
 
+/** Payload of a `GroceryListInvite`: who added the recipient to which live (shared) list. */
+export interface GroceryListInvitePayload {
+  senderName: string;
+  listId: string;
+  listName: string;
+}
+
 /** Payload of `RecipeShare` and `RecipeShareRevoked`: who, and which recipe. */
 export interface RecipeSharePayload {
   senderName: string;
@@ -39,7 +47,8 @@ export interface RecipeSharePayload {
 }
 
 /** What a notification carries; narrow it by `type` (or with `in`) before using it. */
-export type NotificationPayload = GroceryListSharePayload | RecipeSharePayload;
+export type NotificationPayload =
+  GroceryListInvitePayload | GroceryListSharePayload | RecipeSharePayload;
 
 /** The fields a notification serializes to. `ownerId` is the recipient. */
 export interface NotificationSnapshot {

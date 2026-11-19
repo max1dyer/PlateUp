@@ -13,6 +13,8 @@ describe('UserPreferences', () => {
       macroGoals: NO_MACROS,
       dailyTargets: { calories: null, protein: null, carbohydrates: null, fat: null },
       blockRecipeShares: false,
+      blockListInvites: false,
+      blockListCopies: false,
     });
   });
 
@@ -87,15 +89,18 @@ describe('UserPreferences', () => {
     expect(prefs.dailyTargets.calories).toBe(1500);
   });
 
-  it('blockRecipeShares defaults to false, can be turned on, and must be a boolean', () => {
-    const prefs = UserPreferences.defaults();
+  it.each(['blockRecipeShares', 'blockListInvites', 'blockListCopies'] as const)(
+    '%s defaults to false, can be turned on, and must be a boolean',
+    (field) => {
+      const prefs = UserPreferences.defaults();
 
-    expect(prefs.blockRecipeShares).toBe(false);
-    expect(prefs.with({ blockRecipeShares: true }).blockRecipeShares).toBe(true);
-    expect(() => prefs.with({ blockRecipeShares: 'yes' as unknown as boolean })).toThrow(
-      DomainValidationError,
-    );
-  });
+      expect(prefs[field]).toBe(false);
+      expect(prefs.with({ [field]: true })[field]).toBe(true);
+      expect(() => prefs.with({ [field]: 'yes' as unknown as boolean })).toThrow(
+        DomainValidationError,
+      );
+    },
+  );
 });
 
 describe('deriveDailyTargets', () => {

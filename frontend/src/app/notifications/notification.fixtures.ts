@@ -1,4 +1,5 @@
 import {
+  GroceryListInviteNotification,
   GroceryListShareNotification,
   RecipeShareNotification,
   RecipeShareRevokedNotification,
@@ -53,6 +54,19 @@ export function recipeRevokedNotification(
     id: 'n4',
     type: 'recipe-share-revoked',
     payload: { senderName: 'Peter', recipeId: 'r1', recipeTitle: 'Garlic Pasta' },
+    ...overrides,
+  };
+}
+
+/** "Peter added you to the live list Household"; override any field. */
+export function listInviteNotification(
+  overrides: Partial<GroceryListInviteNotification> = {},
+): GroceryListInviteNotification {
+  return {
+    ...BASE,
+    id: 'n5',
+    type: 'grocery-list-invite',
+    payload: { senderName: 'Peter', listId: 'list-7', listName: 'Household' },
     ...overrides,
   };
 }

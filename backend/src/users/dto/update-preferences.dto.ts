@@ -11,4 +11,6 @@ export class UpdatePreferencesDto {
   public readonly dailyCalories?: number | null;
   public readonly macroGoals?: Partial<MacroGoals>;
   public readonly blockRecipeShares?: boolean;
+  public readonly blockListInvites?: boolean;
+  public readonly blockListCopies?: boolean;
 }

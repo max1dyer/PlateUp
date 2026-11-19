@@ -99,7 +99,7 @@ These are the major classes for CRC cards and the class diagram. Paths are relat
 
 DTOs (`CreateRecipeDto`, `LogInDto`, `AddRecipeToListDto`, ...) are plain request shapes in each feature's `dto/` folder and are not part of the diagram. `requireCalendarDate()` and `addDays()` (`common/domain/calendar-date.ts`) validate and do arithmetic on `YYYY-MM-DD` calendar days, such as a pantry item's expiration date. `guessCategory()` (`common/domain/ingredient-category.ts`) is a pure function that files generated grocery items under a store section. `dietaryConflicts()` and the `DietaryRestriction` enum (`common/domain/dietary-restriction.ts`) are pure keyword rules that estimate which dietary restrictions a recipe's ingredients break; `Recipe` exposes the result as `dietaryConflicts` and `suits()`. `deriveDailyTargets()` (`users/entities/user-preferences.ts`) fills in the one daily goal the others determine (total calories from three gram goals, or the last macro's grams from the calorie goal); the frontend's `planMacros()` (`preferences/macro-plan.ts`) applies the same rule to preview it on the Preferences page and to flag macros that overshoot the calorie goal. `expiryStatus()` and `expiryAlert()` (`pantry/pantry-expiry.ts`) decide which pantry items have expired or expire within 7 days (UC15); the Pantry and Home pages show the alert.
 
-A grocery list can be shared with other users by username (`GroceryList.addMember`); members can see and edit it (`GroceryList.isAccessibleTo`), but only the owner can share it, remove members, or delete it, and a member can leave. Each `GroceryListItem` records who added it (`addedBy`), and changes to a shared list are kept in its `activity` (newest 20, `GroceryList.recordActivity`), so the grocery page can tag items other people added and show "Recent changes". `ListMember` and `ListActivity` (`grocery-lists/entities/list-member.ts`) are plain value shapes.
+A grocery list can be shared with other users by username (`GroceryList.addMember`); the new member gets a `GroceryListInvite` notification (shown in the home page's notifications panel with "Open list" and "Leave list"), which `NotificationsService.removeListInvites` deletes when they leave, are removed, or the list is deleted. Members can see and edit it (`GroceryList.isAccessibleTo`), but only the owner can share it, remove members, or delete it, and a member can leave. Each `GroceryListItem` records who added it (`addedBy`), and changes to a shared list are kept in its `activity` (newest 20, `GroceryList.recordActivity`), so the grocery page can tag items other people added and show "Recent changes". `ListMember` and `ListActivity` (`grocery-lists/entities/list-member.ts`) are plain value shapes. The Sharing section of the Preferences page lets a user refuse what others can share with them: `UserPreferences.blockRecipeShares`, `blockListInvites` (being added to a live list), and `blockListCopies` (being sent a list copy). `RecipeSharesService.share`, `GroceryListsService.addMember`, and `GroceryListsService.share` check the recipient's setting and answer 403 with a message naming them.
 
 `combineNeeds()` and `shortfall()` (`grocery-lists/entities/shopping-needs.ts`) merge the ingredients of a planned week across meals and subtract what the pantry already holds; `GroceryListsService.addPlannerWeek()` uses them to build a grocery list from the planner (UC6).
 
@@ -173,6 +173,9 @@ classDiagram
     +dailyCalories: number | null
     +macroGoals: MacroGoals
     +dailyTargets: DailyTargets
+    +blockRecipeShares: boolean
+    +blockListInvites: boolean
+    +blockListCopies: boolean
     +defaults()$ UserPreferences
     +with(changes) UserPreferences
     +toJSON() UserPreferencesJson

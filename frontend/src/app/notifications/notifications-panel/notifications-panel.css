@@ -7,62 +7,46 @@
 .list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
   margin: 0;
-  padding: 12px;
+  padding: 0 12px;
   list-style: none;
   border-radius: var(--radius);
   background: var(--color-card-green);
 }
 
+/* Each notification: message, then a row of buttons or its outcome */
 .item {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
+  padding: 12px 0;
+}
+
+.item + .item {
+  border-top: 1px solid rgb(0 0 0 / 8%);
 }
 
 .message,
-.answer {
+.outcome {
   margin: 0;
   font-size: 18px;
-  line-height: 110%;
+  line-height: 120%;
   color: var(--color-text-strong);
 }
 
-.answer {
+.outcome {
   font-size: 16px;
   color: var(--color-text-muted);
 }
 
-.buttons {
+.actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
 }
 
-.accept,
-.reject {
-  height: 37px;
-  padding: 0 18px;
-  border: 0;
-  border-radius: var(--radius);
+.actions .ui-button {
   font-size: 16px;
-  cursor: pointer;
-}
-
-.accept {
-  background: var(--color-primary);
-  color: var(--color-on-color);
-}
-
-.reject {
-  background: var(--color-danger-tint);
-  color: var(--color-text-strong);
-}
-
-.accept:disabled,
-.reject:disabled {
-  cursor: default;
-  opacity: 0.6;
 }
 
 .status {
@@ -75,14 +59,4 @@
   margin: 0;
   font-size: 16px;
   color: var(--color-error);
-}
-
-.dismiss {
-  align-self: flex-start;
-  padding: 0;
-  border: 0;
-  background: none;
-  font-size: 16px;
-  color: var(--color-primary);
-  cursor: pointer;
 }

@@ -3,68 +3,105 @@
   @if (loadError()) {
     <p class="status">We couldn't load your notifications.</p>
   } @else if (shown().length === 0) {
-    <p class="status">No notifications yet.</p>
+    <p class="status">You're all caught up.</p>
   } @else {
+    <!-- Every notification: a message, then its buttons, or what the user did with it -->
     <ul class="list">
       @for (item of shown(); track item.id) {
         <li class="item">
-          @if (item.type === 'grocery-list-share') {
-            <p class="message">
-              <strong>{{ item.payload.senderName }}</strong> sent you a grocery list:
-              “{{ item.payload.listName }}” ({{ item.payload.items.length }}
-              {{ item.payload.items.length === 1 ? 'item' : 'items' }})
-            </p>
-            @if (item.status === 'pending') {
-              <div class="buttons">
-                <button
-                  type="button"
-                  class="accept"
-                  [disabled]="busyId() !== null"
-                  (click)="accept(item)"
-                >
-                  Accept
-                </button>
-                <button
-                  type="button"
-                  class="reject"
-                  [disabled]="busyId() !== null"
-                  (click)="reject(item)"
-                >
-                  Reject
-                </button>
-              </div>
-            } @else if (item.status === 'accepted') {
-              <p class="answer">
-                Accepted ·
-                <a [routerLink]="['/grocery']" [queryParams]="{ list: acceptedLists()[item.id] }"
-                  >View list</a
-                >
-              </p>
-            } @else {
-              <p class="answer">Rejected</p>
+          <p class="message">
+            <strong>{{ item.payload.senderName }}</strong>
+            @switch (item.type) {
+              @case ('grocery-list-invite') {
+                added you to the live grocery list “{{ item.payload.listName }}”.
+              }
+              @case ('grocery-list-share') {
+                sent you a copy of the grocery list “{{ item.payload.listName }}”
+                ({{ item.payload.items.length }}
+                {{ item.payload.items.length === 1 ? 'item' : 'items' }}).
+              }
+              @case ('recipe-share') {
+                shared the recipe “{{ item.payload.recipeTitle }}” with you.
+              }
+              @case ('recipe-share-revoked') {
+                stopped sharing the recipe “{{ item.payload.recipeTitle }}” with you.
+              }
             }
-          } @else if (item.type === 'recipe-share') {
-            <p class="message">
-              <strong>{{ item.payload.senderName }}</strong> shared a recipe with you:
-              “{{ item.payload.recipeTitle }}”
-            </p>
-            <p class="answer">
-              <a [routerLink]="['/recipes', item.payload.recipeId]" (click)="markRead(item)"
-                >View recipe</a
-              >
+          </p>
+
+          @if (outcomes()[item.id]; as outcome) {
+            <p class="outcome">
+              {{ outcome.message }}
+              @if (outcome.listId; as listId) {
+                · <a [routerLink]="['/grocery']" [queryParams]="{ list: listId }">View list</a>
+              }
             </p>
           } @else {
-            <p class="message">
-              <strong>{{ item.payload.senderName }}</strong> stopped sharing
-              “{{ item.payload.recipeTitle }}” with you.
-            </p>
-            @if (!item.read) {
-              <button type="button" class="dismiss" (click)="markRead(item)">Dismiss</button>
-            }
+            <div class="actions">
+              @switch (item.type) {
+                @case ('grocery-list-invite') {
+                  <a
+                    class="ui-button primary"
+                    [routerLink]="['/grocery']"
+                    [queryParams]="{ list: item.payload.listId }"
+                    (click)="opened(item)"
+                    >Open list</a
+                  >
+                  <button
+                    type="button"
+                    class="ui-button danger leave"
+                    [disabled]="busyId() !== null"
+                    (click)="leave(item)"
+                  >
+                    Leave list
+                  </button>
+                }
+                @case ('grocery-list-share') {
+                  <button
+                    type="button"
+                    class="ui-button primary accept"
+                    [disabled]="busyId() !== null"
+                    (click)="accept(item)"
+                  >
+                    Accept
+                  </button>
+                  <button
+                    type="button"
+                    class="ui-button danger reject"
+                    [disabled]="busyId() !== null"
+                    (click)="reject(item)"
+                  >
+                    Reject
+                  </button>
+                }
+                @case ('recipe-share') {
+                  <a
+                    class="ui-button primary"
+                    [routerLink]="['/recipes', item.payload.recipeId]"
+                    (click)="opened(item)"
+                    >View recipe</a
+                  >
+                }
+              }
+              <!-- A list copy's Reject already declines it, so it has no Dismiss -->
+              @if (item.type !== 'grocery-list-share') {
+                <button
+                  type="button"
+                  class="ui-button dismiss"
+                  [disabled]="busyId() !== null"
+                  (click)="dismiss(item)"
+                >
+                  Dismiss
+                </button>
+              }
+            </div>
           }
         </li>
       }
     </ul>
+    @if (hiddenCount() > 0) {
+      <p class="status">and {{ hiddenCount() }} more</p>
+    }
   }
   @if (actionError(); as message) {
     <p class="error" role="alert">{{ message }}</p>
