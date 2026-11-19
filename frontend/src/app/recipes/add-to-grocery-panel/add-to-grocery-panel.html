@@ -21,11 +21,6 @@
     </label>
   }
 
-  <label class="only-missing">
-    <input id="only-missing" type="checkbox" formControlName="onlyMissing" />
-    Only add what my pantry is missing
-  </label>
-
   <!-- Estimated cost of this addition, against the budget for this many servings -->
   @if (missingCount() > 0) {
     <p class="estimate" [class.over]="overBudget()">

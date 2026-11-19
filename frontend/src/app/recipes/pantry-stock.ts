@@ -14,15 +14,8 @@ export interface IngredientStock {
   status: StockStatus;
   /** How much of the needed amount is on hand, from 0 to 100 (%). */
   percent: number;
-  /** Estimated cost of the full amount, in US dollars. */
+  /** Estimated cost of the amount needed, in US dollars. */
   cost: number;
-  /** Estimated cost of only what the pantry is missing (the full cost if it can't be compared). */
-  missingCost: number;
-}
-
-/** Rounds to whole cents. */
-function toCents(dollars: number): number {
-  return Math.round(dollars * 100) / 100;
 }
 
 /**
@@ -44,22 +37,19 @@ export function stockRows(
     const held = level?.held ?? null;
     const base = { name: ingredient.name, quantity: needed, onHand, held, cost };
     if (level?.status === 'unknown') {
-      // The pantry has some in another unit; the backend can't subtract it, so the full amount
-      // would be bought.
-      return { ...base, status: 'unknown', percent: 0, missingCost: cost };
+      // The pantry has some, but in a unit that can't be compared.
+      return { ...base, status: 'unknown', percent: 0 };
     }
     if (onHand === null || onHand.amount <= 0) {
-      return { ...base, status: 'missing', percent: 0, missingCost: cost };
+      return { ...base, status: 'missing', percent: 0 };
     }
     if (needed.amount <= 0 || onHand.amount >= needed.amount) {
-      return { ...base, status: 'enough', percent: 100, missingCost: 0 };
+      return { ...base, status: 'enough', percent: 100 };
     }
-    const share = onHand.amount / needed.amount;
     return {
       ...base,
       status: 'partial',
-      percent: Math.round(share * 100),
-      missingCost: toCents(cost * (1 - share)),
+      percent: Math.round((onHand.amount / needed.amount) * 100),
     };
   });
 }

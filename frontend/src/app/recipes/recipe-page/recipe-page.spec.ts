@@ -222,6 +222,8 @@ describe('RecipePage', () => {
     await settle();
     expect(checked()).toEqual([true, true]);
     expect(text(page, '.selection-count')[0]).toBe('2 selected for your grocery list');
+    // Rice is fully stocked but ticked, so it is added too.
+    expect(text(page, '.grocery-button')[0]).toContain('Add 2 to Grocery');
 
     (page.querySelector('#clear-all') as HTMLButtonElement).click();
     await settle();
@@ -242,6 +244,22 @@ describe('RecipePage', () => {
 
     expect(text(page, '.pantry-text')).toEqual(['Not in your pantry', 'Not in your pantry']);
     expect(text(page, '.grocery-button')[0]).toContain('Add 2 to Grocery');
+  });
+
+  it("bases the grocery estimate on the author's cost per serving, scaled to the servings", async () => {
+    recipesService.getRecipe.mockReturnValue(
+      of(recipe({ costIsEstimate: false, costPerServing: 5, estimatedCostPerServing: 5 })),
+    );
+    usersService.getUser.mockReturnValue(of({ displayName: 'Alice Cook' }));
+    const page = await render();
+
+    // $5 a serving for the recipe's 2 servings, both ingredients ticked.
+    expect(text(page, '.estimate')[0]).toContain('about $10.00');
+
+    (page.querySelector('[aria-label="More servings"]') as HTMLButtonElement).click();
+    await TestBed.inject(ApplicationRef).whenStable();
+
+    expect(text(page, '.estimate')[0]).toContain('about $15.00');
   });
 
   it('shows the cost per serving and warns when it is over the budget', async () => {

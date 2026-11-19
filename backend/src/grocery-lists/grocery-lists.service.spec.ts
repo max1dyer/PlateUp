@@ -277,25 +277,15 @@ describe('GroceryListsService', () => {
       expect(updated.items.map((item) => item.name)).toEqual(names.slice(1));
     });
 
-    it('addRecipe with onlyMissing adds only what the pantry lacks', async () => {
-      // The recipe needs 400 g of chicken breast and 1 cup of rice.
+    it('addRecipe estimates the cost of what it adds', async () => {
       const recipe = await recipes.create('alice', buildCreateRecipeDto());
-      await pantry.add('alice', {
-        name: 'Chicken breast',
-        quantity: { amount: 150, unit: Unit.Gram },
-      });
-      await pantry.add('alice', { name: 'Rice', quantity: { amount: 2, unit: Unit.Cup } });
       const list = await service.create('alice', { name: 'Weekly' });
 
-      const updated = await service.addRecipe('alice', list.id, {
-        recipeId: recipe.id,
-        onlyMissing: true,
-      });
+      const updated = await service.addRecipe('alice', list.id, { recipeId: recipe.id });
 
-      expect(updated.items.map((item) => [item.name, item.quantity])).toEqual([
-        ['Chicken breast', new Quantity(250, Unit.Gram)],
-      ]);
-      expect(updated.estimatedTotal).toBe(updated.items[0].estimatedCost);
+      const costs = updated.items.map((item) => item.estimatedCost ?? 0);
+      expect(costs.every((cost) => cost > 0)).toBe(true);
+      expect(updated.estimatedTotal).toBe(Math.round((costs[0] + costs[1]) * 100) / 100);
     });
 
     it('moveItemToPantry adds the item to the pantry and removes it from the list', async () => {

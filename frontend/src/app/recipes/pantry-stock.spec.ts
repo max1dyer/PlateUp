@@ -38,12 +38,12 @@ describe('stockRows', () => {
     level({}),
   ];
 
-  it('shows how much of each ingredient is on hand, with the cost of what is missing', () => {
+  it('shows how much of each ingredient is on hand, with its cost', () => {
     const rows = stockRows([oats, butter, rice, banana], levels);
 
-    expect(rows.map((row) => [row.status, row.percent, row.missingCost])).toEqual([
-      ['partial', 50, 0.5],
-      ['enough', 100, 0],
+    expect(rows.map((row) => [row.status, row.percent, row.cost])).toEqual([
+      ['partial', 50, 1],
+      ['enough', 100, 2],
       ['unknown', 0, 0.6],
       ['missing', 0, 0.3],
     ]);

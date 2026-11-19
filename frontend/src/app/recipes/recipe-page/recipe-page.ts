@@ -18,6 +18,7 @@ import { PreferencesService } from '../../preferences/preferences.service';
 import { UsersService } from '../../users/users.service';
 import { AddToGroceryPanel, GroceryAddition } from '../add-to-grocery-panel/add-to-grocery-panel';
 import { IngredientStock, defaultSelection, stockRows } from '../pantry-stock';
+import { ingredientCosts } from '../recipe-cost';
 import { dietWarnings, isOverBudget } from '../recipe-filter';
 import { Recipe, RecipeIngredient, SharedWithUser } from '../recipe.models';
 import { RecipesService } from '../recipes.service';
@@ -152,12 +153,7 @@ export class RecipePage {
   protected readonly additions = computed<GroceryAddition[]>(() =>
     this.stock()
       .filter((row) => this.selected().has(row.name))
-      .map((row) => ({
-        name: row.name,
-        cost: row.cost,
-        missingCost: row.missingCost,
-        covered: row.status === 'enough',
-      })),
+      .map((row) => ({ name: row.name, cost: row.cost })),
   );
 
   /** True if the signed-in user wrote this recipe (shows Edit and Delete). */
@@ -174,10 +170,12 @@ export class RecipePage {
       return [];
     }
     const factor = this.servings() / recipe.servings;
-    return recipe.ingredients.map((ingredient) => ({
+    // Costs add up to the page's cost per serving, including one the author set.
+    const costs = ingredientCosts(recipe, this.servings());
+    return recipe.ingredients.map((ingredient, index) => ({
       name: ingredient.name,
       quantity: scaleQuantity(ingredient.quantity, factor),
-      estimatedCost: Math.round((ingredient.estimatedCost ?? 0) * factor * 100) / 100,
+      estimatedCost: costs[index],
     }));
   });
 

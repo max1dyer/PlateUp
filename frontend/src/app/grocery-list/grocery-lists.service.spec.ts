@@ -52,15 +52,15 @@ describe('GroceryListsService', () => {
 
     expect(
       http.expectOne({ method: 'POST', url: '/api/grocery-lists/list-1/recipes' }).request.body,
-    ).toEqual({ recipeId: 'recipe-1', servings: 6, excludeIngredients: [], onlyMissing: false });
+    ).toEqual({ recipeId: 'recipe-1', servings: 6, excludeIngredients: [] });
     expect(
       http.expectOne({ method: 'PATCH', url: '/api/grocery-lists/list-1' }).request.body,
     ).toEqual({ name: 'Party' });
     expect(http.expectOne({ method: 'DELETE', url: '/api/grocery-lists/list-1' })).toBeTruthy();
   });
 
-  it('addRecipe sends the ingredients to leave off and whether to subtract the pantry', () => {
-    service.addRecipe('list-1', 'recipe-1', 2, ['Rice'], true).subscribe();
+  it('addRecipe sends the ingredients to leave off', () => {
+    service.addRecipe('list-1', 'recipe-1', 2, ['Rice']).subscribe();
 
     expect(
       http.expectOne({ method: 'POST', url: '/api/grocery-lists/list-1/recipes' }).request.body,
@@ -68,7 +68,6 @@ describe('GroceryListsService', () => {
       recipeId: 'recipe-1',
       servings: 2,
       excludeIngredients: ['Rice'],
-      onlyMissing: true,
     });
   });
 

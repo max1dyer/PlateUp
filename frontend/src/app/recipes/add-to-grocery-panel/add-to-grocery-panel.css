@@ -52,14 +52,6 @@
   cursor: not-allowed;
 }
 
-.only-missing {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 15px;
-  cursor: pointer;
-}
-
 /* Estimated cost line; amber when over the budget */
 .estimate {
   margin: 0;

@@ -23,13 +23,8 @@ describe('AddToGroceryPanel', () => {
   let fixture: ComponentFixture<AddToGroceryPanel>;
   let panel: HTMLElement;
 
-  const chicken: GroceryAddition = {
-    name: 'Chicken breast',
-    cost: 6,
-    missingCost: 6,
-    covered: false,
-  };
-  const rice: GroceryAddition = { name: 'Rice', cost: 1, missingCost: 0.5, covered: false };
+  const chicken: GroceryAddition = { name: 'Chicken breast', cost: 6 };
+  const rice: GroceryAddition = { name: 'Rice', cost: 1 };
 
   async function render(
     lists: GroceryList[] = [groceryList([], { name: 'Weekly' })],
@@ -92,9 +87,8 @@ describe('AddToGroceryPanel', () => {
 
     await click(buttons()[0]);
 
-    // The recipe endpoint scales and categorizes every ingredient it adds, and subtracts the
-    // pantry since "only what's missing" starts ticked.
-    expect(groceryLists.addRecipe).toHaveBeenCalledWith('list-1', 'recipe-1', 4, ['Rice'], true);
+    // The recipe endpoint scales and categorizes every ingredient it adds.
+    expect(groceryLists.addRecipe).toHaveBeenCalledWith('list-1', 'recipe-1', 4, ['Rice']);
     expect(TestBed.inject(Router).navigate).not.toHaveBeenCalled();
     expect(TestBed.inject(ToastService).toasts()[0].message).toBe('Added 1 ingredient to Weekly');
   });
@@ -111,7 +105,7 @@ describe('AddToGroceryPanel', () => {
     await click(buttons()[0]);
 
     expect(groceryLists.createList).toHaveBeenCalledWith(DEFAULT_LIST_NAME);
-    expect(groceryLists.addRecipe).toHaveBeenCalledWith('list-2', 'recipe-1', 2, [], true);
+    expect(groceryLists.addRecipe).toHaveBeenCalledWith('list-2', 'recipe-1', 2, []);
     expect(select.value).toBe('list-2');
     expect(panel.querySelector('input[formcontrolname="newListName"]')).toBeNull();
   });
@@ -134,20 +128,26 @@ describe('AddToGroceryPanel', () => {
     expect(buttons()[0].disabled).toBe(true);
   });
 
-  it('skips fully stocked ingredients and costs only what is missing, unless told otherwise', async () => {
-    await render(undefined, [chicken, rice, { ...rice, name: 'Salt', covered: true }]);
-    const estimate = () => panel.querySelector('.estimate')?.textContent ?? '';
-
-    expect(buttons()[0].textContent).toContain('Add 2 to Grocery');
-    expect(estimate()).toContain('about $6.50');
-
-    (panel.querySelector('#only-missing') as HTMLInputElement).click();
-    await fixture.whenStable();
+  it('adds and costs every ticked ingredient, even one the pantry already covers', async () => {
+    await render(undefined, [chicken, rice, { name: 'Salt', cost: 1 }]);
 
     expect(buttons()[0].textContent).toContain('Add 3 to Grocery');
-    expect(estimate()).toContain('about $8.00');
+    expect(panel.querySelector('.estimate')?.textContent).toContain('about $8.00');
+    // There is no "only add what's missing" option any more.
+    expect(panel.querySelector('#only-missing')).toBeNull();
+
     await click(buttons()[0]);
-    expect(groceryLists.addRecipe).toHaveBeenCalledWith('list-1', 'recipe-1', 2, [], false);
+    expect(groceryLists.addRecipe).toHaveBeenCalledWith('list-1', 'recipe-1', 2, []);
+  });
+
+  it('updates the estimate when the ingredient costs change', async () => {
+    await render(undefined, [chicken, rice]);
+    expect(panel.querySelector('.estimate')?.textContent).toContain('about $7.00');
+
+    fixture.componentRef.setInput('additions', [{ ...chicken, cost: 9 }, rice]);
+    await fixture.whenStable();
+
+    expect(panel.querySelector('.estimate')?.textContent).toContain('about $10.00');
   });
 
   it('compares the estimate with the budget for the chosen servings', async () => {
@@ -160,7 +160,7 @@ describe('AddToGroceryPanel', () => {
     fixture.componentRef.setInput('servings', 1);
     await fixture.whenStable();
 
-    expect(estimate().textContent).toContain('$2.50 over your $4.00 budget for 1 serving');
+    expect(estimate().textContent).toContain('$3.00 over your $4.00 budget for 1 serving');
     expect(estimate().classList).toContain('over');
   });
 });

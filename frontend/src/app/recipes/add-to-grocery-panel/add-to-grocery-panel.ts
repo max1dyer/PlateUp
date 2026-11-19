@@ -21,19 +21,14 @@ export const DEFAULT_LIST_NAME = 'Groceries';
 /** One ingredient the user ticked on the recipe page, with what adding it would cost. */
 export interface GroceryAddition {
   name: string;
-  /** Estimated cost of the full amount at the chosen servings (US dollars). */
+  /** Estimated cost of the amount at the chosen servings (US dollars). */
   cost: number;
-  /** Estimated cost of only what the pantry is missing. */
-  missingCost: number;
-  /** True if the pantry already holds the full amount. */
-  covered: boolean;
 }
 
 /**
  * The recipe page's grocery control: the target list is picked up front, and
  * one button adds the ticked ingredients (scaled to `servings`) to it, leaving
- * the user on the recipe (UC6). With "Only add what my pantry is missing" on,
- * a half-stocked ingredient is added only for the rest. The estimated cost is
+ * the user on the recipe (UC6). The estimated cost is
  * shown against the user's budget for that many servings, when it is on.
  */
 @Component({
@@ -64,21 +59,12 @@ export class AddToGroceryPanel implements OnInit {
   protected readonly form = new FormGroup({
     listId: new FormControl(NEW_LIST, { nonNullable: true }),
     newListName: new FormControl(DEFAULT_LIST_NAME, { nonNullable: true }),
-    onlyMissing: new FormControl(true, { nonNullable: true }),
   });
   protected readonly formatMoney = formatMoney;
 
   /** The picked list id as a signal, so the template updates without zone.js. */
   protected readonly listId = toSignal(
     this.form.controls.listId.valueChanges.pipe(startWith(this.form.controls.listId.value)),
-    { requireSync: true },
-  );
-
-  /** The "only what's missing" checkbox as a signal. */
-  protected readonly onlyMissing = toSignal(
-    this.form.controls.onlyMissing.valueChanges.pipe(
-      startWith(this.form.controls.onlyMissing.value),
-    ),
     { requireSync: true },
   );
 
@@ -90,22 +76,12 @@ export class AddToGroceryPanel implements OnInit {
       .filter((name) => !ticked.has(name));
   });
 
-  /** The ticked ingredients that will actually be added (fully stocked ones are skipped). */
-  private readonly toAdd = computed(() =>
-    this.onlyMissing()
-      ? this.additions().filter((addition) => !addition.covered)
-      : this.additions(),
-  );
-
-  /** How many ingredients the button will add. */
-  protected readonly missingCount = computed(() => this.toAdd().length);
+  /** How many ingredients the button will add: every ticked one. */
+  protected readonly missingCount = computed(() => this.additions().length);
 
   /** Estimated cost of what the button will add. */
   protected readonly estimatedCost = computed(() => {
-    const total = this.toAdd().reduce(
-      (sum, addition) => sum + (this.onlyMissing() ? addition.missingCost : addition.cost),
-      0,
-    );
+    const total = this.additions().reduce((sum, addition) => sum + addition.cost, 0);
     return Math.round(total * 100) / 100;
   });
 
@@ -146,12 +122,11 @@ export class AddToGroceryPanel implements OnInit {
 
   /**
    * Adds the ticked ingredients through the backend's recipe endpoint, which
-   * scales, categorizes, and merges them into the list (and, with "only what's
-   * missing", subtracts what the pantry holds).
+   * scales, categorizes, and merges them into the list.
    */
   protected addMissing(): void {
     const excluded = this.excludedNames();
-    const { listId, newListName, onlyMissing } = this.form.getRawValue();
+    const { listId, newListName } = this.form.getRawValue();
     const name = newListName.trim();
     if (listId === NEW_LIST && name.length === 0) {
       this.error.set('Name the new list.');
@@ -170,7 +145,7 @@ export class AddToGroceryPanel implements OnInit {
     target
       .pipe(
         switchMap((id) =>
-          this.groceryLists.addRecipe(id, this.recipe().id, this.servings(), excluded, onlyMissing),
+          this.groceryLists.addRecipe(id, this.recipe().id, this.servings(), excluded),
         ),
       )
       .subscribe({
