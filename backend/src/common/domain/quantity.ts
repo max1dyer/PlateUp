@@ -91,6 +91,11 @@ export class Quantity {
     return new Quantity(this.amount * requireNonNegative(factor, 'Scale factor'), this.unit);
   }
 
+  /** What this amount measures (mass, volume, a count, or a store package). */
+  public get dimension(): Dimension {
+    return this.definition.dimension;
+  }
+
   /** True if the amounts can be converted and combined, e.g. kg and oz, or bag and bag. */
   public isCompatibleWith(other: Quantity): boolean {
     return Quantity.unitsAreCompatible(this.unit, other.unit);

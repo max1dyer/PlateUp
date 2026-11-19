@@ -26,6 +26,8 @@ export interface GroceryListSnapshot {
   members: ListMember[];
   /** Recent changes, newest first (only recorded while the list is shared). */
   activity: ListActivity[];
+  /** Estimated cost in US dollars of the items with an amount (placeholder prices). */
+  estimatedTotal: number;
 }
 
 /**
@@ -211,6 +213,12 @@ export class GroceryList extends OwnedEntity<GroceryListSnapshot> {
   }
 
   /** The list-specific fields for `toJSON()`. */
+  /** Estimated cost of every item that has an amount, to the cent. */
+  public get estimatedTotal(): number {
+    const total = this.items.reduce((sum, item) => sum + (item.estimatedCost ?? 0), 0);
+    return Math.round(total * 100) / 100;
+  }
+
   protected snapshot(): GroceryListSnapshot {
     return {
       ownerId: this.ownerId,
@@ -218,6 +226,7 @@ export class GroceryList extends OwnedEntity<GroceryListSnapshot> {
       items: this.items,
       members: this.members,
       activity: [...this.recent],
+      estimatedTotal: this.estimatedTotal,
     };
   }
 

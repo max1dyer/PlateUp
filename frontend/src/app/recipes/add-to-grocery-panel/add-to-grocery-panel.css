@@ -51,3 +51,14 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* Estimated cost line; amber when over the budget */
+.estimate {
+  margin: 0;
+  font-size: 15px;
+  color: var(--color-text-muted);
+}
+
+.estimate.over {
+  color: #8a4b00;
+}

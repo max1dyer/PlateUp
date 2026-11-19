@@ -9,6 +9,7 @@ import {
   DIETARY_RESTRICTIONS,
   DietaryRestriction,
   MACROS,
+  MAX_BUDGET_PER_SERVING,
   MAX_DAILY_CALORIES,
   MAX_DEFAULT_SERVINGS,
   MAX_MACRO_GRAMS,
@@ -21,7 +22,7 @@ import { MacroPlan, planMacros } from '../macro-plan';
 import { PreferencesService } from '../preferences.service';
 
 /** The parts of the page that save separately, so an error in one doesn't block the others. */
-export type PreferencesSection = 'sharing' | 'servings' | 'restrictions' | 'goals';
+export type PreferencesSection = 'sharing' | 'servings' | 'restrictions' | 'goals' | 'budget';
 
 /** The sharing checkboxes' form controls. */
 type SharingField = 'blockRecipeShares' | 'blockListInvites' | 'blockListCopies';
@@ -42,8 +43,8 @@ type SaveResult =
 
 /**
  * Preferences page (`/preferences`, UC10): the user's default serving size,
- * dietary restrictions, daily calorie and macro goals, and what other users
- * may share with them. The recipe feed
+ * dietary restrictions, budget per serving (which can be turned on or off), daily calorie and
+ * macro goals, and what other users may share with them. The recipe feed
  * and recipe page read them through `PreferencesService`.
  *
  * There is no Save button: checkboxes save when clicked, and number fields when the user leaves
@@ -67,6 +68,7 @@ export class PreferencesPage implements OnInit {
   protected readonly maxCalories = MAX_DAILY_CALORIES;
   protected readonly maxGrams = MAX_MACRO_GRAMS;
   protected readonly macros = MACROS;
+  protected readonly maxBudget = MAX_BUDGET_PER_SERVING;
 
   /** True until the saved preferences have loaded. */
   protected readonly loading = signal(true);
@@ -98,6 +100,8 @@ export class PreferencesPage implements OnInit {
     blockRecipeShares: new FormControl(false, { nonNullable: true }),
     blockListInvites: new FormControl(false, { nonNullable: true }),
     blockListCopies: new FormControl(false, { nonNullable: true }),
+    budgetEnabled: new FormControl(false, { nonNullable: true }),
+    maxCostPerServing: new FormControl<number | null>(null),
   });
 
   /** The form's values as a signal, so `plan` recomputes as the user types. */
@@ -202,6 +206,18 @@ export class PreferencesPage implements OnInit {
     this.queue('servings', { defaultServings: servings });
   }
 
+  /** Saves the budget switch after a click. */
+  protected saveBudgetEnabled(): void {
+    this.queue('budget', { budgetEnabled: this.form.controls.budgetEnabled.value });
+  }
+
+  /** Saves the budget per serving once entered; a blank field removes the limit. */
+  protected saveBudgetLimit(): void {
+    this.queue('budget', {
+      maxCostPerServing: numberOrNull(this.form.controls.maxCostPerServing.value),
+    });
+  }
+
   /** Saves the calorie and macro goals together, since they are checked against each other. */
   protected saveGoals(): void {
     const values = this.form.getRawValue();
@@ -294,10 +310,11 @@ export class PreferencesPage implements OnInit {
       defaultServings: preferences.defaultServings,
       dailyCalories: preferences.dailyCalories,
       ...preferences.macroGoals,
+      maxCostPerServing: preferences.maxCostPerServing ?? null,
     });
   }
 
-  /** Puts saved preferences into the restriction and sharing checkboxes. */
+  /** Puts saved preferences into the restriction, sharing, and budget checkboxes. */
   private fillCheckboxes(preferences: UserPreferences): void {
     this.restrictions.set(new Set(preferences.dietaryRestrictions));
     this.form.patchValue({
@@ -305,6 +322,7 @@ export class PreferencesPage implements OnInit {
       blockRecipeShares: preferences.blockRecipeShares ?? false,
       blockListInvites: preferences.blockListInvites ?? false,
       blockListCopies: preferences.blockListCopies ?? false,
+      budgetEnabled: preferences.budgetEnabled ?? false,
     });
   }
 }

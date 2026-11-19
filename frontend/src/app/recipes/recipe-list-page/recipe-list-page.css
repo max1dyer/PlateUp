@@ -56,7 +56,9 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  width: min(320px, calc(100vw - 32px));
+  width: min(340px, calc(100vw - 32px));
+  max-height: 70vh;
+  overflow-y: auto;
   padding: 12px;
   border: 1px solid var(--color-secondary);
   border-radius: 12px;
@@ -88,6 +90,43 @@
 
 .sort select {
   width: auto;
+}
+
+/* Reverse-order toggle next to the sort menu */
+.sort-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.reverse {
+  padding: 4px 10px;
+}
+
+.reverse.active {
+  background: var(--color-secondary);
+  color: var(--color-on-color);
+}
+
+/* Min/max boxes for calories, macros, and steps: label, min, max on each row */
+.ranges {
+  display: grid;
+  grid-template-columns: 1fr 80px 80px;
+  align-items: center;
+  gap: 6px;
+}
+
+.range-label {
+  font-size: 15px;
+}
+
+.range-unit {
+  color: #6b6b6b;
+  font-size: 13px;
+}
+
+.range-input {
+  padding: 4px 6px;
 }
 
 /* Tag buttons inside the Filters dropdown */

@@ -1,0 +1,8 @@
+<span class="stars" role="img" [attr.aria-label]="label()">
+  @for (fill of fills(); track $index) {
+    <!-- A grey star with a gold copy on top, clipped to how full this star is -->
+    <span class="star" aria-hidden="true">
+      ★<span class="fill" [style.width.%]="fill">★</span>
+    </span>
+  }
+</span>

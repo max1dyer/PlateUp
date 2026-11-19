@@ -187,7 +187,7 @@ export class GroceryListsService {
    * Generates grocery items from a recipe the user can see, with every
    * ingredient scaled to `servings` and merged into matching lines (UC6).
    * Ingredients named in `excludeIngredients` (e.g. already in the pantry)
-   * are left off.
+   * are left off; every other ingredient is added at its full amount.
    */
   public async addRecipe(
     ownerId: string,

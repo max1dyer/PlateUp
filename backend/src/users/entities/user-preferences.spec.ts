@@ -15,6 +15,8 @@ describe('UserPreferences', () => {
       blockRecipeShares: false,
       blockListInvites: false,
       blockListCopies: false,
+      budgetEnabled: false,
+      maxCostPerServing: null,
     });
   });
 
@@ -87,6 +89,25 @@ describe('UserPreferences', () => {
     });
 
     expect(prefs.dailyTargets.calories).toBe(1500);
+  });
+
+  it('applies the budget only while it is turned on', () => {
+    const prefs = UserPreferences.defaults().with({ maxCostPerServing: 4.255 });
+
+    expect(prefs.maxCostPerServing).toBe(4.26);
+    expect(prefs.activeBudget).toBeNull();
+    expect(prefs.with({ budgetEnabled: true }).activeBudget).toBe(4.26);
+    expect(prefs.with({ budgetEnabled: true, maxCostPerServing: null }).activeBudget).toBeNull();
+  });
+
+  it('rejects a budget of $0 or less, or over the maximum', () => {
+    const prefs = UserPreferences.defaults();
+
+    expect(() => prefs.with({ maxCostPerServing: 0 })).toThrow(DomainValidationError);
+    expect(() => prefs.with({ maxCostPerServing: 1001 })).toThrow(DomainValidationError);
+    expect(() => prefs.with({ budgetEnabled: 'on' as unknown as boolean })).toThrow(
+      DomainValidationError,
+    );
   });
 
   it.each(['blockRecipeShares', 'blockListInvites', 'blockListCopies'] as const)(

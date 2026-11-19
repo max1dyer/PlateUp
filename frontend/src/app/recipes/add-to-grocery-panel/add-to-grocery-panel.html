@@ -21,6 +21,22 @@
     </label>
   }
 
+  <!-- Estimated cost of this addition, against the budget for this many servings -->
+  @if (missingCount() > 0) {
+    <p class="estimate" [class.over]="overBudget()">
+      Estimated cost: about {{ formatMoney(estimatedCost()) }}
+      @if (budgetTotal(); as limit) {
+        @if (!overBudget()) {
+          · within your {{ formatMoney(limit) }} budget for {{ servings() }}
+          {{ servings() === 1 ? 'serving' : 'servings' }}
+        } @else {
+          · ⚠ {{ formatMoney(estimatedCost() - limit) }} over your {{ formatMoney(limit) }} budget
+          for {{ servings() }} {{ servings() === 1 ? 'serving' : 'servings' }}
+        }
+      }
+    </p>
+  }
+
   @if (error(); as message) {
     <p class="ui-error" role="alert">{{ message }}</p>
   }

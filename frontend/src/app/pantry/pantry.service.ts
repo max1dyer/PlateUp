@@ -2,7 +2,8 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { API_PREFIX } from '../core/api';
-import { NewPantryItem, PantryItem, PantryItemChanges } from './pantry.models';
+import { Quantity } from '../grocery-list/grocery-list.models';
+import { NewPantryItem, PantryItem, PantryItemChanges, StockLevel } from './pantry.models';
 
 /** All HTTP calls for the signed-in user's pantry. */
 @Injectable({ providedIn: 'root' })
@@ -14,6 +15,13 @@ export class PantryService {
   /** `GET /pantry`: every item in the user's pantry. */
   public getItems(): Observable<PantryItem[]> {
     return this.http.get<PantryItem[]>(this.baseUrl);
+  }
+
+  /** How much of each ingredient the pantry holds, converted to the ingredient's unit. */
+  public checkStock(
+    ingredients: readonly { name: string; quantity: Quantity }[],
+  ): Observable<StockLevel[]> {
+    return this.http.post<StockLevel[]>(`${this.baseUrl}/stock-check`, { ingredients });
   }
 
   /** Returns the stored item, which may be an existing one the amount was added to. */

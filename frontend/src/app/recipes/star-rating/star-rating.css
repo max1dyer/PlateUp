@@ -1,0 +1,25 @@
+:host {
+  display: inline-block;
+  line-height: 1;
+}
+
+.stars {
+  display: inline-flex;
+  gap: 1px;
+}
+
+.star {
+  position: relative;
+  display: inline-block;
+  color: var(--color-checkbox-border);
+}
+
+/* Same gold as the review form's chosen stars */
+.fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  overflow: hidden;
+  color: #e5a900;
+  white-space: nowrap;
+}

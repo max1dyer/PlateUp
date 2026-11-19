@@ -98,6 +98,8 @@ export interface GroceryListItem {
   purchased: boolean;
   /** Who last added this item; null if unknown. */
   addedBy: ListMember | null;
+  /** Estimated price in US dollars, or null when the item has no amount. */
+  estimatedCost: number | null;
 }
 
 /** A grocery list with its items, as returned by `GET /grocery-lists`. */
@@ -112,6 +114,8 @@ export interface GroceryList {
   members: ListMember[];
   /** Recent changes to a shared list, newest first. */
   activity: ListActivity[];
+  /** Estimated cost in US dollars of the items with an amount. */
+  estimatedTotal: number;
 }
 
 /** Body of `POST /grocery-lists/:listId/items`. */

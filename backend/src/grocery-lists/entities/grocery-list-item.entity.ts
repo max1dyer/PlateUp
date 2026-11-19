@@ -2,6 +2,7 @@ import { BaseEntity } from '../../common/domain/base.entity';
 import { requireBoolean, requireOneOf, requireText } from '../../common/domain/guards';
 import { IngredientCategory } from '../../common/domain/ingredient-category';
 import { isSameIngredient } from '../../common/domain/ingredient-name';
+import { estimateCost } from '../../common/domain/ingredient-pricing';
 import { Quantity } from '../../common/domain/quantity';
 import { ListMember } from './list-member';
 
@@ -13,10 +14,14 @@ export interface GroceryListItemSnapshot {
   purchased: boolean;
   /** Who last added this item (or more of it), shown on shared lists; null if unknown. */
   addedBy: ListMember | null;
+  /** Estimated price in US dollars (placeholder prices), or null when the item has no amount. */
+  estimatedCost: number | null;
 }
 
 /** The fields of an item that can be edited; omitted fields stay unchanged. */
-export type GroceryListItemChanges = Partial<Omit<GroceryListItemSnapshot, 'addedBy'>>;
+export type GroceryListItemChanges = Partial<
+  Omit<GroceryListItemSnapshot, 'addedBy' | 'estimatedCost'>
+>;
 
 /**
  * A line on a grocery list. Only created and changed through its GroceryList,
@@ -62,6 +67,11 @@ export class GroceryListItem extends BaseEntity<GroceryListItemSnapshot> {
 
   public get addedBy(): ListMember | null {
     return this.addedByMember;
+  }
+
+  /** Estimated price of this item's amount, or null when it has no amount. */
+  public get estimatedCost(): number | null {
+    return this.itemQuantity === null ? null : estimateCost(this.itemName, this.itemQuantity);
   }
 
   /** True if `name` refers to the same ingredient as this item. */
@@ -124,6 +134,7 @@ export class GroceryListItem extends BaseEntity<GroceryListItemSnapshot> {
       category: this.itemCategory,
       purchased: this.isPurchased,
       addedBy: this.addedByMember,
+      estimatedCost: this.estimatedCost,
     };
   }
 }

@@ -5,6 +5,8 @@ import { DietaryRestriction } from '../preferences/preferences.models';
 export interface RecipeIngredient {
   name: string;
   quantity: Quantity;
+  /** Estimated cost in US dollars of this amount (sent by the backend, ignored when saving). */
+  estimatedCost?: number;
 }
 
 /** Nutrition for a single serving. */
@@ -14,6 +16,9 @@ export interface Nutrition {
   fat: number;
   carbohydrates: number;
 }
+
+/** Most stars a review can give (mirrors the backend's `MAX_RATING`). */
+export const MAX_STARS = 5;
 
 /** One user's review of a recipe. */
 export interface RecipeReview {
@@ -46,6 +51,12 @@ export interface Recipe {
   reviews: RecipeReview[];
   /** For each restriction the recipe breaks, the ingredients that break it (an estimate). */
   dietaryConflicts: Partial<Record<DietaryRestriction, string[]>>;
+  /** The author's cost per serving in US dollars, or null when it is estimated. */
+  costPerServing: number | null;
+  /** Cost of one serving: the author's figure, or else the backend's ingredient estimate. */
+  estimatedCostPerServing: number;
+  /** True when `estimatedCostPerServing` is an estimate from ingredient prices. */
+  costIsEstimate: boolean;
 }
 
 /** Body of `POST /recipes` (and, partially, `PATCH /recipes/:recipeId`). */
@@ -60,6 +71,8 @@ export interface NewRecipe {
   tags: string[];
   ingredients: RecipeIngredient[];
   steps: string[];
+  /** Dollars per serving; null means estimate it from the ingredients. */
+  costPerServing: number | null;
 }
 
 /** Body of `PUT /recipes/:recipeId/reviews/me`. */

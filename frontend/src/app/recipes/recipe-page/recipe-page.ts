@@ -6,22 +6,25 @@ import { Observable, catchError, forkJoin, map, of, switchMap } from 'rxjs';
 import { errorMessage } from '../../core/api';
 import { SessionService } from '../../core/session.service';
 import { ToastService } from '../../core/toast.service';
-import {
-  formatQuantity,
-  isSameIngredient,
-  scaleQuantity,
-} from '../../grocery-list/grocery-list-format';
-import { PantryItem } from '../../pantry/pantry.models';
+import { formatQuantity, scaleQuantity } from '../../grocery-list/grocery-list-format';
+import { StockLevel } from '../../pantry/pantry.models';
 import { PantryService } from '../../pantry/pantry.service';
-import { DIETARY_DISCLAIMER } from '../../preferences/preferences.models';
+import {
+  DIETARY_DISCLAIMER,
+  activeBudget,
+  formatMoney,
+} from '../../preferences/preferences.models';
 import { PreferencesService } from '../../preferences/preferences.service';
 import { UsersService } from '../../users/users.service';
-import { AddToGroceryPanel } from '../add-to-grocery-panel/add-to-grocery-panel';
-import { dietWarnings } from '../recipe-filter';
+import { AddToGroceryPanel, GroceryAddition } from '../add-to-grocery-panel/add-to-grocery-panel';
+import { IngredientStock, defaultSelection, stockRows } from '../pantry-stock';
+import { ingredientCosts } from '../recipe-cost';
+import { dietWarnings, isOverBudget } from '../recipe-filter';
 import { Recipe, RecipeIngredient, SharedWithUser } from '../recipe.models';
 import { RecipesService } from '../recipes.service';
 import { ReviewForm } from '../review-form/review-form';
 import { SaveButton } from '../save-button/save-button';
+import { StarRating } from '../star-rating/star-rating';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { RecipeSharesService } from '../recipe-shares.service';
 
@@ -42,14 +45,24 @@ export interface GoalShare {
 
 /**
  * Full view of one recipe (`/recipes/:recipeId`, UC18): ingredients scaled to
- * the chosen servings (starting at the user's preferred servings, UC10),
- * dietary warnings, nutrition against the user's daily goals, steps, and
- * reviews. From here the user can save it, add it to a grocery list, review
- * it, or (as its author) edit or delete it.
+ * the chosen servings (starting at the user's preferred servings, UC10), each
+ * with how much of it the pantry holds (issue #38), dietary warnings, nutrition
+ * against the user's daily goals, cost per serving against their budget, steps,
+ * and star-rated reviews. From here the user can save it, tick ingredients
+ * (or select / clear all) and add them to a grocery list, review it, or (as its
+ * author) edit or delete it.
  */
 @Component({
   selector: 'app-recipe-page',
-  imports: [DatePipe, ReactiveFormsModule, RouterLink, AddToGroceryPanel, ReviewForm, SaveButton],
+  imports: [
+    DatePipe,
+    ReactiveFormsModule,
+    RouterLink,
+    AddToGroceryPanel,
+    ReviewForm,
+    SaveButton,
+    StarRating,
+  ],
   templateUrl: './recipe-page.html',
   styleUrl: './recipe-page.css',
 })
@@ -103,15 +116,45 @@ export class RecipePage {
       .map(([label, amount, target]) => ({ label, percent: Math.round((amount / target) * 100) }));
   });
   protected readonly formatQuantity = formatQuantity;
+  protected readonly formatMoney = formatMoney;
+
+  /** The user's budget per serving while it is turned on, else null. */
+  protected readonly budget = computed(() => activeBudget(this.preferences.preferences()));
+  /** True if one serving costs more than the user's active budget. */
+  protected readonly overBudget = computed(() => {
+    const recipe = this.recipe();
+    return recipe !== null && isOverBudget(recipe, this.budget());
+  });
 
   /**
-   * Ingredients marked as already in the pantry. They start from the user's
-   * real pantry and can be toggled; adding to grocery leaves them off the list.
+   * What the pantry holds of each ingredient at the recipe's own servings, in the same order, or
+   * null until loaded (or if the pantry could not be loaded).
    */
-  protected readonly pantryIngredients = signal<ReadonlySet<string>>(new Set());
+  private readonly stockLevels = signal<StockLevel[] | null>(null);
+  /** Each scaled ingredient with how much of it is on hand. */
+  protected readonly stock = computed<IngredientStock[]>(() =>
+    stockRows(this.scaledIngredients(), this.stockLevels()),
+  );
+  /** How many ingredients the pantry fully covers at the chosen servings. */
+  protected readonly enoughCount = computed(
+    () => this.stock().filter((row) => row.status === 'enough').length,
+  );
 
-  /** How many ingredients are marked as already owned. */
-  protected readonly pantryCount = computed(() => this.pantryIngredients().size);
+  /**
+   * Ingredients the user ticked or unticked themselves, or null to use the default (everything the
+   * pantry doesn't fully cover, which follows the servings).
+   */
+  private readonly chosen = signal<ReadonlySet<string> | null>(null);
+  /** The ingredients ticked to add to a grocery list. */
+  protected readonly selected = computed<ReadonlySet<string>>(
+    () => this.chosen() ?? defaultSelection(this.stock()),
+  );
+  /** The ticked ingredients with their costs, for the grocery panel. */
+  protected readonly additions = computed<GroceryAddition[]>(() =>
+    this.stock()
+      .filter((row) => this.selected().has(row.name))
+      .map((row) => ({ name: row.name, cost: row.cost })),
+  );
 
   /** True if the signed-in user wrote this recipe (shows Edit and Delete). */
   protected readonly isAuthor = computed(() => this.recipe()?.authorId === this.session.userId());
@@ -127,15 +170,13 @@ export class RecipePage {
       return [];
     }
     const factor = this.servings() / recipe.servings;
-    return recipe.ingredients.map((ingredient) => ({
+    // Costs add up to the page's cost per serving, including one the author set.
+    const costs = ingredientCosts(recipe, this.servings());
+    return recipe.ingredients.map((ingredient, index) => ({
       name: ingredient.name,
       quantity: scaleQuantity(ingredient.quantity, factor),
+      estimatedCost: costs[index],
     }));
-  });
-  /** Whole stars to show for the average rating, e.g. "★★★★☆". */
-  protected readonly starText = computed(() => {
-    const rating = Math.round(this.recipe()?.rating ?? 0);
-    return '★'.repeat(rating) + '☆'.repeat(5 - rating);
   });
 
   constructor(
@@ -157,7 +198,8 @@ export class RecipePage {
         switchMap((recipeId) => {
           this.recipe.set(null);
           this.loadError.set(false);
-          this.pantryIngredients.set(new Set());
+          this.stockLevels.set(null);
+          this.chosen.set(null);
           this.shares.set([]);
           this.shareError.set(null);
           return this.recipes.getRecipe(recipeId).pipe(catchError(() => of(null)));
@@ -181,7 +223,7 @@ export class RecipePage {
           // Open at the user's preferred servings; without preferences, as written.
           this.servings.set(loaded.preferences?.defaultServings ?? loaded.recipe.servings);
           this.recipe.set(loaded.recipe);
-          this.markOwnedIngredients(loaded.recipe);
+          this.loadStock(loaded.recipe);
           if (loaded.recipe.authorId === this.session.userId()) {
             this.loadShares(loaded.recipe.id);
           }
@@ -260,22 +302,29 @@ export class RecipePage {
     });
   }
 
-  /** Marks or unmarks an ingredient as already owned. */
-  protected togglePantryStatus(ingredientName: string): void {
-    this.pantryIngredients.update((current) => {
-      const updated = new Set(current);
-      if (updated.has(ingredientName)) {
-        updated.delete(ingredientName);
-      } else {
-        updated.add(ingredientName);
-      }
-      return updated;
-    });
+  /** Ticks or unticks one ingredient for the grocery list. */
+  protected toggleSelected(ingredientName: string): void {
+    const next = new Set(this.selected());
+    // `delete` returns false when it was not ticked, so tick it instead.
+    if (!next.delete(ingredientName)) {
+      next.add(ingredientName);
+    }
+    this.chosen.set(next);
   }
 
-  /** True if the ingredient is marked as already owned. */
-  protected isInPantry(ingredientName: string): boolean {
-    return this.pantryIngredients().has(ingredientName);
+  /** Ticks every ingredient. */
+  protected selectAll(): void {
+    this.chosen.set(new Set(this.stock().map((row) => row.name)));
+  }
+
+  /** Unticks every ingredient. */
+  protected clearAll(): void {
+    this.chosen.set(new Set());
+  }
+
+  /** True if the ingredient is ticked for the grocery list. */
+  protected isSelected(ingredientName: string): boolean {
+    return this.selected().has(ingredientName);
   }
 
   /**
@@ -304,19 +353,15 @@ export class RecipePage {
   }
 
   /**
-   * Pre-marks the ingredients the user's pantry already holds. Failing to load
-   * it is not an error.
+   * Asks the pantry how much it holds of each ingredient. Failing to load it is not an error;
+   * every ingredient then shows as missing.
    */
-  private markOwnedIngredients(recipe: Recipe): void {
+  private loadStock(recipe: Recipe): void {
+    const lines = recipe.ingredients.map(({ name, quantity }) => ({ name, quantity }));
     this.pantry
-      .getItems()
-      .pipe(catchError(() => of<PantryItem[]>([])))
-      .subscribe((items) => {
-        const owned = recipe.ingredients
-          .map((ingredient) => ingredient.name)
-          .filter((name) => items.some((item) => isSameIngredient(item.name, name)));
-        this.pantryIngredients.set(new Set(owned));
-      });
+      .checkStock(lines)
+      .pipe(catchError(() => of(null)))
+      .subscribe((levels) => this.stockLevels.set(levels));
   }
 
   /** Loads who the author shared the recipe with. A failure just shows an empty list. */

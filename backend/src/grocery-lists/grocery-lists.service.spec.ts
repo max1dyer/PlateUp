@@ -277,6 +277,17 @@ describe('GroceryListsService', () => {
       expect(updated.items.map((item) => item.name)).toEqual(names.slice(1));
     });
 
+    it('addRecipe estimates the cost of what it adds', async () => {
+      const recipe = await recipes.create('alice', buildCreateRecipeDto());
+      const list = await service.create('alice', { name: 'Weekly' });
+
+      const updated = await service.addRecipe('alice', list.id, { recipeId: recipe.id });
+
+      const costs = updated.items.map((item) => item.estimatedCost ?? 0);
+      expect(costs.every((cost) => cost > 0)).toBe(true);
+      expect(updated.estimatedTotal).toBe(Math.round((costs[0] + costs[1]) * 100) / 100);
+    });
+
     it('moveItemToPantry adds the item to the pantry and removes it from the list', async () => {
       const list = await service.create('alice', { name: 'Weekly' });
       await service.addItem('alice', list.id, { name: 'Milk', quantity: liter(1) });

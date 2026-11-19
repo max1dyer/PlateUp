@@ -236,6 +236,43 @@
         }
       </fieldset>
 
+      <fieldset class="ui-card green budget">
+        <!-- Budget per serving, applied to recipe searches and grocery additions while on -->
+        <legend class="ui-heading">Budget</legend>
+        <label class="restriction">
+          <input
+            id="budget-enabled"
+            type="checkbox"
+            formControlName="budgetEnabled"
+            (change)="saveBudgetEnabled()"
+          />
+          Use my budget when searching recipes and building grocery lists
+        </label>
+        <label class="ui-label" [class.muted]="!form.controls.budgetEnabled.value">
+          Most I want to spend per serving
+          <span class="inline">
+            $
+            <input
+              id="max-cost-per-serving"
+              class="ui-field narrow"
+              type="number"
+              min="0.01"
+              [attr.max]="maxBudget"
+              step="0.25"
+              placeholder="No limit"
+              formControlName="maxCostPerServing"
+              (change)="saveBudgetLimit()"
+            />
+          </span>
+          <span class="ui-hint">
+            Recipe costs are estimates from typical store prices unless the author gave one.
+          </span>
+        </label>
+        @if (errors().budget; as message) {
+          <p class="ui-error" role="alert">{{ message }}</p>
+        }
+      </fieldset>
+
       <div class="ui-row">
         <a class="ui-button plain" routerLink="/profile">Back to profile</a>
       </div>

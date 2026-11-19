@@ -64,7 +64,11 @@ describe('GroceryListsService', () => {
 
     expect(
       http.expectOne({ method: 'POST', url: '/api/grocery-lists/list-1/recipes' }).request.body,
-    ).toEqual({ recipeId: 'recipe-1', servings: 2, excludeIngredients: ['Rice'] });
+    ).toEqual({
+      recipeId: 'recipe-1',
+      servings: 2,
+      excludeIngredients: ['Rice'],
+    });
   });
 
   it('move-to-pantry calls post to the item and purchased-items pantry routes', () => {

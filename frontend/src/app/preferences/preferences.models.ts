@@ -64,6 +64,10 @@ export interface UserPreferences {
   blockRecipeShares: boolean;
   blockListInvites: boolean;
   blockListCopies: boolean;
+  /** When true, `maxCostPerServing` filters recipe searches and checks grocery additions. */
+  budgetEnabled: boolean;
+  /** Most the user wants to spend per serving, in US dollars, or null for no limit. */
+  maxCostPerServing: number | null;
 }
 
 /** Body of `PATCH /users/me/preferences`; omitted fields stay unchanged, `null` clears a goal. */
@@ -75,6 +79,8 @@ export interface PreferenceChanges {
   blockRecipeShares?: boolean;
   blockListInvites?: boolean;
   blockListCopies?: boolean;
+  budgetEnabled?: boolean;
+  maxCostPerServing?: number | null;
 }
 
 /** Limits enforced by the backend's `UserPreferences`, mirrored for form hints. */
@@ -82,6 +88,20 @@ export const MAX_DEFAULT_SERVINGS = 50;
 export const MIN_DAILY_CALORIES = 500;
 export const MAX_DAILY_CALORIES = 10000;
 export const MAX_MACRO_GRAMS = 1000;
+export const MAX_BUDGET_PER_SERVING = 1000;
+
+/**
+ * The per-serving limit in effect: the saved limit while the budget is on, otherwise null.
+ * Mirrors the backend's `UserPreferences.activeBudget`.
+ */
+export function activeBudget(preferences: UserPreferences | null): number | null {
+  return preferences?.budgetEnabled ? (preferences.maxCostPerServing ?? null) : null;
+}
+
+/** Dollars as shown in the app, e.g. "$3.50". */
+export function formatMoney(dollars: number): string {
+  return `$${dollars.toFixed(2)}`;
+}
 
 /** Shown wherever dietary matching is used (spec 3.6: estimates, not allergy advice). */
 export const DIETARY_DISCLAIMER =

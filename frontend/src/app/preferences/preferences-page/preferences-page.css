@@ -219,3 +219,8 @@ input.over {
     transform: translateY(4px);
   }
 }
+
+/* Budget field, dimmed while the budget is switched off */
+.muted {
+  opacity: 0.6;
+}

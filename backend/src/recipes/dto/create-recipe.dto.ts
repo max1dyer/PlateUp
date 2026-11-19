@@ -22,4 +22,6 @@ export class CreateRecipeDto {
   public readonly nutrition!: NutritionInfo;
   public readonly visibility?: RecipeVisibility;
   public readonly tags?: string[];
+  /** Dollars per serving; omitted or null means estimate it from the ingredients. */
+  public readonly costPerServing?: number | null;
 }

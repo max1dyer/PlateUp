@@ -6,7 +6,7 @@ import { RecipeSharesService } from '../recipe-shares.service';
 import { of, throwError } from 'rxjs';
 import { SessionService } from '../../core/session.service';
 import { GroceryListsService } from '../../grocery-list/grocery-lists.service';
-import { pantryItem } from '../../pantry/pantry.fixtures';
+import { StockLevel } from '../../pantry/pantry.models';
 import { PantryService } from '../../pantry/pantry.service';
 import { preferences } from '../../preferences/preferences.fixtures';
 import { UserPreferences } from '../../preferences/preferences.models';
@@ -22,7 +22,7 @@ describe('RecipePage', () => {
   const recipeShares = { getShares: vi.fn(), share: vi.fn(), revoke: vi.fn() };
   const usersService = { getUser: vi.fn(), saveRecipe: vi.fn(), unsaveRecipe: vi.fn() };
   const groceryLists = { getLists: vi.fn(), createList: vi.fn(), addRecipe: vi.fn() };
-  const pantry = { getItems: vi.fn() };
+  const pantry = { checkStock: vi.fn() };
   const preferencesService = {
     preferences: signal<UserPreferences | null>(null),
     load: vi.fn(),
@@ -66,7 +66,7 @@ describe('RecipePage', () => {
     vi.resetAllMocks();
     localStorage.clear();
     groceryLists.getLists.mockReturnValue(of([]));
-    pantry.getItems.mockReturnValue(of([]));
+    pantry.checkStock.mockReturnValue(of([]));
     usePreferences(null);
     recipeShares.getShares.mockReturnValue(of([]));
   });
@@ -106,6 +106,12 @@ describe('RecipePage', () => {
 
     expect(text(page, '.review-user')).toEqual(['Bob Baker', 'You']);
     expect(text(page, '.review-comment')).toEqual(['Great', 'Okay']);
+    // Each review shows stars rather than "5 / 5".
+    expect(
+      [...page.querySelectorAll('.review-rating [role="img"]')].map((stars) =>
+        stars.getAttribute('aria-label'),
+      ),
+    ).toEqual(['5 out of 5 stars', '3 out of 5 stars']);
     expect(usersService.getUser).not.toHaveBeenCalledWith(ME);
   });
 
@@ -142,32 +148,129 @@ describe('RecipePage', () => {
     expect(text(page, '.grocery-button')[0]).toContain('4 servings');
   });
 
-  it('pre-marks ingredients already in the pantry and counts the rest as missing', async () => {
+  /** A stock level for `name`, as `POST /pantry/stock-check` returns it. */
+  const level = (overrides: Partial<StockLevel>): StockLevel => ({
+    name: 'Rice',
+    needed: { amount: 1, unit: 'cup' },
+    onHand: null,
+    held: null,
+    status: 'missing',
+    ...overrides,
+  });
+
+  it('shows how much of each ingredient the pantry holds and ticks what is missing', async () => {
     recipesService.getRecipe.mockReturnValue(of(recipe()));
     usersService.getUser.mockReturnValue(of({ displayName: 'Alice Cook' }));
-    pantry.getItems.mockReturnValue(of([pantryItem({ name: ' rice ' })]));
+    // The recipe needs 1.5 lb of chicken and 1 cup of rice (for 2 servings).
+    pantry.checkStock.mockReturnValue(
+      of([
+        level({ name: 'Chicken breast', onHand: { amount: 0.5, unit: 'lb' }, status: 'partial' }),
+        level({ onHand: { amount: 3, unit: 'cup' }, status: 'enough' }),
+      ]),
+    );
 
     const page = await render();
 
-    expect(text(page, '.pantry-status')).toEqual(['X', '✓']);
-    expect(text(page, '.section-heading span')[0]).toBe('1 of 2 in your pantry');
+    expect(pantry.checkStock).toHaveBeenCalledWith([
+      { name: 'Chicken breast', quantity: { amount: 1.5, unit: 'lb' } },
+      { name: 'Rice', quantity: { amount: 1, unit: 'cup' } },
+    ]);
+    expect(text(page, '.pantry-text')).toEqual([
+      'You have 1/2 lb of 1 1/2 lb',
+      'In your pantry: 3 cups',
+    ]);
+    expect(
+      [...page.querySelectorAll('.stock-meter')].map((meter) =>
+        meter.getAttribute('aria-valuenow'),
+      ),
+    ).toEqual(['33', '100']);
+    expect(text(page, '.section-heading span')[0]).toBe('1 of 2 fully in your pantry');
+    const boxes = [...page.querySelectorAll<HTMLInputElement>('.ingredient-select')];
+    expect(boxes.map((box) => box.checked)).toEqual([true, false]);
     expect(text(page, '.grocery-button')[0]).toContain('Add 1 to Grocery');
+  });
 
-    (page.querySelector('[aria-label="Mark Rice as missing"]') as HTMLButtonElement).click();
+  it('updates the pantry comparison when the servings change', async () => {
+    recipesService.getRecipe.mockReturnValue(of(recipe()));
+    usersService.getUser.mockReturnValue(of({ displayName: 'Alice Cook' }));
+    pantry.checkStock.mockReturnValue(
+      of([level({ name: 'Chicken breast' }), level({ onHand: { amount: 1, unit: 'cup' } })]),
+    );
+    const page = await render();
+    expect(text(page, '.pantry-text')[1]).toBe('In your pantry: 1 cup');
+
+    (page.querySelector('[aria-label="More servings"]') as HTMLButtonElement).click();
     await TestBed.inject(ApplicationRef).whenStable();
 
+    // 3 servings need 1 1/2 cups of rice, so 1 cup is now only part of it.
+    expect(text(page, '.pantry-text')[1]).toBe('You have 1 cup of 1 1/2 cups');
     expect(text(page, '.grocery-button')[0]).toContain('Add 2 to Grocery');
+  });
+
+  it('selects or clears every ingredient, and toggles one at a time', async () => {
+    recipesService.getRecipe.mockReturnValue(of(recipe()));
+    usersService.getUser.mockReturnValue(of({ displayName: 'Alice Cook' }));
+    pantry.checkStock.mockReturnValue(
+      of([level({ name: 'Chicken breast' }), level({ onHand: { amount: 2, unit: 'cup' } })]),
+    );
+    const page = await render();
+    const settle = () => TestBed.inject(ApplicationRef).whenStable();
+    const checked = () =>
+      [...page.querySelectorAll<HTMLInputElement>('.ingredient-select')].map((box) => box.checked);
+
+    (page.querySelector('#select-all') as HTMLButtonElement).click();
+    await settle();
+    expect(checked()).toEqual([true, true]);
+    expect(text(page, '.selection-count')[0]).toBe('2 selected for your grocery list');
+    // Rice is fully stocked but ticked, so it is added too.
+    expect(text(page, '.grocery-button')[0]).toContain('Add 2 to Grocery');
+
+    (page.querySelector('#clear-all') as HTMLButtonElement).click();
+    await settle();
+    expect(checked()).toEqual([false, false]);
+    expect((page.querySelector('.grocery-button') as HTMLButtonElement).disabled).toBe(true);
+
+    (page.querySelector('[aria-label="Add Rice to the grocery list"]') as HTMLInputElement).click();
+    await settle();
+    expect(checked()).toEqual([false, true]);
   });
 
   it('still shows the recipe if the pantry cannot be loaded', async () => {
     recipesService.getRecipe.mockReturnValue(of(recipe()));
     usersService.getUser.mockReturnValue(of({ displayName: 'Alice Cook' }));
-    pantry.getItems.mockReturnValue(throwError(() => new Error('offline')));
+    pantry.checkStock.mockReturnValue(throwError(() => new Error('offline')));
 
     const page = await render();
 
-    expect(text(page, '.pantry-status')).toEqual(['X', 'X']);
+    expect(text(page, '.pantry-text')).toEqual(['Not in your pantry', 'Not in your pantry']);
     expect(text(page, '.grocery-button')[0]).toContain('Add 2 to Grocery');
+  });
+
+  it("bases the grocery estimate on the author's cost per serving, scaled to the servings", async () => {
+    recipesService.getRecipe.mockReturnValue(
+      of(recipe({ costIsEstimate: false, costPerServing: 5, estimatedCostPerServing: 5 })),
+    );
+    usersService.getUser.mockReturnValue(of({ displayName: 'Alice Cook' }));
+    const page = await render();
+
+    // $5 a serving for the recipe's 2 servings, both ingredients ticked.
+    expect(text(page, '.estimate')[0]).toContain('about $10.00');
+
+    (page.querySelector('[aria-label="More servings"]') as HTMLButtonElement).click();
+    await TestBed.inject(ApplicationRef).whenStable();
+
+    expect(text(page, '.estimate')[0]).toContain('about $15.00');
+  });
+
+  it('shows the cost per serving and warns when it is over the budget', async () => {
+    usePreferences(preferences({ budgetEnabled: true, maxCostPerServing: 3 }));
+    recipesService.getRecipe.mockReturnValue(of(recipe({ estimatedCostPerServing: 3.35 })));
+    usersService.getUser.mockReturnValue(of({ displayName: 'Alice Cook' }));
+
+    const page = await render();
+
+    expect(text(page, '.cost')[0]).toContain('About $3.35 per serving');
+    expect(text(page, '.budget-warning')[0]).toContain('over your $3.00 per serving budget');
   });
 
   it("opens at the user's preferred servings and can reset to the recipe's own", async () => {

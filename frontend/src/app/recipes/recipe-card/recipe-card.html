@@ -17,6 +17,10 @@
         · Private
       }
     </span>
+    <span class="cost">
+      {{ recipe().costIsEstimate ? '~' : '' }}{{ formatMoney(recipe().estimatedCostPerServing) }}
+      per serving
+    </span>
     @for (warning of warnings(); track warning) {
       <span class="diet-warning">⚠ {{ warning }}</span>
     }

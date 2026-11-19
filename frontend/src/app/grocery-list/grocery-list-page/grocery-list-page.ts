@@ -20,6 +20,7 @@ import { AddItemsForm } from '../add-items-form/add-items-form';
 import { GroceryItemRow } from '../grocery-item-row/grocery-item-row';
 import { groupByCategory, formatListAsText } from '../grocery-list-format';
 import { GroceryList, GroceryListItem } from '../grocery-list.models';
+import { formatMoney } from '../../preferences/preferences.models';
 
 /** How many recent changes "Recent changes" shows. */
 export const ACTIVITY_SHOWN = 10;
@@ -107,6 +108,9 @@ export class GroceryListPage implements OnInit {
   protected readonly groups = computed(() => groupByCategory(this.list()?.items ?? []));
   /** Totals for the summary line ("3 of 8 items in cart"). */
   protected readonly itemCount = computed(() => this.list()?.items.length ?? 0);
+  /** Estimated cost of the list's items that have an amount (placeholder prices). */
+  protected readonly estimatedTotal = computed(() => this.list()?.estimatedTotal ?? 0);
+  protected readonly formatMoney = formatMoney;
   protected readonly inCartCount = computed(
     () => this.list()?.items.filter((item) => item.purchased).length ?? 0,
   );

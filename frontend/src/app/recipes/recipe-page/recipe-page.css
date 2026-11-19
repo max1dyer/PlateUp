@@ -85,8 +85,7 @@
 }
 
 .rating-stars {
-  color: #e5a900;
-  letter-spacing: 1px;
+  vertical-align: -1px;
 }
 
 /* Author-only edit and delete controls */
@@ -347,9 +346,24 @@
   border-bottom: 0;
 }
 
-.ingredient-name {
+.ingredient-select {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
+/* Name with the pantry's stock underneath */
+.ingredient-main {
+  display: flex;
   flex: 1;
+  flex-direction: column;
+  gap: 2px;
   min-width: 0;
+}
+
+.ingredient-name {
   overflow-wrap: anywhere;
 }
 
@@ -359,25 +373,67 @@
   color: var(--color-text-muted);
 }
 
-.pantry-status {
+.pantry-stock {
   display: flex;
   align-items: center;
-  justify-content: center;
-  width: 22px;
-  min-width: 22px;
-  height: 22px;
-  padding: 0;
-  border: none;
-  background: transparent;
-  color: var(--color-danger);
-  font-size: 22px;
-  font-weight: 700;
-  line-height: 1;
-  cursor: pointer;
+  gap: 4px;
+  font-size: 14px;
+  color: var(--color-text-muted);
 }
 
-.pantry-status.in-pantry {
-  color: var(--color-text-muted);
+.pantry-status {
+  width: 16px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.enough .pantry-status {
+  color: var(--color-icon-green);
+}
+
+.partial .pantry-status,
+.unknown .pantry-status {
+  color: #b86e00;
+}
+
+.missing .pantry-status {
+  color: var(--color-error);
+}
+
+/* How much of the needed amount is on hand */
+.stock-meter {
+  display: block;
+  width: min(160px, 100%);
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--color-checkbox-border);
+}
+
+.stock-fill {
+  display: block;
+  height: 100%;
+  background: #e0a030;
+}
+
+.enough .stock-fill {
+  background: var(--color-icon-green);
+}
+
+/* "N selected" with Select all / Clear all */
+.selection-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 6px;
+  font-size: 15px;
+}
+
+.selection-actions {
+  display: flex;
+  gap: 12px;
 }
 
 /* Steps */
@@ -473,6 +529,17 @@
 
 .goal-shares {
   font-size: 14px;
+}
+
+/* Cost per serving, and a note when it is over the user's budget */
+.cost {
+  font-size: 15px;
+}
+
+.budget-warning {
+  margin: 4px 0;
+  color: #8a4b00;
+  font-size: 15px;
 }
 
 /* Desktop: the same single column as on phones, just wider. */

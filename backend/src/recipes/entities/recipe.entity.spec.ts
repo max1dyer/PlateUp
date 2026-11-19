@@ -16,6 +16,7 @@ function details(overrides: Partial<RecipeDetails> = {}): RecipeDetails {
     nutrition: { calories: 300, protein: 10, fat: 5, carbohydrates: 50 },
     visibility: RecipeVisibility.Public,
     tags: ['Breakfast'],
+    costPerServing: null,
     ...overrides,
   };
 }
@@ -137,5 +138,31 @@ describe('Recipe', () => {
     expect(() => new Recipe('author', details({ thumbnailUrl: 'not a url' }))).toThrow(
       DomainValidationError,
     );
+  });
+
+  it('estimates the cost per serving from ingredient prices when the author gives none', () => {
+    // 1 cup of oats is about 237 g at $4/kg, so about $0.95, split over 2 servings (rounded up to $0.48).
+    const recipe = new Recipe('author', details());
+
+    expect(recipe.estimatedCostPerServing).toBe(0.48);
+    expect(recipe.toJSON()).toMatchObject({ estimatedCostPerServing: 0.48, costIsEstimate: true });
+  });
+
+  it("uses the author's cost per serving, rounded to the cent, instead of the estimate", () => {
+    const recipe = new Recipe('author', details({ costPerServing: 2.499 }));
+
+    expect(recipe.toJSON()).toMatchObject({ estimatedCostPerServing: 2.5, costIsEstimate: false });
+    recipe.update({ costPerServing: null });
+    expect(recipe.toJSON().costIsEstimate).toBe(true);
+    expect(() => new Recipe('author', details({ costPerServing: -1 }))).toThrow(
+      DomainValidationError,
+    );
+  });
+
+  it('fits a budget when one serving costs no more than the limit', () => {
+    const recipe = new Recipe('author', details({ costPerServing: 3 }));
+
+    expect(recipe.fitsBudget(3)).toBe(true);
+    expect(recipe.fitsBudget(2.99)).toBe(false);
   });
 });

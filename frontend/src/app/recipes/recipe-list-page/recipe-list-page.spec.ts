@@ -158,4 +158,81 @@ describe('RecipeListPage', () => {
     await TestBed.inject(ApplicationRef).whenStable();
     expect(titles()).toEqual(['Chicken and Rice']);
   });
+
+  it('hides recipes over the budget while it is on, and can show them flagged', async () => {
+    preferencesService.preferences.set(preferences({ budgetEnabled: true, maxCostPerServing: 3 }));
+    service.getRecipes.mockReturnValue(
+      of([
+        recipe({ id: 'r1', title: 'Steak Dinner', estimatedCostPerServing: 9.5 }),
+        recipe({ id: 'r2', title: 'Rice Bowl', estimatedCostPerServing: 2.25 }),
+      ]),
+    );
+    const page = await render();
+
+    expect(titles(page)).toEqual(['Rice Bowl']);
+    expect(page.querySelector('.budget-note')?.textContent).toContain('over your $3.00');
+
+    (page.querySelector('.budget-note button') as HTMLButtonElement).click();
+    await TestBed.inject(ApplicationRef).whenStable();
+
+    expect(titles(page)).toEqual(['Steak Dinner', 'Rice Bowl']);
+    expect(page.querySelector('.diet-warning')?.textContent).toContain(
+      'Over your $3.00/serving budget',
+    );
+  });
+
+  it('ignores the budget while it is turned off', async () => {
+    preferencesService.preferences.set(preferences({ budgetEnabled: false, maxCostPerServing: 3 }));
+    service.getRecipes.mockReturnValue(
+      of([recipe({ id: 'r1', title: 'Steak Dinner', estimatedCostPerServing: 9.5 })]),
+    );
+    const page = await render();
+
+    expect(titles(page)).toEqual(['Steak Dinner']);
+    expect(page.querySelector('.budget-note')).toBeNull();
+  });
+
+  it('filters by a macro range and sorts by cost in either direction', async () => {
+    service.getRecipes.mockReturnValue(
+      of([
+        recipe({
+          id: 'r1',
+          title: 'Salad',
+          estimatedCostPerServing: 4,
+          nutrition: { calories: 250, protein: 8, fat: 12, carbohydrates: 20 },
+        }),
+        recipe({
+          id: 'r2',
+          title: 'Pasta',
+          estimatedCostPerServing: 2,
+          nutrition: { calories: 700, protein: 20, fat: 15, carbohydrates: 95 },
+        }),
+        recipe({
+          id: 'r3',
+          title: 'Burrito',
+          estimatedCostPerServing: 3,
+          nutrition: { calories: 650, protein: 30, fat: 22, carbohydrates: 70 },
+        }),
+      ]),
+    );
+    const page = await render();
+    const settle = () => TestBed.inject(ApplicationRef).whenStable();
+
+    const sort = page.querySelector('#recipe-sort') as HTMLSelectElement;
+    sort.value = 'cost';
+    sort.dispatchEvent(new Event('change'));
+    await settle();
+    expect(titles(page)).toEqual(['Pasta', 'Burrito', 'Salad']);
+
+    (page.querySelector('#reverse-sort') as HTMLButtonElement).click();
+    await settle();
+    expect(titles(page)).toEqual(['Salad', 'Burrito', 'Pasta']);
+
+    const maxCarbs = page.querySelector('#range-carbohydrates-max') as HTMLInputElement;
+    maxCarbs.value = '80';
+    maxCarbs.dispatchEvent(new Event('input'));
+    await settle();
+    expect(titles(page)).toEqual(['Salad', 'Burrito']);
+    expect(page.querySelector('.filter-menu .badge')?.textContent?.trim()).toBe('1');
+  });
 });

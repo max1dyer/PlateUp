@@ -13,4 +13,7 @@ export class UpdatePreferencesDto {
   public readonly blockRecipeShares?: boolean;
   public readonly blockListInvites?: boolean;
   public readonly blockListCopies?: boolean;
+  public readonly budgetEnabled?: boolean;
+  /** Dollars per serving; `null` removes the limit. */
+  public readonly maxCostPerServing?: number | null;
 }
