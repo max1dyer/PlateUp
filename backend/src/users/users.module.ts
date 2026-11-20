@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { AuthModule } from '../auth/auth.module';
 import { RecipesModule } from '../recipes/recipes.module';
 import { InMemoryUserRepository } from './repositories/in-memory-user.repository';
 import { UserRepository } from './repositories/user.repository';
@@ -7,10 +8,11 @@ import { UsersService } from './users.service';
 
 /**
  * User feature: routes, service, and storage binding. Imports `RecipesModule` to look up saved
- * recipes through `RecipesService`, and exports `UsersService` for the seeder.
+ * recipes through `RecipesService` and `AuthModule` for the sign-in mode, and exports
+ * `UsersService` for the seeder.
  */
 @Module({
-  imports: [RecipesModule],
+  imports: [RecipesModule, AuthModule],
   controllers: [UsersController],
   providers: [UsersService, { provide: UserRepository, useClass: InMemoryUserRepository }],
   exports: [UsersService],

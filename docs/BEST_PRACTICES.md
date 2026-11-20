@@ -145,6 +145,7 @@ Mocks let us test one class at a time without starting a server, network, or dat
 - **Backend controller specs** (`backend/src/*/*.controller.spec.ts`) replace the real service with a mock built from `jest.fn()`. For example, `recipes.controller.spec.ts` checks that `RecipesController.findAll('alice')` calls `RecipesService.findAllVisibleTo('alice')`, without running any recipe logic.
 - **Frontend component specs** replace HTTP services with `vi.fn()` mocks that return `of(...)` or `throwError(...)`. This lets us test loading and error states deterministically (e.g. `grocery-list-page.spec.ts`).
 - **Frontend HTTP service specs** use Angular's `HttpTestingController` as a mock HTTP backend.
+- **Authentication** is tested without a Supabase project: `auth.service.spec.ts` replaces `SupabaseAuthClient` with `vi.fn()` mocks (wrong password, email not yet confirmed, first log-in), and the backend signs its own test tokens (`auth/testing/auth.fixtures.ts`).
 - The **in-memory repositories** act as lightweight fakes. They remove the database dependency from service tests.
 - **TODO (Beta):** mock the external Kroger, USDA, and API Ninjas clients, including the forced 16-second-timeout test required by Supplemental Spec 3.4.
 
@@ -155,6 +156,7 @@ All collaborators are injected through constructors, never created with `new` in
 - Each service depends on an **abstract** repository class (e.g. `constructor(private readonly recipes: RecipeRepository)`). The feature module decides which implementation to inject: `{ provide: RecipeRepository, useClass: InMemoryRecipeRepository }` in `recipes.module.ts`.
 - Tests use the same mechanism to substitute dependencies. Service specs call `Test.createTestingModule({ providers: [RecipesService, { provide: RecipeRepository, useClass: InMemoryRecipeRepository }] })`. Controller specs inject `{ provide: RecipesService, useValue: mockService }`.
 - On the frontend, components inject services (`constructor(private readonly groceryLists: GroceryListsService)`), and specs override them with `TestBed` providers.
+- Authentication is injected the same way: `AuthGuard` depends on the abstract `RequestAuthenticator`, and `AuthModule` binds Supabase or development sign-in from `AuthConfig`. `auth/auth.http.spec.ts` overrides `AuthConfig` (`overrideProvider(AuthConfig)`) so the whole app runs in Supabase mode with test-signed tokens and no real Supabase project.
 
 Because of this, swapping the in-memory store for a real database changes one line per module and no service or test code.
 
@@ -182,6 +184,8 @@ The patterns we use are catalogued in [`DESIGN.md`](DESIGN.md#design-patterns), 
 | Singleton                                   | Nest providers (default singleton scope), Angular `providedIn: 'root'` services | One shared repository/service instance per application.                                   |
 | Chain of Responsibility                     | Angular HTTP interceptors (`userIdInterceptor`), Nest exception filters         | Cross-cutting request handling, with each handler choosing to act or pass the request on. |
 | Adapter                                     | `DomainErrorFilter` (domain error → HTTP response)                              | Keeps the domain layer free of HTTP concerns.                                             |
+| Strategy                                    | `RequestAuthenticator` → `SupabaseAuthenticator` / `DevelopmentAuthenticator`   | Swap the sign-in method without touching the guard or any controller.                     |
+| Factory                                     | `AuthModule` `useFactory` choosing the authenticator from `AuthConfig`          | One place decides the sign-in method at startup.                                          |
 | **TODO/Planned:** Strategy                  | Grocery-list generation (all vs. missing-only); recipe sort/filter              | User setting chooses the algorithm at run time.                                           |
 | **TODO/Planned:** Factory Method / Strategy | Social-media import parsers                                                     | Spec 3.5: a new platform should require one new parser module only.                       |
 | **TODO/Planned:** Observer                  | Household grocery-list live updates (WebSocket + RxJS)                          | Push changes to all members within 2 seconds.                                             |

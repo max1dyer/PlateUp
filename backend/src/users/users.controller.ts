@@ -1,6 +1,19 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Put } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  ForbiddenException,
+  Get,
+  HttpCode,
+  Param,
+  Patch,
+  Post,
+  Put,
+} from '@nestjs/common';
+import { AuthConfig } from '../auth/auth-config';
 import { CurrentUserId } from '../common/decorators/current-user-id.decorator';
 import { Recipe } from '../recipes/entities/recipe.entity';
+import { CreateProfileDto } from './dto/create-profile.dto';
 import { CreateUserDto } from './dto/create-user.dto';
 import { LogInDto } from './dto/log-in.dto';
 import { UpdatePreferencesDto } from './dto/update-preferences.dto';
@@ -11,23 +24,43 @@ import { UsersService } from './users.service';
 
 /**
  * HTTP routes under `/users` for accounts, profiles, preferences, and saved recipes. Routes under
- * `me` act on the signed-in user (from the `x-user-id` header).
+ * `me` act on the signed-in user (see `@CurrentUserId()`).
  */
 @Controller('users')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly authConfig: AuthConfig,
+  ) {}
 
-  /** `POST /users`: creates an account; 409 if the username is taken. */
+  /**
+   * `POST /users`: development sign-up by username; 409 if the username is taken. Refused (403)
+   * once Supabase is configured, since such an account could never sign in.
+   */
   @Post()
   public register(@Body() dto: CreateUserDto): Promise<User> {
+    this.requireDevelopmentSignIn();
     return this.usersService.register(dto);
   }
 
-  /** TEMPORARY: username-only sign-in until Supabase authentication exists. */
+  /** `POST /users/login`: development sign-in by username; refused (403) with Supabase. */
   @Post('login')
   @HttpCode(200)
   public logIn(@Body() dto: LogInDto): Promise<User> {
+    this.requireDevelopmentSignIn();
     return this.usersService.logIn(dto);
+  }
+
+  /**
+   * `POST /users/me`: creates the profile for the signed-in Supabase account; 409 if it already
+   * has one or the username is taken.
+   */
+  @Post('me')
+  public createProfile(
+    @CurrentUserId() userId: string,
+    @Body() dto: CreateProfileDto,
+  ): Promise<User> {
+    return this.usersService.createProfile(userId, dto);
   }
 
   // `me` routes are declared before `:userId` so "me" is not treated as an id.
@@ -80,6 +113,13 @@ export class UsersController {
     @Param('recipeId') recipeId: string,
   ): Promise<User> {
     return this.usersService.unsaveRecipe(userId, recipeId);
+  }
+
+  /** Username-only sign-in would let anyone act as anyone, so it is off once Supabase is set up. */
+  private requireDevelopmentSignIn(): void {
+    if (this.authConfig.usesSupabase) {
+      throw new ForbiddenException('Sign in with your email and password.');
+    }
   }
 
   /** `GET /users/:userId`: anyone's public profile. */

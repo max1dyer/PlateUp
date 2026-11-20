@@ -9,7 +9,11 @@ Npm workspaces monorepo.
   2. [backend](http://localhost:3000): `npm run dev --workspace=backend`
   - The frontend calls the backend through `/api/...`, which the Angular dev server proxies to port 3000 (`frontend/proxy.conf.json`), so run both.
   - Data is in memory and resets on restart. On startup the backend adds three demo recipes by `demo-chef`.
-  - Open <http://localhost:4200>, then **Create account** with any username, or **Log in** as `demo-chef`. Login takes only a username until Supabase authentication is added.
+  - Open <http://localhost:4200>, then **Create account** with any username, or **Log in** as `demo-chef`. Without Supabase keys, login takes only a username (development sign-in).
+- Supabase sign-in (optional):
+  1. Copy `backend/.env.example` to `backend/.env` (it is gitignored; never commit it).
+  2. Fill in `SUPABASE_URL` and `SUPABASE_ANON_KEY` from the Supabase dashboard (Project Settings > API). Add `SUPABASE_JWT_SECRET` only if the project still uses the legacy JWT secret.
+  3. Restart the backend. The login page now asks for an email and password, and **Create account** also asks for a username and display name. If the project requires email confirmation, confirm the email, then log in.
 - test:
   - local formatting command: `npm run format`
   - Each of us will work on different branches and github actions CI will run these commands when creating a pull request.
@@ -60,7 +64,7 @@ Design:
 - `Quantity` is an immutable value object shared by recipes, the pantry, and grocery lists (`scale()` handles serving sizes).
 - Entities throw `DomainValidationError` for invalid input, which `DomainErrorFilter` returns as HTTP 400.
 - Storage is **in-memory** for now (data resets on restart). To add a database, write a new class that extends the feature's abstract repository and change `useClass` in that feature's module. No service code changes.
-- Authentication is not implemented yet. Requests identify the user with an `x-user-id` header, read by the `@CurrentUserId()` decorator. Only that decorator needs to change when auth is added.
+- Authentication (`backend/src/auth/`): a global `AuthGuard` identifies the caller and `@CurrentUserId()` injects their id. With Supabase keys it verifies the `Authorization: Bearer` access token; without them it trusts the development `x-user-id` header. The frontend asks `GET /api/auth/config` which one to use.
 
 Adding new features:
 

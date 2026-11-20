@@ -5,9 +5,11 @@ import { User } from '../users/user.models';
 const STORAGE_KEY = 'plateup.userId';
 
 /**
- * Who is signed in. Holds the user's id (remembered across visits) and their
- * profile once loaded. It makes no HTTP calls itself, so the HTTP interceptor
- * can depend on it; signing in and out goes through `AuthService`.
+ * Who is signed in. Holds the user's id (remembered across visits), their
+ * profile once loaded, and, with Supabase sign-in, the current access token
+ * (Supabase itself remembers the session). It makes no HTTP calls itself, so
+ * the HTTP interceptor can depend on it; signing in and out goes through
+ * `AuthService`.
  */
 @Injectable({ providedIn: 'root' })
 export class SessionService {
@@ -15,10 +17,13 @@ export class SessionService {
   private readonly id = signal<string | null>(readStoredId());
   /** The signed-in user's profile, once it has been loaded from the backend. */
   private readonly profile = signal<User | null>(null);
+  /** The Supabase access token sent to the backend, or null (development sign-in or signed out). */
+  private readonly token = signal<string | null>(null);
 
   /** Read-only views for the rest of the app; only this service changes them. */
   public readonly userId = this.id.asReadonly();
   public readonly currentUser = this.profile.asReadonly();
+  public readonly accessToken = this.token.asReadonly();
   public readonly isSignedIn = computed(() => this.profile() !== null);
 
   /** Starts a session for `user`, or replaces the profile after it changes. */
@@ -28,10 +33,16 @@ export class SessionService {
     writeStoredId(user.id);
   }
 
-  /** Ends the session: forgets the id and profile, here and in browser storage. */
+  /** Replaces the access token, e.g. after signing in or when Supabase refreshes it. */
+  public setAccessToken(token: string | null): void {
+    this.token.set(token);
+  }
+
+  /** Ends the session: forgets the id, profile, and token, here and in browser storage. */
   public clear(): void {
     this.id.set(null);
     this.profile.set(null);
+    this.token.set(null);
     writeStoredId(null);
   }
 }

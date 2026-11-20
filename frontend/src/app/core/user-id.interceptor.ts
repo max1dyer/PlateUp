@@ -4,18 +4,24 @@ import { API_PREFIX, USER_ID_HEADER } from './api';
 import { SessionService } from './session.service';
 
 /**
- * Adds the signed-in user's id header to backend calls (and only to those).
- *
- * TEMPORARY: until Supabase login exists the backend trusts this header. When
- * auth lands, this sends the access token instead.
+ * Tells the backend who is signed in, on backend calls only: the Supabase
+ * access token (`Authorization: Bearer ...`) when there is one, otherwise the
+ * development `x-user-id` header.
  *
  * @pattern Chain of Responsibility — one handler in Angular's interceptor chain.
  */
 export const userIdInterceptor: HttpInterceptorFn = (request, next) => {
-  const userId = inject(SessionService).userId();
-  // Leave other hosts' requests alone, and send nothing when no one is signed in.
-  if (!request.url.startsWith(`${API_PREFIX}/`) || userId === null) {
+  const session = inject(SessionService);
+  // Leave other hosts' requests alone, so the token is never sent anywhere else.
+  if (!request.url.startsWith(`${API_PREFIX}/`)) {
     return next(request);
   }
-  return next(request.clone({ setHeaders: { [USER_ID_HEADER]: userId } }));
+  const token = session.accessToken();
+  if (token !== null) {
+    return next(request.clone({ setHeaders: { Authorization: `Bearer ${token}` } }));
+  }
+  const userId = session.userId();
+  return userId === null
+    ? next(request)
+    : next(request.clone({ setHeaders: { [USER_ID_HEADER]: userId } }));
 };

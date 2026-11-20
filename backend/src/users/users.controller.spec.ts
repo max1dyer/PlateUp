@@ -1,4 +1,7 @@
+import { ForbiddenException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
+import { AuthConfig } from '../auth/auth-config';
+import { buildSupabaseConfig } from '../auth/testing/auth.fixtures';
 import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
 
@@ -7,6 +10,7 @@ describe('UsersController', () => {
   const service = {
     register: jest.fn(),
     logIn: jest.fn(),
+    createProfile: jest.fn(),
     findOne: jest.fn(),
     updateProfile: jest.fn(),
     getPreferences: jest.fn(),
@@ -16,13 +20,36 @@ describe('UsersController', () => {
     unsaveRecipe: jest.fn(),
   };
 
-  beforeEach(async () => {
-    jest.resetAllMocks();
+  async function build(config: AuthConfig): Promise<UsersController> {
     const moduleRef = await Test.createTestingModule({
       controllers: [UsersController],
-      providers: [{ provide: UsersService, useValue: service }],
+      providers: [
+        { provide: UsersService, useValue: service },
+        { provide: AuthConfig, useValue: config },
+      ],
     }).compile();
-    controller = moduleRef.get(UsersController);
+    return moduleRef.get(UsersController);
+  }
+
+  beforeEach(async () => {
+    jest.resetAllMocks();
+    controller = await build(AuthConfig.development());
+  });
+
+  it('createProfile passes the signed-in id and the DTO', async () => {
+    const dto = { username: 'jordan', displayName: 'Jordan' };
+    await controller.createProfile('supabase-id', dto);
+    expect(service.createProfile).toHaveBeenCalledWith('supabase-id', dto);
+  });
+
+  it('refuses username-only sign-up and log-in once Supabase is configured', async () => {
+    const withSupabase = await build(buildSupabaseConfig());
+    const dto = { username: 'peter', displayName: 'Peter' };
+
+    expect(() => withSupabase.register(dto)).toThrow(ForbiddenException);
+    expect(() => withSupabase.logIn(dto)).toThrow(ForbiddenException);
+    expect(service.register).not.toHaveBeenCalled();
+    expect(service.logIn).not.toHaveBeenCalled();
   });
 
   it('register delegates the DTO', async () => {

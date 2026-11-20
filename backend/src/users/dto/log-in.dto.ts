@@ -1,4 +1,4 @@
-/** TEMPORARY: body of `POST /users/login` until Supabase authentication replaces it. */
+/** Body of `POST /users/login`, the development sign-in used while Supabase is not configured. */
 export class LogInDto {
   public readonly username!: string;
 }

@@ -14,6 +14,8 @@ When you add a runtime dependency or external service, add it here.
 | RxJS                                     | Reactive streams (Angular HTTP, events)  | Apache-2.0 | https://github.com/ReactiveX/rxjs            |
 | reflect-metadata                         | Decorator metadata for NestJS DI         | Apache-2.0 | https://github.com/rbuckton/reflect-metadata |
 | tslib                                    | TypeScript runtime helpers               | 0BSD       | https://github.com/microsoft/tslib           |
+| jose                                     | Verifying Supabase access tokens (JWT)   | MIT        | https://github.com/panva/jose                |
+| Supabase JS (`@supabase/supabase-js`)    | Frontend sign-up, log-in, and sessions   | MIT        | https://github.com/supabase/supabase-js      |
 
 ## Development tools
 
@@ -30,9 +32,9 @@ When you add a runtime dependency or external service, add it here.
 
 The application must comply with each provider's terms of service and display the required attribution (Supplemental Spec 3.6).
 
-| Service               | Used for                               | Attribution / terms                                |
-| --------------------- | -------------------------------------- | -------------------------------------------------- |
-| Supabase              | Authentication and PostgreSQL database | **TODO:** link terms of service                    |
-| Kroger API            | Ingredient retail prices               | **TODO:** required attribution text                |
-| USDA FoodData Central | Ingredient nutrition data              | Public domain (CC0). Cite "USDA FoodData Central". |
-| API Ninjas            | Starter recipe data                    | **TODO:** required attribution text                |
+| Service               | Used for                                                               | Attribution / terms                                |
+| --------------------- | ---------------------------------------------------------------------- | -------------------------------------------------- |
+| Supabase              | Authentication (in use when configured); PostgreSQL database (planned) | Terms: https://supabase.com/terms                  |
+| Kroger API            | Ingredient retail prices                                               | **TODO:** required attribution text                |
+| USDA FoodData Central | Ingredient nutrition data                                              | Public domain (CC0). Cite "USDA FoodData Central". |
+| API Ninjas            | Starter recipe data                                                    | **TODO:** required attribution text                |

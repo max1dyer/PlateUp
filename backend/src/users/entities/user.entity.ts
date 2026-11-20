@@ -41,9 +41,14 @@ export class User extends BaseEntity<UserSnapshot> {
   /** Private settings; replaced (never mutated) because `UserPreferences` is immutable. */
   private prefs = UserPreferences.defaults();
 
-  /** @throws DomainValidationError if the username or any profile field is invalid. */
-  constructor(username: string, profile: UserProfile) {
-    super();
+  /**
+   * @param id the account's id; given when the account comes from Supabase sign-in (its user
+   *   id), otherwise a new random id.
+   * @throws DomainValidationError if the id is blank, or the username or any profile field is
+   *   invalid.
+   */
+  constructor(username: string, profile: UserProfile, id?: string) {
+    super(id === undefined ? undefined : requireText(id, 'User id'));
     this.username = User.normalizeUsername(username);
     this.profile = User.validateProfile(profile);
   }

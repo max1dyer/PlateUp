@@ -3,6 +3,7 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { API_PREFIX } from '../core/api';
 import { Recipe } from '../recipes/recipe.models';
+import { ProfileDetails } from '../core/auth.models';
 import { NewUser, ProfileChanges, User } from './user.models';
 
 /** All HTTP calls for accounts, profiles, and saved recipes. */
@@ -17,9 +18,14 @@ export class UsersService {
     return this.http.post<User>(this.baseUrl, user);
   }
 
-  /** TEMPORARY: username-only sign-in until Supabase authentication exists. */
+  /** Development sign-in by username alone (refused by the backend once Supabase is set up). */
   public logIn(username: string): Observable<User> {
     return this.http.post<User>(`${this.baseUrl}/login`, { username });
+  }
+
+  /** `POST /users/me`: creates the profile for the signed-in Supabase account. */
+  public createProfile(profile: ProfileDetails): Observable<User> {
+    return this.http.post<User>(`${this.baseUrl}/me`, profile);
   }
 
   /** `GET /users/me`: the signed-in user's own profile. */
