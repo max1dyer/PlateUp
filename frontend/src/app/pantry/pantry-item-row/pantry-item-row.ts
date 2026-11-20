@@ -5,13 +5,18 @@ import { errorMessage } from '../../core/api';
 import { today, toLocalDate } from '../../core/calendar-date';
 import { ToastService } from '../../core/toast.service';
 import { formatQuantity } from '../../grocery-list/grocery-list-format';
-import { UNITS, Unit } from '../../grocery-list/grocery-list.models';
+import {
+  CATEGORIES,
+  IngredientCategory,
+  UNITS,
+  Unit,
+} from '../../grocery-list/grocery-list.models';
 import { expiryStatus } from '../pantry-expiry';
 import { PantryItem } from '../pantry.models';
 import { PantryService } from '../pantry.service';
 
 /**
- * One pantry ingredient (UC11): tap it to change its name, amount, or
+ * One pantry ingredient (UC11): tap it to change its name, amount, section, or
  * expiration date, or remove it. Expired and soon-to-expire items carry a
  * marker such as "Expires in 3 days" (UC15).
  */
@@ -30,6 +35,7 @@ export class PantryItemRow {
   public readonly removed = output<string>();
 
   protected readonly units = UNITS;
+  protected readonly categories = CATEGORIES;
   protected readonly formatQuantity = formatQuantity;
   protected readonly toLocalDate = toLocalDate;
   /** How close the item is to its expiration date, with the marker to show. */
@@ -47,6 +53,7 @@ export class PantryItemRow {
     amount: new FormControl<number | null>(null),
     unit: new FormControl<Unit>('piece', { nonNullable: true }),
     expiresOn: new FormControl('', { nonNullable: true }),
+    category: new FormControl<IngredientCategory>('other', { nonNullable: true }),
   });
 
   constructor(
@@ -62,24 +69,25 @@ export class PantryItemRow {
       amount: item.quantity.amount,
       unit: item.quantity.unit,
       expiresOn: item.expiresOn ?? '',
+      category: item.category,
     });
     this.error.set(null);
     this.editing.set(true);
   }
 
   /**
-   * Saves the edited name, amount, and expiration date. The name and amount are
+   * Saves the edited name, amount, section, and expiration date. The name and amount are
    * required, since a pantry item always has an amount; clearing the date
    * removes it.
    */
   protected save(): void {
-    const { name, amount, unit, expiresOn } = this.form.getRawValue();
+    const { name, amount, unit, expiresOn, category } = this.form.getRawValue();
     if (name.trim().length === 0 || amount === null) {
       this.error.set('Enter a name and an amount.');
       return;
     }
     this.saving.set(true);
-    const changes = { name, quantity: { amount, unit }, expiresOn: expiresOn || null };
+    const changes = { name, quantity: { amount, unit }, expiresOn: expiresOn || null, category };
     this.pantry.updateItem(this.item().id, changes).subscribe({
       next: (item) => {
         this.saving.set(false);

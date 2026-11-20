@@ -3,15 +3,22 @@ import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { errorMessage } from '../../core/api';
 import { today } from '../../core/calendar-date';
 import { ToastService } from '../../core/toast.service';
-import { UNITS, Unit } from '../../grocery-list/grocery-list.models';
+import { groupByCategory } from '../../grocery-list/grocery-list-format';
+import {
+  CATEGORIES,
+  IngredientCategory,
+  UNITS,
+  Unit,
+} from '../../grocery-list/grocery-list.models';
 import { PantryItemRow } from '../pantry-item-row/pantry-item-row';
 import { expiringItems, expiryAlert, expiryStatus } from '../pantry-expiry';
 import { PantryItem } from '../pantry.models';
 import { PantryService } from '../pantry.service';
 
 /**
- * "Your Pantry" page (UC5, UC11, UC15): what the user has on hand. Adding an
- * ingredient that is already there combines the amounts. Items that have
+ * "Your Pantry" page (UC5, UC11, UC15): what the user has on hand, grouped into
+ * sections like the grocery list (issue #27). Adding an ingredient that is
+ * already there combines the amounts. Items that have
  * expired or expire within a week are listed in an alert at the top.
  */
 @Component({
@@ -34,6 +41,7 @@ export class PantryPage implements OnInit {
   /** Text typed in the search box. */
   protected readonly search = signal('');
   protected readonly units = UNITS;
+  protected readonly categories = CATEGORIES;
   /** Today's date, against which expiration dates are judged. */
   protected readonly today = today();
 
@@ -55,12 +63,19 @@ export class PantryPage implements OnInit {
       .sort((a, b) => a.name.localeCompare(b.name));
   });
 
-  /** The "add an ingredient" form; the amount starts at 1 and the date is optional. */
+  /** The shown items grouped by section, in the grocery list's section order. */
+  protected readonly groups = computed(() => groupByCategory(this.shown()));
+
+  /**
+   * The "add an ingredient" form; the amount starts at 1 and the date is optional. A blank
+   * section lets the backend guess it from the name.
+   */
   protected readonly form = new FormGroup({
     name: new FormControl('', { nonNullable: true }),
     amount: new FormControl<number | null>(1),
     unit: new FormControl<Unit>('piece', { nonNullable: true }),
     expiresOn: new FormControl('', { nonNullable: true }),
+    category: new FormControl<IngredientCategory | ''>('', { nonNullable: true }),
   });
 
   constructor(
@@ -94,7 +109,7 @@ export class PantryPage implements OnInit {
    * retyped.
    */
   protected add(): void {
-    const { name, amount, unit, expiresOn } = this.form.getRawValue();
+    const { name, amount, unit, expiresOn, category } = this.form.getRawValue();
     if (name.trim().length === 0 || amount === null) {
       this.addError.set('Enter an ingredient and an amount.');
       return;
@@ -103,9 +118,14 @@ export class PantryPage implements OnInit {
     this.addError.set(null);
     // Clear straight away so the next item can be typed while this one saves.
     this.form.patchValue({ name: '', amount: 1, expiresOn: '' });
-    // A blank date field means "no expiration date".
+    // A blank date means "no expiration date"; a blank section is guessed by the backend.
     this.pantry
-      .addItem({ name, quantity: { amount, unit }, expiresOn: expiresOn || null })
+      .addItem({
+        name,
+        quantity: { amount, unit },
+        expiresOn: expiresOn || null,
+        ...(category ? { category } : {}),
+      })
       .subscribe({
         next: (item) => {
           this.saving.set(false);

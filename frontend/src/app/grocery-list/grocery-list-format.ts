@@ -6,11 +6,11 @@ import {
   Unit,
 } from './grocery-list.models';
 
-/** One store section of the grocery list and the items in it. */
-export interface CategoryGroup {
+/** One store section and the items in it (grocery list items by default, or pantry items). */
+export interface CategoryGroup<T = GroceryListItem> {
   category: IngredientCategory;
   label: string;
-  items: GroceryListItem[];
+  items: T[];
 }
 
 /** Common fractions shown instead of decimals ("1/2 lb"). Amounts are stored to 2 decimals. */
@@ -35,7 +35,9 @@ const PLURALS: Partial<Record<Unit, string>> = {
 };
 
 /** Groups items by category in display order, leaving out empty categories. */
-export function groupByCategory(items: readonly GroceryListItem[]): CategoryGroup[] {
+export function groupByCategory<T extends { category: IngredientCategory }>(
+  items: readonly T[],
+): CategoryGroup<T>[] {
   return CATEGORIES.map(({ value, label }) => ({
     category: value,
     label,

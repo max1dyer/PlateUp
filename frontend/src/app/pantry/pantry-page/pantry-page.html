@@ -40,12 +40,20 @@
           <option [value]="unit">{{ unit }}</option>
         }
       </select>
+      <select class="ui-field section" formControlName="category" aria-label="Section">
+        <option value="">Any section</option>
+        @for (category of categories; track category.value) {
+          <option [value]="category.value">{{ category.label }}</option>
+        }
+      </select>
+    </div>
+    <div class="ui-row expires-row">
+      <label class="ui-label expires">
+        Expires (optional)
+        <input class="ui-field date" type="date" formControlName="expiresOn" />
+      </label>
       <button type="submit" class="ui-button primary" [disabled]="saving()">+ Add</button>
     </div>
-    <label class="ui-label expires">
-      Expires (optional)
-      <input class="ui-field date" type="date" formControlName="expiresOn" />
-    </label>
     @if (addError(); as message) {
       <p class="ui-error" role="alert">{{ message }}</p>
     }
@@ -72,18 +80,22 @@
         />
       }
       @if (shown().length > 0) {
-        <div class="ui-card green list">
-          @for (item of shown(); track item.id; let last = $last) {
-            <app-pantry-item-row
-              [item]="item"
-              (changed)="onChanged($event)"
-              (removed)="onRemoved($event)"
-            />
-            @if (!last) {
-              <div class="divider"></div>
+        <!-- Items grouped by section, like the grocery list; the cards alternate colours -->
+        @for (group of groups(); track group.category; let groupIndex = $index) {
+          <h3 class="group-label">{{ group.label }}</h3>
+          <div class="ui-card list" [class.green]="groupIndex % 2 === 1">
+            @for (item of group.items; track item.id; let last = $last) {
+              <app-pantry-item-row
+                [item]="item"
+                (changed)="onChanged($event)"
+                (removed)="onRemoved($event)"
+              />
+              @if (!last) {
+                <div class="divider"></div>
+              }
             }
-          }
-        </div>
+          </div>
+        }
       } @else if (items().length === 0) {
         <p class="ui-status">Your pantry is empty. Add what you have on hand above.</p>
       } @else {

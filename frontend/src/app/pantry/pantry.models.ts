@@ -1,4 +1,4 @@
-import { Quantity } from '../grocery-list/grocery-list.models';
+import { IngredientCategory, Quantity } from '../grocery-list/grocery-list.models';
 
 /** An ingredient on hand, as returned by `GET /pantry`. */
 export interface PantryItem {
@@ -10,6 +10,8 @@ export interface PantryItem {
   quantity: Quantity;
   /** Day the item expires (`YYYY-MM-DD`), or null if the user gave none. */
   expiresOn: string | null;
+  /** Pantry section the item is listed under (same sections as the grocery list). */
+  category: IngredientCategory;
 }
 
 /** How the pantry compares with an ingredient amount (mirrors the backend's `StockStatus`). */
@@ -32,6 +34,8 @@ export interface NewPantryItem {
   quantity: Quantity;
   /** Optional expiration date; a combined item keeps the earlier date. */
   expiresOn?: string | null;
+  /** Pantry section; omitted means the backend guesses it from the name. */
+  category?: IngredientCategory;
 }
 
 /** Body of `PATCH /pantry/:itemId`; omitted fields stay unchanged. */
@@ -40,4 +44,5 @@ export interface PantryItemChanges {
   quantity?: Quantity;
   /** `null` clears the expiration date. */
   expiresOn?: string | null;
+  category?: IngredientCategory;
 }
