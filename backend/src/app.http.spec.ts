@@ -1,6 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { AppModule } from './app.module';
+import { AuthConfig } from './auth/auth-config';
 import { USER_ID_HEADER } from './common/decorators/current-user-id.decorator';
 import { buildCreateRecipeDto } from './recipes/testing/recipe.fixtures';
 
@@ -19,7 +20,11 @@ describe('PlateUp HTTP API', () => {
   let baseUrl: string;
 
   beforeAll(async () => {
-    const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
+    // Development sign-in (the x-user-id header), whatever the environment says.
+    const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
+      .overrideProvider(AuthConfig)
+      .useValue(AuthConfig.development())
+      .compile();
     app = moduleRef.createNestApplication({ logger: false });
     await app.listen(0);
     baseUrl = await app.getUrl();

@@ -28,6 +28,28 @@ describe('UsersService', () => {
     recipes = moduleRef.get(RecipesService);
   });
 
+  it('createProfile keys the new user by the given (Supabase) id', async () => {
+    const user = await service.createProfile('supabase-id', {
+      username: 'Jordan',
+      displayName: 'Jordan Lee',
+    });
+
+    expect(user.id).toBe('supabase-id');
+    expect((await service.findOne('supabase-id')).username).toBe('jordan');
+  });
+
+  it('createProfile refuses a second profile or a taken username', async () => {
+    await service.register({ username: 'peter', displayName: 'Peter' });
+    await service.createProfile('supabase-id', { username: 'jordan', displayName: 'Jordan' });
+
+    await expect(
+      service.createProfile('supabase-id', { username: 'other', displayName: 'Other' }),
+    ).rejects.toThrow('already has a profile');
+    await expect(
+      service.createProfile('new-id', { username: 'Peter', displayName: 'Peter' }),
+    ).rejects.toThrow(ConflictException);
+  });
+
   it('register creates a user with default profile fields', async () => {
     const user = await service.register({ username: 'Peter', displayName: 'Peter Jones' });
 

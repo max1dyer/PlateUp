@@ -23,9 +23,12 @@ export abstract class BaseEntity<TSnapshot extends object> {
   public readonly createdAt: Date;
   private lastUpdatedAt: Date;
 
-  /** Gives the new entity a random UUID and stamps its creation time. */
-  protected constructor() {
-    this.id = randomUUID();
+  /**
+   * Stamps the new entity's creation time and gives it `id`, or a random UUID when none is given
+   * (a user's id comes from their Supabase account instead).
+   */
+  protected constructor(id?: string) {
+    this.id = id ?? randomUUID();
     this.createdAt = new Date();
     this.lastUpdatedAt = this.createdAt;
   }

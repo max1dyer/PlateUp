@@ -1,6 +1,7 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { Recipe } from '../recipes/entities/recipe.entity';
 import { RecipesService } from '../recipes/recipes.service';
+import { CreateProfileDto } from './dto/create-profile.dto';
 import { CreateUserDto } from './dto/create-user.dto';
 import { LogInDto } from './dto/log-in.dto';
 import { UpdatePreferencesDto } from './dto/update-preferences.dto';
@@ -38,8 +39,29 @@ export class UsersService {
   }
 
   /**
-   * TEMPORARY: signs in by username alone, until Supabase authentication
-   * replaces it. 404s for an unknown username.
+   * Creates the PlateUp profile for a Supabase account, using the Supabase user id as the
+   * PlateUp id so every resource the user owns is keyed by it.
+   *
+   * @throws ConflictException if the account already has a profile or the username is taken.
+   */
+  public async createProfile(userId: string, dto: CreateProfileDto): Promise<User> {
+    if (await this.users.findById(userId)) {
+      throw new ConflictException('Your account already has a profile.');
+    }
+    if (await this.users.findByUsername(dto.username)) {
+      throw new ConflictException(`Username "${dto.username}" is already taken.`);
+    }
+    const user = new User(
+      dto.username,
+      { displayName: dto.displayName, bio: dto.bio ?? '', profilePictureUrl: null },
+      userId,
+    );
+    return this.users.save(user);
+  }
+
+  /**
+   * Development sign-in by username alone, used while Supabase is not configured. 404s for an
+   * unknown username.
    */
   public async logIn(dto: LogInDto): Promise<User> {
     const user = await this.users.findByUsername(dto.username ?? '');

@@ -14,6 +14,7 @@ When you add a runtime dependency or external service, add it here.
 | RxJS                                     | Reactive streams (Angular HTTP, events)  | Apache-2.0 | https://github.com/ReactiveX/rxjs            |
 | reflect-metadata                         | Decorator metadata for NestJS DI         | Apache-2.0 | https://github.com/rbuckton/reflect-metadata |
 | tslib                                    | TypeScript runtime helpers               | 0BSD       | https://github.com/microsoft/tslib           |
+| jose                                     | Verifying Supabase access tokens (JWT)   | MIT        | https://github.com/panva/jose                |
 
 ## Development tools
 
