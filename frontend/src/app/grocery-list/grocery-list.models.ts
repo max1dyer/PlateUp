@@ -68,6 +68,13 @@ export const CATEGORIES: readonly { value: IngredientCategory; label: string }[]
   { value: 'other', label: 'Other' },
 ];
 
+/**
+ * Label of the blank first option in the "add an item" section pickers (grocery list and
+ * pantry). Choosing it sends no category, so the backend guesses one from the name (e.g.
+ * "Eggs" goes under Dairy); picking "Other" files the item under Other.
+ */
+export const AUTO_CATEGORY_LABEL = 'Auto';
+
 /** An amount and unit, as the backend's `Quantity` value object serializes. */
 export interface Quantity {
   amount: number;

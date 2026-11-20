@@ -1,6 +1,6 @@
 import { NotFoundException, ConflictException, ForbiddenException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import { IngredientCategory } from '../common/domain/ingredient-category';
+import { IngredientCategory, guessCategory } from '../common/domain/ingredient-category';
 import { Quantity, Unit } from '../common/domain/quantity';
 import { DomainValidationError } from '../common/errors/domain-validation.error';
 import { RecipeVisibility } from '../recipes/entities/recipe.entity';
@@ -153,12 +153,22 @@ describe('GroceryListsService', () => {
     const [fishSauce, lemongrass] = list.items;
 
     expect(fishSauce.category).toBe(IngredientCategory.OilSauce);
-    expect(lemongrass.category).toBe(IngredientCategory.Other);
+    expect(lemongrass.category).toBe(guessCategory('Lemongrass'));
 
     await service.updateItem('alice', list.id, lemongrass.id, {
       category: IngredientCategory.Produce,
     });
     expect(lemongrass.category).toBe(IngredientCategory.Produce);
+  });
+
+  it('addItem guesses the section from the name when none is given', async () => {
+    const list = await service.create('alice', { name: 'Weekly' });
+    await service.addItem('alice', list.id, { name: 'Eggs' });
+    await service.addItem('alice', list.id, { name: 'Gadget' });
+    const [eggs, gadget] = list.items;
+
+    expect(eggs.category).toBe(IngredientCategory.Dairy);
+    expect(gadget.category).toBe(IngredientCategory.Other);
   });
 
   it('item operations 404 for unknown items', async () => {
@@ -298,6 +308,20 @@ describe('GroceryListsService', () => {
       expect(updated.items).toHaveLength(0);
       const [milk] = await pantry.findAll('alice');
       expect(milk.quantity).toEqual(new Quantity(1.5, Unit.Liter));
+    });
+
+    it('moveItemToPantry keeps the item’s store section in the pantry', async () => {
+      const list = await service.create('alice', { name: 'Weekly' });
+      await service.addItem('alice', list.id, {
+        name: 'Oat milk',
+        quantity: liter(1),
+        category: IngredientCategory.Drinks,
+      });
+
+      await service.moveItemToPantry('alice', list.id, list.items[0].id);
+
+      const [oatMilk] = await pantry.findAll('alice');
+      expect(oatMilk.category).toBe(IngredientCategory.Drinks);
     });
 
     it('moveItemToPantry keeps an item the pantry refuses on the list', async () => {

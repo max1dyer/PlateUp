@@ -20,7 +20,29 @@
 .divider {
   height: 3px;
   border-radius: var(--radius);
+  background: var(--color-primary);
+}
+
+.ui-card.green .divider {
   background: var(--color-secondary);
+}
+
+.group-label {
+  margin: 6px 0 0;
+  font-size: 18px;
+  line-height: 110%;
+  font-weight: 400;
+  color: var(--color-text-strong);
+}
+
+.section {
+  width: auto;
+}
+
+/* The Add button sits beside the date, at the bottom of the form. */
+.expires-row {
+  align-items: flex-end;
+  justify-content: space-between;
 }
 
 .date {

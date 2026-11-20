@@ -127,8 +127,63 @@ describe('PantryPage', () => {
       name: 'Eggs',
       quantity: { amount: 6, unit: 'piece' },
       expiresOn: null,
+      category: 'dairy',
     });
     expect(text(page, '.quantity')).toEqual(['6']);
+  });
+
+  it('groups items under section headings in the grocery list order', async () => {
+    service.getItems.mockReturnValue(
+      of([
+        pantryItem({ id: 'a', name: 'Rice', category: 'carbs' }),
+        pantryItem({ id: 'b', name: 'Chicken', category: 'protein' }),
+        pantryItem({ id: 'c', name: 'Beef', category: 'protein' }),
+      ]),
+    );
+
+    const { page } = await render();
+
+    expect(text(page, '.group-label')).toEqual(['Protein', 'Carbs']);
+    expect(text(page, '.list .name')).toEqual(['Beef', 'Chicken', 'Rice']);
+  });
+
+  it('sends the chosen section when adding, and none when left on "Auto"', async () => {
+    service.getItems.mockReturnValue(of([]));
+    service.addItem.mockReturnValue(of(pantryItem({ name: 'Basil', category: 'produce' })));
+    const { fixture, page } = await render();
+
+    submitAdd(page, 'Milk');
+    const section = page.querySelector('select[aria-label="Section"]') as HTMLSelectElement;
+    section.value = 'produce';
+    section.dispatchEvent(new Event('change'));
+    submitAdd(page, 'Basil');
+    await fixture.whenStable();
+
+    expect(service.addItem.mock.calls.map(([item]) => item.category)).toEqual([
+      undefined,
+      'produce',
+    ]);
+  });
+
+  it('moves an item to another section when edited', async () => {
+    service.getItems.mockReturnValue(of([pantryItem()]));
+    service.updateItem.mockReturnValue(of(pantryItem({ category: 'protein' })));
+    const { fixture, page } = await render();
+
+    (page.querySelector('.details') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    const section = page.querySelector('.edit select[aria-label="Section"]') as HTMLSelectElement;
+    expect(section.value).toBe('dairy');
+    section.value = 'protein';
+    section.dispatchEvent(new Event('change'));
+    (page.querySelector('form.edit') as HTMLFormElement).dispatchEvent(new Event('submit'));
+    await fixture.whenStable();
+
+    expect(service.updateItem).toHaveBeenCalledWith(
+      'item-1',
+      expect.objectContaining({ category: 'protein' }),
+    );
+    expect(text(page, '.group-label')).toEqual(['Protein']);
   });
 
   it('sends the expiration date chosen when adding', async () => {

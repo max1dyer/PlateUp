@@ -166,7 +166,10 @@ export class GroceryListsService {
     return saved;
   }
 
-  /** Adds an item to a list, combining it with a matching line if there is one. */
+  /**
+   * Adds an item to a list, combining it with a matching line if there is one. With no
+   * category, the section is guessed from the name (as the pantry does).
+   */
   public async addItem(
     ownerId: string,
     listId: string,
@@ -176,7 +179,7 @@ export class GroceryListsService {
     const item = list.addItem(
       dto.name,
       this.toQuantity(dto.quantity),
-      dto.category,
+      dto.category ?? guessCategory(dto.name),
       await this.member(ownerId),
     );
     await this.log(list, ownerId, `added ${item.name}`);
@@ -474,14 +477,18 @@ export class GroceryListsService {
     }
   }
 
-  /** The pantry needs an amount, so an item without one is refused. */
+  /** The pantry needs an amount, so an item without one is refused. It keeps its store section. */
   private async addToPantry(ownerId: string, item: GroceryListItem): Promise<void> {
     if (item.quantity === null) {
       throw new DomainValidationError(
         `Give ${item.name} an amount before moving it to your pantry.`,
       );
     }
-    await this.pantryService.add(ownerId, { name: item.name, quantity: item.quantity });
+    await this.pantryService.add(ownerId, {
+      name: item.name,
+      quantity: item.quantity,
+      category: item.category,
+    });
   }
 
   /** Converts an optional request amount into a `Quantity` (null when absent). */

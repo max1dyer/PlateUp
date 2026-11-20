@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { requireCalendarDateOrNull } from '../common/domain/calendar-date';
-import { requireText } from '../common/domain/guards';
+import { requireOneOf, requireText } from '../common/domain/guards';
+import { IngredientCategory } from '../common/domain/ingredient-category';
 import { Quantity } from '../common/domain/quantity';
 import { DomainValidationError } from '../common/errors/domain-validation.error';
 import { CheckStockDto } from './dto/check-stock.dto';
@@ -43,8 +44,8 @@ export class PantryService {
   /**
    * Adds an ingredient. A pantry holds one item per ingredient, so if the owner
    * already has it the amount is combined into that item (which is returned
-   * instead, keeping the earlier expiration date); an amount in a unit that
-   * can't be combined is refused.
+   * instead, keeping the earlier expiration date and its section); an amount in a unit that
+   * can't be combined is refused. With no category, the section is guessed from the name.
    */
   public async add(ownerId: string, dto: CreatePantryItemDto): Promise<PantryItem> {
     const quantity = new Quantity(dto.quantity.amount, dto.quantity.unit);
@@ -60,12 +61,12 @@ export class PantryService {
       return this.pantryItems.save(existing);
     }
     return this.pantryItems.save(
-      new PantryItem(ownerId, dto.name, quantity, dto.expiresOn ?? null),
+      new PantryItem(ownerId, dto.name, quantity, dto.expiresOn ?? null, dto.category),
     );
   }
 
   /**
-   * Edits an item's name, amount, or expiration date. Renaming to another
+   * Edits an item's name, amount, expiration date, or section. Renaming to another
    * item's ingredient is refused, to keep one item per ingredient.
    */
   public async update(
@@ -76,11 +77,15 @@ export class PantryService {
     const item = await this.findOwned(ownerId, itemId);
     const quantity =
       dto.quantity === undefined ? undefined : new Quantity(dto.quantity.amount, dto.quantity.unit);
-    // Check the date before changing anything, so a bad date leaves the item untouched.
+    // Check the date and section before changing anything, so a bad date leaves the item untouched.
     const expiresOn =
       dto.expiresOn === undefined
         ? undefined
         : requireCalendarDateOrNull(dto.expiresOn, 'Expiration date');
+    const category =
+      dto.category === undefined
+        ? undefined
+        : requireOneOf(dto.category, IngredientCategory, 'category');
     if (dto.name !== undefined) {
       const other = await this.findOwnedNamed(ownerId, dto.name);
       if (other && other.id !== item.id) {
@@ -95,6 +100,9 @@ export class PantryService {
     }
     if (expiresOn !== undefined) {
       item.setExpiresOn(expiresOn);
+    }
+    if (category !== undefined) {
+      item.setCategory(category);
     }
     return this.pantryItems.save(item);
   }

@@ -56,7 +56,18 @@ describe('AddItemsForm', () => {
 
     submit();
 
-    expect(service.addItem).toHaveBeenCalledWith('list-1', { name: 'Chips', category: 'other' });
+    expect(service.addItem).toHaveBeenCalledWith('list-1', { name: 'Chips' });
+  });
+
+  it('starts on "Auto" and sends no category so the backend guesses it', () => {
+    service.addItem.mockReturnValue(of(groceryList()));
+    const section = form.querySelector('select[aria-label="Section"]') as HTMLSelectElement;
+    expect(section.selectedOptions[0].textContent?.trim()).toBe('Auto');
+
+    fixture.componentInstance['form'].patchValue({ name: 'Eggs' });
+    submit();
+
+    expect(service.addItem.mock.calls[0][1]).not.toHaveProperty('category');
   });
 
   it('asks for a name instead of sending a blank one', () => {

@@ -47,6 +47,11 @@
           <option [value]="unit">{{ unit }}</option>
         }
       </select>
+      <select class="ui-field unit" formControlName="category" aria-label="Section">
+        @for (category of categories; track category.value) {
+          <option [value]="category.value">{{ category.label }}</option>
+        }
+      </select>
     </div>
     <label class="ui-label">
       Expires (optional)
