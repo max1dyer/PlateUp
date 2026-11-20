@@ -10,6 +10,8 @@
   --color-on-color: #ffffff;
   --color-icon-green: #33772f;
   --color-danger-tint: rgba(255, 0, 0, 0.3);
+  /* Not in Figma: --color-primary at the same strength as --color-card-green. */
+  --color-tint-orange: rgba(209, 122, 15, 0.2);
   --color-checkbox-border: #9c9c9c;
   /* Not in Figma: used for error messages only. */
   --color-error: #a61b1b;
@@ -175,6 +177,15 @@ textarea {
 
 .ui-button.plain {
   background: none;
+}
+
+/* Translucent, so on a card of the same color they read as a darker shade of it. */
+.ui-button.tint-green {
+  background: var(--color-card-green);
+}
+
+.ui-button.tint-orange {
+  background: var(--color-tint-orange);
 }
 
 .ui-button.danger {
