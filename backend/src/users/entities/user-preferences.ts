@@ -2,7 +2,10 @@ import { DietaryRestriction } from '../../common/domain/dietary-restriction';
 import { requireBoolean, requireIntegerInRange, requireOneOf } from '../../common/domain/guards';
 import { DomainValidationError } from '../../common/errors/domain-validation.error';
 
-/** Servings new accounts start with (spec 3.4: "a default serving size of ~2"). */
+/**
+ * Servings new accounts start with (spec 3.4: "a default serving size of ~2"). Users can clear it
+ * (null) to open each recipe at its own servings.
+ */
 export const DEFAULT_SERVINGS = 2;
 /** Limits for the default servings (at most) and the daily calorie goal (range). */
 export const MAX_SERVINGS = 50;
@@ -26,8 +29,8 @@ export type MacroGoals = Record<Macro, number | null>;
 
 /** The user-editable preference fields. */
 export interface UserPreferencesProps {
-  /** Servings a recipe opens at, whatever servings it was written for. */
-  defaultServings: number;
+  /** Servings a recipe opens at, or null to open each recipe at the servings it was written for. */
+  defaultServings: number | null;
   /** Recipes breaking any of these are hidden from the feed or flagged. */
   dietaryRestrictions: DietaryRestriction[];
   /** Daily calorie goal, or null for none. */
@@ -105,7 +108,7 @@ export function deriveDailyTargets(calories: number | null, macros: MacroGoals):
  * `with()` returns a validated copy.
  */
 export class UserPreferences {
-  public readonly defaultServings: number;
+  public readonly defaultServings: number | null;
   public readonly dietaryRestrictions: readonly DietaryRestriction[];
   public readonly dailyCalories: number | null;
   public readonly macroGoals: Readonly<MacroGoals>;
@@ -117,12 +120,10 @@ export class UserPreferences {
 
   /** @throws DomainValidationError if any value is out of range or not recognised. */
   constructor(props: UserPreferencesProps) {
-    this.defaultServings = requireIntegerInRange(
-      props.defaultServings,
-      1,
-      MAX_SERVINGS,
-      'Default servings',
-    );
+    this.defaultServings =
+      props.defaultServings === null
+        ? null
+        : requireIntegerInRange(props.defaultServings, 1, MAX_SERVINGS, 'Default servings');
     this.dietaryRestrictions = UserPreferences.validateRestrictions(props.dietaryRestrictions);
     this.dailyCalories =
       props.dailyCalories === null

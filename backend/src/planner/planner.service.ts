@@ -117,10 +117,13 @@ export class PlannerService {
     return meal;
   }
 
-  /** The user's preferred servings, or the recipe's own if their preferences can't be read. */
+  /**
+   * The user's preferred servings, or the recipe's own if they have no preference or their
+   * preferences can't be read.
+   */
   private async preferredServings(ownerId: string, recipe: Recipe): Promise<number> {
     try {
-      return (await this.usersService.getPreferences(ownerId)).defaultServings;
+      return (await this.usersService.getPreferences(ownerId)).defaultServings ?? recipe.servings;
     } catch (error) {
       if (error instanceof NotFoundException) {
         return recipe.servings;
