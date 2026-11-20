@@ -41,7 +41,7 @@
         }
       </select>
       <select class="ui-field section" formControlName="category" aria-label="Section">
-        <option value="">Any section</option>
+        <option value="">{{ autoCategoryLabel }}</option>
         @for (category of categories; track category.value) {
           <option [value]="category.value">{{ category.label }}</option>
         }

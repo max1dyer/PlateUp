@@ -166,7 +166,10 @@ export class GroceryListsService {
     return saved;
   }
 
-  /** Adds an item to a list, combining it with a matching line if there is one. */
+  /**
+   * Adds an item to a list, combining it with a matching line if there is one. With no
+   * category, the section is guessed from the name (as the pantry does).
+   */
   public async addItem(
     ownerId: string,
     listId: string,
@@ -176,7 +179,7 @@ export class GroceryListsService {
     const item = list.addItem(
       dto.name,
       this.toQuantity(dto.quantity),
-      dto.category,
+      dto.category ?? guessCategory(dto.name),
       await this.member(ownerId),
     );
     await this.log(list, ownerId, `added ${item.name}`);

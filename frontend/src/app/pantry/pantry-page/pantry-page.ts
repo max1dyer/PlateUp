@@ -5,6 +5,7 @@ import { today } from '../../core/calendar-date';
 import { ToastService } from '../../core/toast.service';
 import { groupByCategory } from '../../grocery-list/grocery-list-format';
 import {
+  AUTO_CATEGORY_LABEL,
   CATEGORIES,
   IngredientCategory,
   UNITS,
@@ -42,6 +43,7 @@ export class PantryPage implements OnInit {
   protected readonly search = signal('');
   protected readonly units = UNITS;
   protected readonly categories = CATEGORIES;
+  protected readonly autoCategoryLabel = AUTO_CATEGORY_LABEL;
   /** Today's date, against which expiration dates are judged. */
   protected readonly today = today();
 

@@ -2,6 +2,7 @@ import { Component, ElementRef, input, output, signal, viewChild } from '@angula
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { errorMessage } from '../../core/api';
 import {
+  AUTO_CATEGORY_LABEL,
   CATEGORIES,
   GroceryList,
   IngredientCategory,
@@ -31,16 +32,18 @@ export class AddItemsForm {
 
   protected readonly units = UNITS;
   protected readonly categories = CATEGORIES;
+  protected readonly autoCategoryLabel = AUTO_CATEGORY_LABEL;
   /** True while an item is being added. */
   protected readonly saving = signal(false);
   /** The last validation or server error to show, or null. */
   protected readonly error = signal<string | null>(null);
 
+  /** The add form; a blank section lets the backend guess it from the name. */
   protected readonly form = new FormGroup({
     name: new FormControl('', { nonNullable: true }),
     amount: new FormControl<number | null>(null),
     unit: new FormControl<Unit>('piece', { nonNullable: true }),
-    category: new FormControl<IngredientCategory>('other', { nonNullable: true }),
+    category: new FormControl<IngredientCategory | ''>('', { nonNullable: true }),
   });
 
   /** The name field, focused again after each add for quick entry. */
@@ -58,7 +61,7 @@ export class AddItemsForm {
       this.error.set('Enter an item name.');
       return;
     }
-    const item: NewGroceryItem = { name, category };
+    const item: NewGroceryItem = { name, ...(category ? { category } : {}) };
     if (amount !== null) {
       item.quantity = { amount, unit };
     }
@@ -67,7 +70,7 @@ export class AddItemsForm {
     this.groceryLists.addItem(this.listId(), item).subscribe({
       next: (list) => {
         this.saving.set(false);
-        // Keep the unit and category: the next item is often from the same aisle.
+        // Keep the unit and section: the next item is often from the same aisle.
         this.form.patchValue({ name: '', amount: null });
         this.nameInput().nativeElement.focus();
         this.listChanged.emit(list);

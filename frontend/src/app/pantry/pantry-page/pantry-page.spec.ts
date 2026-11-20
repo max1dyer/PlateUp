@@ -147,7 +147,7 @@ describe('PantryPage', () => {
     expect(text(page, '.list .name')).toEqual(['Beef', 'Chicken', 'Rice']);
   });
 
-  it('sends the chosen section when adding, and none when left on "Any section"', async () => {
+  it('sends the chosen section when adding, and none when left on "Auto"', async () => {
     service.getItems.mockReturnValue(of([]));
     service.addItem.mockReturnValue(of(pantryItem({ name: 'Basil', category: 'produce' })));
     const { fixture, page } = await render();

@@ -5,6 +5,6 @@ import { QuantityDto } from '../../common/dto/quantity.dto';
 export class AddGroceryItemDto {
   public readonly name!: string;
   public readonly quantity?: QuantityDto;
-  /** Defaults to `other`. */
+  /** Omitted means the section is guessed from the name (e.g. "Eggs" is Dairy). */
   public readonly category?: IngredientCategory;
 }
