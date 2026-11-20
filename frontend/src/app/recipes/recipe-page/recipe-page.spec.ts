@@ -288,6 +288,16 @@ describe('RecipePage', () => {
     expect(text(page, '.stepper output')).toEqual(['2']);
   });
 
+  it("opens at the recipe's own servings when the user has no preferred size", async () => {
+    usePreferences(preferences({ defaultServings: null }));
+    recipesService.getRecipe.mockReturnValue(of(recipe({ servings: 3 })));
+    usersService.getUser.mockReturnValue(of({ displayName: 'Alice Cook' }));
+    const page = await render();
+
+    expect(text(page, '.stepper output')).toEqual(['3']);
+    expect(page.querySelector('.scaled-note')).toBeNull();
+  });
+
   it("warns when the recipe breaks the user's dietary restrictions", async () => {
     usePreferences(preferences({ dietaryRestrictions: ['dairy-free', 'nut-free'] }));
     recipesService.getRecipe.mockReturnValue(

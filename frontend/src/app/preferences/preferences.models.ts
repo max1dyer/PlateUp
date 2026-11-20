@@ -56,7 +56,8 @@ export interface DailyTargets {
 
 /** As returned by `GET /users/me/preferences`. */
 export interface UserPreferences {
-  defaultServings: number;
+  /** Servings recipes open at, or null to use each recipe's own servings. */
+  defaultServings: number | null;
   dietaryRestrictions: DietaryRestriction[];
   dailyCalories: number | null;
   macroGoals: MacroGoals;
@@ -72,7 +73,7 @@ export interface UserPreferences {
 
 /** Body of `PATCH /users/me/preferences`; omitted fields stay unchanged, `null` clears a goal. */
 export interface PreferenceChanges {
-  defaultServings?: number;
+  defaultServings?: number | null;
   dietaryRestrictions?: DietaryRestriction[];
   dailyCalories?: number | null;
   macroGoals?: Partial<MacroGoals>;

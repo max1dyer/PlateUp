@@ -33,19 +33,28 @@
       <fieldset class="ui-card green">
         <legend class="ui-heading">Sharing</legend>
         <label class="restriction">
-          <input id="block-recipe-shares" type="checkbox" formControlName="blockRecipeShares"
+          <input
+            id="block-recipe-shares"
+            type="checkbox"
+            formControlName="blockRecipeShares"
             (change)="saveSharing('blockRecipeShares')"
           />
           Don't let others share recipes with me
         </label>
         <label class="restriction">
-          <input id="block-list-copies" type="checkbox" formControlName="blockListCopies"
+          <input
+            id="block-list-copies"
+            type="checkbox"
+            formControlName="blockListCopies"
             (change)="saveSharing('blockListCopies')"
           />
           Don't let others send me copies of their grocery lists
         </label>
         <label class="restriction">
-          <input id="block-list-invites" type="checkbox" formControlName="blockListInvites"
+          <input
+            id="block-list-invites"
+            type="checkbox"
+            formControlName="blockListInvites"
             (change)="saveSharing('blockListInvites')"
           />
           Don't let others add me to their live grocery lists
@@ -73,7 +82,10 @@
             />
             servings
           </span>
-          <span class="ui-hint">You can still change servings on any recipe.</span>
+          <span class="ui-hint">
+            Leave blank to open each recipe at the servings it was written for. You can still change
+            servings on any recipe.
+          </span>
         </label>
         @if (errors().servings; as message) {
           <p class="ui-error" role="alert">{{ message }}</p>
