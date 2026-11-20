@@ -6,7 +6,8 @@ import { MacroGoals } from '../entities/user-preferences';
  * `null` clears a goal; `macroGoals` may name only the macros that change.
  */
 export class UpdatePreferencesDto {
-  public readonly defaultServings?: number;
+  /** `null` opens each recipe at its own servings. */
+  public readonly defaultServings?: number | null;
   public readonly dietaryRestrictions?: DietaryRestriction[];
   public readonly dailyCalories?: number | null;
   public readonly macroGoals?: Partial<MacroGoals>;

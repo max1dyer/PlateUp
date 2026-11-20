@@ -116,15 +116,25 @@ describe('PreferencesPage', () => {
     expect(service.update).not.toHaveBeenCalled();
   });
 
-  it('puts the saved servings back when the field is left blank, without saving', async () => {
+  it('saves no preferred servings when the field is left blank', async () => {
     service.load.mockReturnValue(of(preferences({ defaultServings: 3 })));
+    saveLikeBackend();
     const page = await render();
 
     enter(input(page, 'default-servings'), '');
     await settle();
 
-    expect(input(page, 'default-servings').value).toBe('3');
-    expect(service.update).not.toHaveBeenCalled();
+    expect(service.update.mock.calls.map(([changes]) => changes)).toEqual([
+      { defaultServings: null },
+    ]);
+    expect(input(page, 'default-servings').value).toBe('');
+  });
+
+  it('shows a blank servings field when there is no preferred size', async () => {
+    service.load.mockReturnValue(of(preferences({ defaultServings: null })));
+    const page = await render();
+
+    expect(input(page, 'default-servings').value).toBe('');
   });
 
   it('previews the missing macro and can copy the preview into the field', async () => {

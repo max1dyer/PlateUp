@@ -196,14 +196,14 @@ export class PreferencesPage implements OnInit {
     this.queue('sharing', { [field]: this.form.controls[field].value });
   }
 
-  /** Saves the default servings once entered. A blank field goes back to the saved value. */
+  /**
+   * Saves the default servings once entered. A blank field saves "no preference", so recipes open
+   * at their own servings.
+   */
   protected saveServings(): void {
-    const servings = numberOrNull(this.form.controls.defaultServings.value);
-    if (servings === null) {
-      this.form.controls.defaultServings.setValue(this.lastSaved?.defaultServings ?? null);
-      return;
-    }
-    this.queue('servings', { defaultServings: servings });
+    this.queue('servings', {
+      defaultServings: numberOrNull(this.form.controls.defaultServings.value),
+    });
   }
 
   /** Saves the budget switch after a click. */

@@ -38,6 +38,14 @@ describe('UserPreferences', () => {
     expect(prefs.with({ macroGoals: { protein: null } }).macroGoals.protein).toBeNull();
   });
 
+  it('allows clearing the default servings, and setting them again', () => {
+    const cleared = UserPreferences.defaults().with({ defaultServings: null });
+
+    expect(cleared.defaultServings).toBeNull();
+    expect(cleared.toJSON().defaultServings).toBeNull();
+    expect(cleared.with({ defaultServings: 3 }).defaultServings).toBe(3);
+  });
+
   it('rejects servings outside 1-50', () => {
     expect(() => UserPreferences.defaults().with({ defaultServings: 0 })).toThrow(
       DomainValidationError,

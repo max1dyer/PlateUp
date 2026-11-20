@@ -66,6 +66,19 @@ describe('PlannerService', () => {
     expect(meal.servings).toBe(4);
   });
 
+  it('plan uses the recipe’s own servings when the user has no preferred size', async () => {
+    await users.updatePreferences(aliceId, { defaultServings: 4 });
+    await users.updatePreferences(aliceId, { defaultServings: null });
+
+    const meal = await service.plan(aliceId, {
+      recipeId,
+      date: '2026-09-22',
+      slot: MealSlot.Dinner,
+    });
+
+    expect(meal.servings).toBe(2);
+  });
+
   it('plan falls back to the recipe’s servings for a user without preferences', async () => {
     const meal = await service.plan('unknown-user', {
       recipeId,
