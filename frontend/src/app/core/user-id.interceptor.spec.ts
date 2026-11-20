@@ -41,9 +41,23 @@ describe('userIdInterceptor', () => {
 
   it('leaves other requests alone', () => {
     session.setUser(user());
+    session.setAccessToken('token-1');
 
     client.get('/assets/data.json').subscribe();
 
-    expect(http.expectOne('/assets/data.json').request.headers.has('x-user-id')).toBe(false);
+    const headers = http.expectOne('/assets/data.json').request.headers;
+    expect(headers.has('x-user-id')).toBe(false);
+    expect(headers.has('Authorization')).toBe(false);
+  });
+
+  it('sends the Supabase access token instead of the user id when there is one', () => {
+    session.setUser(user({ id: 'user-7' }));
+    session.setAccessToken('token-1');
+
+    client.get('/api/pantry').subscribe();
+
+    const headers = http.expectOne('/api/pantry').request.headers;
+    expect(headers.get('Authorization')).toBe('Bearer token-1');
+    expect(headers.has('x-user-id')).toBe(false);
   });
 });

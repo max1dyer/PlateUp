@@ -145,6 +145,7 @@ Mocks let us test one class at a time without starting a server, network, or dat
 - **Backend controller specs** (`backend/src/*/*.controller.spec.ts`) replace the real service with a mock built from `jest.fn()`. For example, `recipes.controller.spec.ts` checks that `RecipesController.findAll('alice')` calls `RecipesService.findAllVisibleTo('alice')`, without running any recipe logic.
 - **Frontend component specs** replace HTTP services with `vi.fn()` mocks that return `of(...)` or `throwError(...)`. This lets us test loading and error states deterministically (e.g. `grocery-list-page.spec.ts`).
 - **Frontend HTTP service specs** use Angular's `HttpTestingController` as a mock HTTP backend.
+- **Authentication** is tested without a Supabase project: `auth.service.spec.ts` replaces `SupabaseAuthClient` with `vi.fn()` mocks (wrong password, email not yet confirmed, first log-in), and the backend signs its own test tokens (`auth/testing/auth.fixtures.ts`).
 - The **in-memory repositories** act as lightweight fakes. They remove the database dependency from service tests.
 - **TODO (Beta):** mock the external Kroger, USDA, and API Ninjas clients, including the forced 16-second-timeout test required by Supplemental Spec 3.4.
 

@@ -5,44 +5,74 @@
     <p class="ui-subtitle">Plan meals, track your pantry, and shop smarter.</p>
   </section>
 
-  <div class="tabs" role="tablist" aria-label="Sign in or create an account">
-    <button
-      type="button"
-      role="tab"
-      class="tab"
-      [class.active]="mode() === 'log-in'"
-      [attr.aria-selected]="mode() === 'log-in'"
-      (click)="switchTo('log-in')"
-    >
-      Log in
-    </button>
-    <button
-      type="button"
-      role="tab"
-      class="tab"
-      [class.active]="mode() === 'register'"
-      [attr.aria-selected]="mode() === 'register'"
-      (click)="switchTo('register')"
-    >
-      Create account
-    </button>
-  </div>
+  @if (needsProfile()) {
+    <p class="ui-status">
+      You're signed in. Choose the username and name other people will see to finish setting up your
+      account.
+    </p>
+  } @else {
+    <div class="tabs" role="tablist" aria-label="Sign in or create an account">
+      <button
+        type="button"
+        role="tab"
+        class="tab"
+        [class.active]="mode() === 'log-in'"
+        [attr.aria-selected]="mode() === 'log-in'"
+        (click)="switchTo('log-in')"
+      >
+        Log in
+      </button>
+      <button
+        type="button"
+        role="tab"
+        class="tab"
+        [class.active]="mode() === 'register'"
+        [attr.aria-selected]="mode() === 'register'"
+        (click)="switchTo('register')"
+      >
+        Create account
+      </button>
+    </div>
+  }
 
   <form class="ui-card" [formGroup]="form" (ngSubmit)="submit()">
-    <label class="ui-label">
-      Username
-      <input
-        class="ui-field"
-        formControlName="username"
-        autocomplete="username"
-        autocapitalize="none"
-        [attr.maxlength]="maxUsername"
-      />
-      @if (mode() === 'register') {
-        <span class="ui-hint">Letters, digits, dots, dashes, or underscores.</span>
-      }
-    </label>
-    @if (mode() === 'register') {
+    @if (usesSupabase() && !needsProfile()) {
+      <label class="ui-label">
+        Email
+        <input
+          class="ui-field"
+          type="email"
+          formControlName="email"
+          autocomplete="email"
+          autocapitalize="none"
+        />
+      </label>
+      <label class="ui-label">
+        Password
+        <input
+          class="ui-field"
+          type="password"
+          formControlName="password"
+          [attr.autocomplete]="mode() === 'register' ? 'new-password' : 'current-password'"
+        />
+      </label>
+    }
+    @if (!usesSupabase() || mode() === 'register' || needsProfile()) {
+      <label class="ui-label">
+        Username
+        <input
+          class="ui-field"
+          formControlName="username"
+          autocomplete="username"
+          autocapitalize="none"
+          [attr.maxlength]="maxUsername"
+        />
+        @if (mode() === 'register' || needsProfile()) {
+          <span class="ui-hint">Letters, digits, dots, dashes, or underscores.</span>
+        }
+      </label>
+    }
+    @if (mode() === 'register' || needsProfile()) {
       <label class="ui-label">
         Display name
         <input
@@ -53,15 +83,24 @@
         />
       </label>
     }
+    @if (notice(); as message) {
+      <p class="ui-status" role="status">{{ message }}</p>
+    }
     @if (error(); as message) {
       <p class="ui-error" role="alert">{{ message }}</p>
     }
     <button type="submit" class="ui-button primary wide" [disabled]="saving()">
-      {{ mode() === 'register' ? 'Create account' : 'Log in' }}
+      @if (needsProfile()) {
+        Finish setting up
+      } @else {
+        {{ mode() === 'register' ? 'Create account' : 'Log in' }}
+      }
     </button>
   </form>
 
-  <p class="ui-hint demo">
-    Just looking around? Log in as <strong>demo-chef</strong> to see a profile with recipes.
-  </p>
+  @if (!usesSupabase()) {
+    <p class="ui-hint demo">
+      Just looking around? Log in as <strong>demo-chef</strong> to see a profile with recipes.
+    </p>
+  }
 </div>
