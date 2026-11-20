@@ -1,5 +1,6 @@
 import { requireCalendarDateOrNull } from '../../common/domain/calendar-date';
-import { requireText } from '../../common/domain/guards';
+import { requireOneOf, requireText } from '../../common/domain/guards';
+import { IngredientCategory, guessCategory } from '../../common/domain/ingredient-category';
 import { isSameIngredient } from '../../common/domain/ingredient-name';
 import { OwnedEntity } from '../../common/domain/owned.entity';
 import { Quantity } from '../../common/domain/quantity';
@@ -11,6 +12,8 @@ export interface PantryItemSnapshot {
   quantity: Quantity;
   /** Day the item expires (`YYYY-MM-DD`), or null if the user gave none. */
   expiresOn: string | null;
+  /** Pantry section the item is listed under, e.g. "produce". */
+  category: IngredientCategory;
 }
 
 /** An ingredient the user has on hand. */
@@ -18,13 +21,29 @@ export class PantryItem extends OwnedEntity<PantryItemSnapshot> {
   private itemName: string;
   private itemQuantity: Quantity;
   private expiry: string | null;
+  private itemCategory: IngredientCategory;
 
-  /** @throws DomainValidationError if the name is blank or the expiration date is invalid. */
-  constructor(ownerId: string, name: string, quantity: Quantity, expiresOn: string | null = null) {
+  /**
+   * With no category, the section is guessed from the name (e.g. "Chicken" is Protein).
+   *
+   * @throws DomainValidationError if the name is blank, the expiration date is invalid, or the
+   * category is unknown.
+   */
+  constructor(
+    ownerId: string,
+    name: string,
+    quantity: Quantity,
+    expiresOn: string | null = null,
+    category?: IngredientCategory,
+  ) {
     super(ownerId);
     this.itemName = requireText(name, 'Pantry item name');
     this.itemQuantity = quantity;
     this.expiry = requireCalendarDateOrNull(expiresOn, 'Expiration date');
+    this.itemCategory =
+      category === undefined
+        ? guessCategory(this.itemName)
+        : requireOneOf(category, IngredientCategory, 'category');
   }
 
   /** The ingredient's name as the user entered it. */
@@ -42,6 +61,11 @@ export class PantryItem extends OwnedEntity<PantryItemSnapshot> {
     return this.expiry;
   }
 
+  /** Pantry section the item is listed under. */
+  public get category(): IngredientCategory {
+    return this.itemCategory;
+  }
+
   /** Renames the item; the name may not be blank. */
   public rename(name: string): void {
     this.itemName = requireText(name, 'Pantry item name');
@@ -57,6 +81,12 @@ export class PantryItem extends OwnedEntity<PantryItemSnapshot> {
   /** Sets or (with null) clears the expiration date. */
   public setExpiresOn(expiresOn: string | null): void {
     this.expiry = requireCalendarDateOrNull(expiresOn, 'Expiration date');
+    this.touch();
+  }
+
+  /** Moves the item to another pantry section. */
+  public setCategory(category: IngredientCategory): void {
+    this.itemCategory = requireOneOf(category, IngredientCategory, 'category');
     this.touch();
   }
 
@@ -92,6 +122,7 @@ export class PantryItem extends OwnedEntity<PantryItemSnapshot> {
       name: this.itemName,
       quantity: this.itemQuantity,
       expiresOn: this.expiry,
+      category: this.itemCategory,
     };
   }
 }

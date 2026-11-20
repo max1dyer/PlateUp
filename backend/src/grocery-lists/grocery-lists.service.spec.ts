@@ -300,6 +300,20 @@ describe('GroceryListsService', () => {
       expect(milk.quantity).toEqual(new Quantity(1.5, Unit.Liter));
     });
 
+    it('moveItemToPantry keeps the item’s store section in the pantry', async () => {
+      const list = await service.create('alice', { name: 'Weekly' });
+      await service.addItem('alice', list.id, {
+        name: 'Oat milk',
+        quantity: liter(1),
+        category: IngredientCategory.Drinks,
+      });
+
+      await service.moveItemToPantry('alice', list.id, list.items[0].id);
+
+      const [oatMilk] = await pantry.findAll('alice');
+      expect(oatMilk.category).toBe(IngredientCategory.Drinks);
+    });
+
     it('moveItemToPantry keeps an item the pantry refuses on the list', async () => {
       const list = await service.create('alice', { name: 'Weekly' });
       await service.addItem('alice', list.id, { name: 'Chips' });

@@ -1,3 +1,4 @@
+import { IngredientCategory } from '../../common/domain/ingredient-category';
 import { QuantityDto } from '../../common/dto/quantity.dto';
 
 /** Body of `PATCH /pantry/:itemId`. Omitted fields stay unchanged. */
@@ -6,4 +7,6 @@ export class UpdatePantryItemDto {
   public readonly quantity?: QuantityDto;
   /** New expiration date (`YYYY-MM-DD`); null clears it. */
   public readonly expiresOn?: string | null;
+  /** New pantry section. */
+  public readonly category?: IngredientCategory;
 }

@@ -1,5 +1,6 @@
 import { NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
+import { IngredientCategory } from '../common/domain/ingredient-category';
 import { Quantity, Unit } from '../common/domain/quantity';
 import { DomainValidationError } from '../common/errors/domain-validation.error';
 import { PantryService } from './pantry.service';
@@ -160,6 +161,36 @@ describe('PantryService', () => {
     const [stored] = await service.findAll('alice');
     expect(stored.name).toBe('Eggs');
     expect(stored.expiresOn).toBeNull();
+  });
+
+  it('add guesses the section unless one is given, and combining keeps the first one', async () => {
+    const guessed = await service.add('alice', eggs);
+    const chosen = await service.add('alice', {
+      name: 'Rice',
+      quantity: { amount: 2, unit: Unit.Cup },
+      category: IngredientCategory.Baking,
+    });
+    const combined = await service.add('alice', { ...eggs, category: IngredientCategory.Other });
+
+    expect(guessed.category).toBe(IngredientCategory.Dairy);
+    expect(chosen.category).toBe(IngredientCategory.Baking);
+    expect(combined.category).toBe(IngredientCategory.Dairy);
+  });
+
+  it('update moves the item to another section, and an unknown one changes nothing', async () => {
+    const item = await service.add('alice', eggs);
+
+    const moved = await service.update('alice', item.id, { category: IngredientCategory.Protein });
+    expect(moved.category).toBe(IngredientCategory.Protein);
+
+    await expect(
+      service.update('alice', item.id, {
+        name: 'Duck eggs',
+        category: 'treats' as IngredientCategory,
+      }),
+    ).rejects.toThrow(DomainValidationError);
+    const [stored] = await service.findAll('alice');
+    expect(stored).toMatchObject({ name: 'Eggs', category: IngredientCategory.Protein });
   });
 
   it('update and remove 404 for another user’s item', async () => {

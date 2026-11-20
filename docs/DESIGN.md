@@ -209,10 +209,13 @@ classDiagram
     -itemName: string
     -itemQuantity: Quantity
     -expiry: string | null
+    -itemCategory: IngredientCategory
     +expiresOn: string | null
+    +category: IngredientCategory
     +rename(name) void
     +setQuantity(quantity) void
     +setExpiresOn(expiresOn) void
+    +setCategory(category) void
     +addQuantity(quantity, expiresOn) void
   }
   class GroceryList {
