@@ -38,13 +38,13 @@ The frontend mirrors this split: each feature folder (`recipes`, `pantry`, `groc
 
 ## SOLID
 
-| Principle                 | How we apply it                                                                                                                                                                                                   |
-| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **S**ingle Responsibility | Controllers route, services coordinate, repositories store, and entities enforce rules. `DomainErrorFilter` only translates errors. `Quantity` only does unit arithmetic.                                         |
-| **O**pen/Closed           | A database is added by writing a new `Repository` subclass, without modifying services. New entities reuse `BaseEntity.toJSON()` by implementing `snapshot()`. Planned import parsers are new classes, not edits. |
-| **L**iskov Substitution   | Any `RecipeRepository` implementation (in-memory, database, or test fake) can replace another without the service noticing. Every `OwnedEntity` can be ownership-checked the same way.                            |
-| **I**nterface Segregation | Each feature repository adds only the queries its service needs (`findVisibleTo`, `findByOwner`, `findByUsername`) on top of a minimal four-method base.                                                          |
-| **D**ependency Inversion  | Services depend on abstract repository classes, and modules bind the concrete class (`{ provide: RecipeRepository, useClass: InMemoryRecipeRepository }`).                                                        |
+| Principle                 | How we apply it                                                                                                                                                                                                                                                                    |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **S**ingle Responsibility | Controllers route, services coordinate, repositories store, and entities enforce rules. `DomainErrorFilter` only translates errors. `Quantity` only does unit arithmetic.                                                                                                          |
+| **O**pen/Closed           | A database is added by writing a new `Repository` subclass, without modifying services. New entities reuse `BaseEntity.toJSON()` by implementing `snapshot()`, and become storable by implementing `toRecord()`/`fromRecord()`. Planned import parsers are new classes, not edits. |
+| **L**iskov Substitution   | Any `RecipeRepository` implementation (in-memory, database, or test fake) can replace another without the service noticing. Every `OwnedEntity` can be ownership-checked the same way.                                                                                             |
+| **I**nterface Segregation | Each feature repository adds only the queries its service needs (`findVisibleTo`, `findByOwner`, `findByUsername`) on top of a minimal four-method base.                                                                                                                           |
+| **D**ependency Inversion  | Services depend on abstract repository classes, and modules bind the concrete class (`{ provide: RecipeRepository, useClass: InMemoryRecipeRepository }`).                                                                                                                         |
 
 ---
 
@@ -54,14 +54,15 @@ Every pattern listed here is annotated in the source with a `@pattern` TSDoc tag
 
 ### Implemented
 
-| Pattern                     | Participants                                                                                                                 | Why we use it                                                                                                                             |
-| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| **Dependency Injection**    | Every service and controller constructor. Module `providers` bind abstract repository tokens to implementations.             | Decouples consumers from concrete classes. This lets us swap in-memory storage for a database, and lets tests substitute fakes and mocks. |
-| **Template Method**         | `BaseEntity.toJSON()` (template method) calls the abstract `snapshot()` (primitive operation), which each entity implements. | Every entity serializes with identical id and timestamp handling while keeping its fields private.                                        |
-| **Mock Objects**            | Controller specs (`jest.fn()` services), frontend component specs (`vi.fn()` services), `HttpTestingController`.             | Tests one class in isolation, without HTTP, storage, or other features.                                                                   |
-| **Adapter**                 | `DomainErrorFilter` adapts `DomainValidationError` (domain) to an HTTP 400 response (Nest/Express).                          | Keeps the domain layer framework-free.                                                                                                    |
-| **Singleton**               | Nest providers (default singleton scope); Angular services with `providedIn: 'root'`.                                        | One shared repository instance per app, so all services see the same data.                                                                |
-| **Chain of Responsibility** | Angular HTTP interceptors (`userIdInterceptor` in `app/core/`); Nest's exception-filter chain.                               | Cross-cutting request handling without modifying each service.                                                                            |
+| Pattern                     | Participants                                                                                                                                                                                                                                                             | Why we use it                                                                                                                                                                                                                           |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Dependency Injection**    | Every service and controller constructor. Module `providers` bind abstract repository tokens to implementations.                                                                                                                                                         | Decouples consumers from concrete classes. This lets us swap in-memory storage for a database, and lets tests substitute fakes and mocks.                                                                                               |
+| **Template Method**         | `BaseEntity.toJSON()` (template method) calls the abstract `snapshot()` (primitive operation), which each entity implements.                                                                                                                                             | Every entity serializes with identical id and timestamp handling while keeping its fields private.                                                                                                                                      |
+| **Memento**                 | `toRecord()` (abstract on `BaseEntity`) captures an entity's complete private state as plain data. Each entity's static `fromRecord()` restores it through the constructor, so stored data is validated again, then `restoreIdentity()` puts back the id and timestamps. | Repositories can store and reload entities without the entities making their fields public. The record is separate from `toJSON()` because the API view adds computed fields and hides private state (recipe shares, user preferences). |
+| **Mock Objects**            | Controller specs (`jest.fn()` services), frontend component specs (`vi.fn()` services), `HttpTestingController`.                                                                                                                                                         | Tests one class in isolation, without HTTP, storage, or other features.                                                                                                                                                                 |
+| **Adapter**                 | `DomainErrorFilter` adapts `DomainValidationError` (domain) to an HTTP 400 response (Nest/Express).                                                                                                                                                                      | Keeps the domain layer framework-free.                                                                                                                                                                                                  |
+| **Singleton**               | Nest providers (default singleton scope); Angular services with `providedIn: 'root'`.                                                                                                                                                                                    | One shared repository instance per app, so all services see the same data.                                                                                                                                                              |
+| **Chain of Responsibility** | Angular HTTP interceptors (`userIdInterceptor` in `app/core/`); Nest's exception-filter chain.                                                                                                                                                                           | Cross-cutting request handling without modifying each service.                                                                                                                                                                          |
 
 Other techniques (not on the course list): **Repository**, **Value Object** (`Quantity`, `RecipeIngredient`, `RecipeReview`, `UserPreferences`), and **Aggregate Root** (`GroceryList` owns its `GroceryListItem`s).
 
@@ -140,8 +141,11 @@ classDiagram
     +createdAt: Date
     +updatedAt: Date
     +toJSON() EntityJson & T
+    +toRecord()* EntityRecord
     #touch() void
     #snapshot()* T
+    #identityRecord() EntityRecord
+    #restoreIdentity(record) this
   }
   class OwnedEntity~T~ {
     <<abstract>>
@@ -155,6 +159,7 @@ classDiagram
     -prefs: UserPreferences
     +preferences: UserPreferences
     +normalizeUsername(username)$ string
+    +fromRecord(record)$ User
     +updateProfile(changes) void
     +updatePreferences(changes) void
     +saveRecipe(recipeId) void
@@ -164,6 +169,8 @@ classDiagram
   class Recipe {
     -details: RecipeDetails
     -reviewsByUser: Map~string, RecipeReview~
+    -sharedWith: Set~string~
+    +fromRecord(record)$ Recipe
     +averageRating: number | null
     +numRatings: number
     +update(changes) void
@@ -190,6 +197,7 @@ classDiagram
     +activeBudget: number | null
     +defaults()$ UserPreferences
     +with(changes) UserPreferences
+    +toProps() UserPreferencesProps
     +toJSON() UserPreferencesJson
   }
   class RecipeIngredient {
@@ -212,6 +220,7 @@ classDiagram
     -itemCategory: IngredientCategory
     +expiresOn: string | null
     +category: IngredientCategory
+    +fromRecord(record)$ PantryItem
     +rename(name) void
     +setQuantity(quantity) void
     +setExpiresOn(expiresOn) void
@@ -223,6 +232,7 @@ classDiagram
     -itemsById: Map~string, GroceryListItem~
     -listMembers: ListMember[]
     -recent: ListActivity[]
+    +fromRecord(record)$ GroceryList
     +rename(name) void
     +addItem(name, quantity, category) GroceryListItem
     +addItems(entries) GroceryListItem[]
@@ -241,12 +251,24 @@ classDiagram
     -isPurchased: boolean
     -addedByMember: ListMember
     +estimatedCost: number | null
+    +fromRecord(record)$ GroceryListItem
     +setPurchased(purchased) void
   }
   class ContactMessage {
     +name: string
     +email: string
     +message: string
+    +fromRecord(record)$ ContactMessage
+  }
+  class Notification {
+    +senderId: string
+    +type: NotificationType
+    +payload: NotificationPayload
+    -currentStatus: NotificationStatus
+    -isRead: boolean
+    +fromRecord(record)$ Notification
+    +markRead() void
+    +resolve(answer) void
   }
   class PlannedMeal {
     +recipeId: string
@@ -254,6 +276,7 @@ classDiagram
     -mealSlot: MealSlot
     -mealServings: number
     -isEaten: boolean
+    +fromRecord(record)$ PlannedMeal
     +isBetween(from, to) boolean
     +update(changes) void
   }
@@ -262,6 +285,8 @@ classDiagram
     +amount: number
     +unit: Unit
     +dimension: Dimension
+    +fromRecord(record)$ Quantity
+    +toRecord() QuantityRecord
     +scale(factor) Quantity
     +minus(other) Quantity
     +equals(other) boolean
@@ -275,6 +300,7 @@ classDiagram
   OwnedEntity <|-- PantryItem
   OwnedEntity <|-- GroceryList
   OwnedEntity <|-- PlannedMeal
+  OwnedEntity <|-- Notification
   User "1" *-- "1" UserPreferences : preferences
   Recipe "1" *-- "1..*" RecipeIngredient : ingredients
   Recipe "1" *-- "0..*" RecipeReview : reviews

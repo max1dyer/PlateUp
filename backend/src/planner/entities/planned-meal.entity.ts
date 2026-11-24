@@ -5,6 +5,7 @@ import {
   requireOneOf,
   requireText,
 } from '../../common/domain/guards';
+import { EntityRecord } from '../../common/domain/base.entity';
 import { OwnedEntity } from '../../common/domain/owned.entity';
 
 /** The meal times a day is split into (UC1). Declaration order is the display order. */
@@ -35,6 +36,9 @@ export interface PlannedMealSnapshot {
 export type PlannedMealChanges = Partial<
   Pick<PlannedMealSnapshot, 'date' | 'slot' | 'servings' | 'eaten'>
 >;
+
+/** A planned meal's stored state (the same fields it serializes to). */
+export type PlannedMealRecord = EntityRecord & PlannedMealSnapshot;
 
 /**
  * One recipe planned for a day and meal time in a user's weekly planner
@@ -104,6 +108,24 @@ export class PlannedMeal extends OwnedEntity<PlannedMealSnapshot> {
     this.mealServings = servings;
     this.isEaten = eaten;
     this.touch();
+  }
+
+  /** Rebuilds a stored meal, including whether it was eaten, with its id and timestamps. */
+  public static fromRecord(record: PlannedMealRecord): PlannedMeal {
+    const meal = new PlannedMeal(
+      record.ownerId,
+      record.recipeId,
+      record.date,
+      record.slot,
+      record.servings,
+    );
+    meal.isEaten = requireBoolean(record.eaten, 'Eaten');
+    return meal.restoreIdentity(record);
+  }
+
+  /** The meal's complete state as plain data (see `BaseEntity.toRecord`). */
+  public toRecord(): PlannedMealRecord {
+    return { ...this.identityRecord(), ...this.snapshot() };
   }
 
   /** The meal-specific fields for `toJSON()`. */

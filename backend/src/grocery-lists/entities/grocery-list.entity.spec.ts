@@ -1,3 +1,4 @@
+import { asJson, storeAndRestore } from '../../common/testing/store-and-restore';
 import { DomainValidationError } from '../../common/errors/domain-validation.error';
 import { IngredientCategory } from '../../common/domain/ingredient-category';
 import { Quantity, Unit } from '../../common/domain/quantity';
@@ -244,6 +245,39 @@ describe('GroceryList', () => {
         ]),
       ).toThrow(DomainValidationError);
       expect(list.items.map((item) => item.name)).toEqual(['Milk']);
+    });
+  });
+
+  describe('storage record', () => {
+    it('restores items, purchases, members, and activity inside the list', () => {
+      const bob = { id: 'bob', name: 'Bob' };
+      list.addMember(bob);
+      const eggs = list.addItem(
+        'Eggs',
+        new Quantity(12, Unit.Piece),
+        IngredientCategory.Dairy,
+        bob,
+      );
+      list.addItem('Chips');
+      list.updateItem(eggs.id, { purchased: true });
+      list.recordActivity(bob, 'added Eggs');
+
+      const restored = storeAndRestore(list, GroceryList.fromRecord);
+
+      expect(asJson(restored)).toEqual(asJson(list));
+      expect(restored.toRecord()).toEqual(list.toRecord());
+      expect(restored.findItem(eggs.id)?.purchased).toBe(true);
+      expect(restored.isAccessibleTo('bob')).toBe(true);
+    });
+
+    it('keeps combining amounts on the restored copy', () => {
+      list.addItem('Eggs', new Quantity(6, Unit.Piece));
+      const restored = storeAndRestore(list, GroceryList.fromRecord);
+
+      restored.addItem('eggs', new Quantity(6, Unit.Piece));
+
+      expect(restored.items).toHaveLength(1);
+      expect(restored.items[0].quantity?.amount).toBe(12);
     });
   });
 });

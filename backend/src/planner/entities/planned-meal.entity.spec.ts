@@ -1,3 +1,4 @@
+import { asJson, storeAndRestore } from '../../common/testing/store-and-restore';
 import { DomainValidationError } from '../../common/errors/domain-validation.error';
 import { MealSlot, PlannedMeal, compareMeals } from './planned-meal.entity';
 
@@ -74,5 +75,18 @@ describe('PlannedMeal', () => {
       '2026-09-21 dinner',
       '2026-09-22 breakfast',
     ]);
+  });
+
+  describe('storage record', () => {
+    it('restores an equal meal, including whether it was eaten', () => {
+      const planned = meal();
+      planned.update({ eaten: true, servings: 3 });
+
+      const restored = storeAndRestore(planned, PlannedMeal.fromRecord);
+
+      expect(asJson(restored)).toEqual(asJson(planned));
+      expect(restored.toRecord()).toEqual(planned.toRecord());
+      expect(compareMeals(restored, planned)).toBe(0);
+    });
   });
 });

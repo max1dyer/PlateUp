@@ -186,8 +186,11 @@ export class UserPreferences {
     return { ...this.toProps(), dailyTargets: this.dailyTargets };
   }
 
-  /** A plain, mutable copy of the current values (used to build an edited copy). */
-  private toProps(): UserPreferencesProps {
+  /**
+   * A plain, mutable copy of the current values, used to build an edited copy and as the stored
+   * form (`new UserPreferences(props)` restores it).
+   */
+  public toProps(): UserPreferencesProps {
     return {
       defaultServings: this.defaultServings,
       dietaryRestrictions: [...this.dietaryRestrictions],

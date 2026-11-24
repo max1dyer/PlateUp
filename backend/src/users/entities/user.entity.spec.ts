@@ -1,3 +1,4 @@
+import { asJson, storeAndRestore } from '../../common/testing/store-and-restore';
 import { DomainValidationError } from '../../common/errors/domain-validation.error';
 import { DietaryRestriction } from '../../common/domain/dietary-restriction';
 import { User } from './user.entity';
@@ -81,5 +82,33 @@ describe('User', () => {
       DomainValidationError,
     );
     expect(user.toJSON().profilePictureUrl).toBe('https://example.com/a.png');
+  });
+
+  describe('storage record', () => {
+    it('restores saved recipes and the private preferences that toJSON leaves out', () => {
+      const user = new User('peter', profile);
+      user.saveRecipe('recipe-1');
+      user.updatePreferences({
+        dietaryRestrictions: [DietaryRestriction.Vegetarian],
+        budgetEnabled: true,
+        maxCostPerServing: 4,
+      });
+
+      const restored = storeAndRestore(user, User.fromRecord);
+
+      expect(asJson(restored)).toEqual(asJson(user));
+      expect(restored.toRecord()).toEqual(user.toRecord());
+      expect(restored.hasSaved('recipe-1')).toBe(true);
+      expect(restored.preferences.activeBudget).toBe(4);
+      expect(restored.preferences.dietaryRestrictions).toEqual([DietaryRestriction.Vegetarian]);
+    });
+
+    it('rejects a stored record with an invalid timestamp', () => {
+      const record = new User('peter', profile).toRecord();
+
+      expect(() => User.fromRecord({ ...record, createdAt: 'yesterday' })).toThrow(
+        DomainValidationError,
+      );
+    });
   });
 });

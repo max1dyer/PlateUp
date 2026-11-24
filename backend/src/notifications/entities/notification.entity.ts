@@ -1,4 +1,6 @@
 import { IngredientCategory } from '../../common/domain/ingredient-category';
+import { EntityRecord } from '../../common/domain/base.entity';
+import { requireBoolean, requireOneOf } from '../../common/domain/guards';
 import { OwnedEntity } from '../../common/domain/owned.entity';
 import { Unit } from '../../common/domain/quantity';
 import { DomainValidationError } from '../../common/errors/domain-validation.error';
@@ -60,6 +62,9 @@ export interface NotificationSnapshot {
   read: boolean;
 }
 
+/** A notification's stored state (the same fields it serializes to). */
+export type NotificationRecord = EntityRecord & NotificationSnapshot;
+
 /** A message for one user, such as "Peter sent you a grocery list", with Accept/Reject. */
 export class Notification extends OwnedEntity<NotificationSnapshot> {
   private currentStatus = NotificationStatus.Pending;
@@ -98,6 +103,32 @@ export class Notification extends OwnedEntity<NotificationSnapshot> {
     this.currentStatus = answer;
     this.isRead = true;
     this.touch();
+  }
+
+  /** Rebuilds a stored notification, including its answer and read state, id, and timestamps. */
+  public static fromRecord(record: NotificationRecord): Notification {
+    const notification = new Notification(
+      record.ownerId,
+      record.senderId,
+      requireOneOf(record.type, NotificationType, 'notification type'),
+      structuredClone(record.payload),
+    );
+    notification.currentStatus = requireOneOf(
+      record.status,
+      NotificationStatus,
+      'notification status',
+    );
+    notification.isRead = requireBoolean(record.read, 'Read');
+    return notification.restoreIdentity(record);
+  }
+
+  /** The notification's complete state as plain data (see `BaseEntity.toRecord`). */
+  public toRecord(): NotificationRecord {
+    return {
+      ...this.identityRecord(),
+      ...this.snapshot(),
+      payload: structuredClone(this.payload),
+    };
   }
 
   protected snapshot(): NotificationSnapshot {

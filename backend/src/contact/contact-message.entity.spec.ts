@@ -1,3 +1,4 @@
+import { asJson, storeAndRestore } from '../common/testing/store-and-restore';
 import { DomainValidationError } from '../common/errors/domain-validation.error';
 import {
   ContactMessage,
@@ -32,5 +33,14 @@ describe('ContactMessage', () => {
     expect(
       () => new ContactMessage('Alice', 'a@b.co', 'x'.repeat(MAX_CONTACT_MESSAGE_LENGTH + 1)),
     ).toThrow(DomainValidationError);
+  });
+
+  it('restores an equal message from its storage record', () => {
+    const message = new ContactMessage('Alice', 'alice@example.com', 'Love the app!');
+
+    const restored = storeAndRestore(message, ContactMessage.fromRecord);
+
+    expect(asJson(restored)).toEqual(asJson(message));
+    expect(restored.id).toBe(message.id);
   });
 });

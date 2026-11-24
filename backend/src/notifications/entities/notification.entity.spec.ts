@@ -1,3 +1,4 @@
+import { asJson, storeAndRestore } from '../../common/testing/store-and-restore';
 import { DomainValidationError } from '../../common/errors/domain-validation.error';
 import {
   GroceryListSharePayload,
@@ -26,5 +27,23 @@ describe('Notification', () => {
     expect(notification.status).toBe(NotificationStatus.Accepted);
     expect(notification.toJSON().read).toBe(true);
     expect(() => notification.resolve(NotificationStatus.Rejected)).toThrow(DomainValidationError);
+  });
+
+  describe('storage record', () => {
+    it('restores the answer and read state', () => {
+      notification.resolve(NotificationStatus.Rejected);
+
+      const restored = storeAndRestore(notification, Notification.fromRecord);
+
+      expect(asJson(restored)).toEqual(asJson(notification));
+      expect(restored.toRecord()).toEqual(notification.toRecord());
+      expect(() => restored.resolve(NotificationStatus.Accepted)).toThrow(DomainValidationError);
+    });
+
+    it('rejects an unknown stored status', () => {
+      const record = { ...notification.toRecord(), status: 'maybe' as NotificationStatus };
+
+      expect(() => Notification.fromRecord(record)).toThrow(DomainValidationError);
+    });
   });
 });

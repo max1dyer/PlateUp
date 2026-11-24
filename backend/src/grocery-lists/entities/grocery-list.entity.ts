@@ -2,9 +2,14 @@ import { requireOneOf, requireText } from '../../common/domain/guards';
 import { DomainValidationError } from '../../common/errors/domain-validation.error';
 import { IngredientCategory } from '../../common/domain/ingredient-category';
 import { isSameIngredient } from '../../common/domain/ingredient-name';
+import { EntityRecord } from '../../common/domain/base.entity';
 import { OwnedEntity } from '../../common/domain/owned.entity';
 import { Quantity } from '../../common/domain/quantity';
-import { GroceryListItem, GroceryListItemChanges } from './grocery-list-item.entity';
+import {
+  GroceryListItem,
+  GroceryListItemChanges,
+  GroceryListItemRecord,
+} from './grocery-list-item.entity';
 import { ListActivity, ListMember } from './list-member';
 
 /** How many recent changes a shared list keeps. */
@@ -28,6 +33,15 @@ export interface GroceryListSnapshot {
   activity: ListActivity[];
   /** Estimated cost in US dollars of the items with an amount (placeholder prices). */
   estimatedTotal: number;
+}
+
+/** A grocery list's stored state, with its items stored inside it (they belong to the list). */
+export interface GroceryListRecord extends EntityRecord {
+  ownerId: string;
+  name: string;
+  items: GroceryListItemRecord[];
+  members: ListMember[];
+  activity: ListActivity[];
 }
 
 /**
@@ -217,6 +231,34 @@ export class GroceryList extends OwnedEntity<GroceryListSnapshot> {
   public get estimatedTotal(): number {
     const total = this.items.reduce((sum, item) => sum + (item.estimatedCost ?? 0), 0);
     return Math.round(total * 100) / 100;
+  }
+
+  /** Rebuilds a stored list with its items, members, recent activity, id, and timestamps. */
+  public static fromRecord(record: GroceryListRecord): GroceryList {
+    const list = new GroceryList(record.ownerId, record.name);
+    for (const stored of record.items) {
+      const item = GroceryListItem.fromRecord(stored);
+      list.itemsById.set(item.id, item);
+    }
+    list.listMembers.push(...record.members.map((member) => ({ ...member })));
+    list.recent.push(
+      ...record.activity
+        .slice(0, MAX_LIST_ACTIVITY)
+        .map((entry) => ({ ...entry, by: { ...entry.by } })),
+    );
+    return list.restoreIdentity(record);
+  }
+
+  /** The list's complete state as plain data (see `BaseEntity.toRecord`). */
+  public toRecord(): GroceryListRecord {
+    return {
+      ...this.identityRecord(),
+      ownerId: this.ownerId,
+      name: this.listName,
+      items: this.items.map((item) => item.toRecord()),
+      members: this.listMembers.map((member) => ({ ...member })),
+      activity: this.recent.map((entry) => ({ ...entry, by: { ...entry.by } })),
+    };
   }
 
   protected snapshot(): GroceryListSnapshot {
