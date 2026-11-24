@@ -59,6 +59,12 @@ const UNIT_DEFINITIONS: Record<Unit, UnitDefinition> = {
   [Unit.Box]: { dimension: Dimension.Package, toBase: 1 },
 };
 
+/** A quantity as plain data, the way repositories store it. */
+export interface QuantityRecord {
+  amount: number;
+  unit: Unit;
+}
+
 /**
  * Immutable value object for an amount of an ingredient. Shared by recipes,
  * the pantry, and grocery lists so they can be compared, scaled, converted,
@@ -84,6 +90,21 @@ export class Quantity {
     }
     this.amount = Quantity.round(requireNonNegative(amount, 'Quantity amount'));
     this.unit = unit;
+  }
+
+  /** Rebuilds a quantity from its stored form, validating it like any new quantity. */
+  public static fromRecord(record: QuantityRecord): Quantity {
+    return new Quantity(record.amount, record.unit);
+  }
+
+  /** As `fromRecord`, but passes a stored `null` (no quantity) through. */
+  public static fromRecordOrNull(record: QuantityRecord | null): Quantity | null {
+    return record === null ? null : Quantity.fromRecord(record);
+  }
+
+  /** The plain data a repository stores for this quantity. */
+  public toRecord(): QuantityRecord {
+    return { amount: this.amount, unit: this.unit };
   }
 
   /** Returns a new Quantity multiplied by `factor`, e.g. when changing servings. */

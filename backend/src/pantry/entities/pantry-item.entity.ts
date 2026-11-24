@@ -2,8 +2,9 @@ import { requireCalendarDateOrNull } from '../../common/domain/calendar-date';
 import { requireOneOf, requireText } from '../../common/domain/guards';
 import { IngredientCategory, guessCategory } from '../../common/domain/ingredient-category';
 import { isSameIngredient } from '../../common/domain/ingredient-name';
+import { EntityRecord } from '../../common/domain/base.entity';
 import { OwnedEntity } from '../../common/domain/owned.entity';
-import { Quantity } from '../../common/domain/quantity';
+import { Quantity, QuantityRecord } from '../../common/domain/quantity';
 
 /** The fields a pantry item serializes to. */
 export interface PantryItemSnapshot {
@@ -13,6 +14,15 @@ export interface PantryItemSnapshot {
   /** Day the item expires (`YYYY-MM-DD`), or null if the user gave none. */
   expiresOn: string | null;
   /** Pantry section the item is listed under, e.g. "produce". */
+  category: IngredientCategory;
+}
+
+/** A pantry item's stored state. */
+export interface PantryItemRecord extends EntityRecord {
+  ownerId: string;
+  name: string;
+  quantity: QuantityRecord;
+  expiresOn: string | null;
   category: IngredientCategory;
 }
 
@@ -113,6 +123,29 @@ export class PantryItem extends OwnedEntity<PantryItemSnapshot> {
       this.expiry = added;
     }
     this.touch();
+  }
+
+  /** Rebuilds a stored pantry item with its id and timestamps. */
+  public static fromRecord(record: PantryItemRecord): PantryItem {
+    return new PantryItem(
+      record.ownerId,
+      record.name,
+      Quantity.fromRecord(record.quantity),
+      record.expiresOn,
+      record.category,
+    ).restoreIdentity(record);
+  }
+
+  /** The item's complete state as plain data (see `BaseEntity.toRecord`). */
+  public toRecord(): PantryItemRecord {
+    return {
+      ...this.identityRecord(),
+      ownerId: this.ownerId,
+      name: this.itemName,
+      quantity: this.itemQuantity.toRecord(),
+      expiresOn: this.expiry,
+      category: this.itemCategory,
+    };
   }
 
   /** The pantry-specific fields for `toJSON()`. */

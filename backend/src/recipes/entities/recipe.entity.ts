@@ -6,7 +6,9 @@ import {
   requirePositiveInteger,
   requireText,
 } from '../../common/domain/guards';
+import { EntityRecord } from '../../common/domain/base.entity';
 import { OwnedEntity } from '../../common/domain/owned.entity';
+import { Quantity, QuantityRecord } from '../../common/domain/quantity';
 import { RecipeIngredient } from './recipe-ingredient';
 import { RecipeReview } from './recipe-review';
 
@@ -60,6 +62,24 @@ export interface RecipeSnapshot extends RecipeDetails {
   estimatedCostPerServing: number;
   /** True when `estimatedCostPerServing` comes from ingredient prices rather than the author. */
   costIsEstimate: boolean;
+}
+
+/** One review as stored data. */
+export interface RecipeReviewRecord {
+  reviewerId: string;
+  rating: number;
+  comment: string;
+  reviewedAt: string;
+}
+
+/** A recipe's complete stored state, including who it is shared with (never sent to clients). */
+export interface RecipeRecord extends EntityRecord {
+  authorId: string;
+  details: Omit<RecipeDetails, 'ingredients'> & {
+    ingredients: { name: string; quantity: QuantityRecord }[];
+  };
+  reviews: RecipeReviewRecord[];
+  sharedWith: string[];
 }
 
 /** A user-contributed recipe. The owner is the recipe's author. */
@@ -225,6 +245,53 @@ export class Recipe extends OwnedEntity<RecipeSnapshot> {
     // The ratio of the wanted servings to the servings the recipe was written for.
     const factor = requirePositiveInteger(servings, 'Servings') / this.details.servings;
     return this.details.ingredients.map((ingredient) => ingredient.scale(factor));
+  }
+
+  /** Rebuilds a stored recipe, with its reviews, shares, id, and timestamps. */
+  public static fromRecord(record: RecipeRecord): Recipe {
+    const recipe = new Recipe(record.authorId, {
+      ...record.details,
+      ingredients: record.details.ingredients.map(
+        (ingredient) =>
+          new RecipeIngredient(ingredient.name, Quantity.fromRecord(ingredient.quantity)),
+      ),
+    });
+    for (const stored of record.reviews) {
+      const review = new RecipeReview(
+        stored.reviewerId,
+        stored.rating,
+        stored.comment,
+        new Date(stored.reviewedAt),
+      );
+      recipe.reviewsByUser.set(review.reviewerId, review);
+    }
+    record.sharedWith.forEach((userId) => recipe.sharedWith.add(userId));
+    return recipe.restoreIdentity(record);
+  }
+
+  /** The recipe's complete state as plain data (see `BaseEntity.toRecord`). */
+  public toRecord(): RecipeRecord {
+    return {
+      ...this.identityRecord(),
+      authorId: this.ownerId,
+      details: {
+        ...this.details,
+        nutrition: { ...this.details.nutrition },
+        steps: [...this.details.steps],
+        tags: [...this.details.tags],
+        ingredients: this.details.ingredients.map((ingredient) => ({
+          name: ingredient.name,
+          quantity: ingredient.quantity.toRecord(),
+        })),
+      },
+      reviews: this.reviews.map((review) => ({
+        reviewerId: review.reviewerId,
+        rating: review.rating,
+        comment: review.comment,
+        reviewedAt: review.reviewedAt.toISOString(),
+      })),
+      sharedWith: this.sharedWithIds,
+    };
   }
 
   /**

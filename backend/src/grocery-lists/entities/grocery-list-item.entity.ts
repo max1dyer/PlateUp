@@ -1,9 +1,9 @@
-import { BaseEntity } from '../../common/domain/base.entity';
+import { BaseEntity, EntityRecord } from '../../common/domain/base.entity';
 import { requireBoolean, requireOneOf, requireText } from '../../common/domain/guards';
 import { IngredientCategory } from '../../common/domain/ingredient-category';
 import { isSameIngredient } from '../../common/domain/ingredient-name';
 import { estimateCost } from '../../common/domain/ingredient-pricing';
-import { Quantity } from '../../common/domain/quantity';
+import { Quantity, QuantityRecord } from '../../common/domain/quantity';
 import { ListMember } from './list-member';
 
 /** The fields a grocery item serializes to. */
@@ -22,6 +22,15 @@ export interface GroceryListItemSnapshot {
 export type GroceryListItemChanges = Partial<
   Omit<GroceryListItemSnapshot, 'addedBy' | 'estimatedCost'>
 >;
+
+/** A grocery item's stored state. */
+export interface GroceryListItemRecord extends EntityRecord {
+  name: string;
+  quantity: QuantityRecord | null;
+  category: IngredientCategory;
+  purchased: boolean;
+  addedBy: ListMember | null;
+}
 
 /**
  * A line on a grocery list. Only created and changed through its GroceryList,
@@ -124,6 +133,30 @@ export class GroceryListItem extends BaseEntity<GroceryListItemSnapshot> {
       this.itemQuantity = changes.quantity;
     }
     this.touch();
+  }
+
+  /** Rebuilds a stored item, including whether it was bought, with its id and timestamps. */
+  public static fromRecord(record: GroceryListItemRecord): GroceryListItem {
+    const item = new GroceryListItem(
+      record.name,
+      Quantity.fromRecordOrNull(record.quantity),
+      record.category,
+      record.addedBy === null ? null : { ...record.addedBy },
+    );
+    item.isPurchased = requireBoolean(record.purchased, 'Purchased');
+    return item.restoreIdentity(record);
+  }
+
+  /** The item's complete state as plain data (see `BaseEntity.toRecord`). */
+  public toRecord(): GroceryListItemRecord {
+    return {
+      ...this.identityRecord(),
+      name: this.itemName,
+      quantity: this.itemQuantity?.toRecord() ?? null,
+      category: this.itemCategory,
+      purchased: this.isPurchased,
+      addedBy: this.addedByMember === null ? null : { ...this.addedByMember },
+    };
   }
 
   /** The item-specific fields for `toJSON()`. */

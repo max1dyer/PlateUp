@@ -1,11 +1,11 @@
-import { BaseEntity } from '../../common/domain/base.entity';
+import { BaseEntity, EntityRecord } from '../../common/domain/base.entity';
 import {
   requireImageSourceOrNull,
   requireMaxLength,
   requireText,
 } from '../../common/domain/guards';
 import { DomainValidationError } from '../../common/errors/domain-validation.error';
-import { UserPreferences, UserPreferencesChanges } from './user-preferences';
+import { UserPreferences, UserPreferencesChanges, UserPreferencesProps } from './user-preferences';
 
 /** Longest allowed username, display name, and bio, in characters. */
 export const MAX_USERNAME_LENGTH = 30;
@@ -26,6 +26,14 @@ export interface UserProfile {
 export interface UserSnapshot extends UserProfile {
   username: string;
   savedRecipeIds: string[];
+}
+
+/** A user's complete stored state, including the private preferences `toJSON()` leaves out. */
+export interface UserRecord extends EntityRecord {
+  username: string;
+  profile: UserProfile;
+  savedRecipeIds: string[];
+  preferences: UserPreferencesProps;
 }
 
 /**
@@ -102,6 +110,25 @@ export class User extends BaseEntity<UserSnapshot> {
   /** True if the user has saved this recipe. */
   public hasSaved(recipeId: string): boolean {
     return this.savedRecipes.has(recipeId);
+  }
+
+  /** Rebuilds a stored user, with their saved recipes, preferences, id, and timestamps. */
+  public static fromRecord(record: UserRecord): User {
+    const user = new User(record.username, record.profile);
+    record.savedRecipeIds.forEach((recipeId) => user.savedRecipes.add(recipeId));
+    user.prefs = new UserPreferences(record.preferences);
+    return user.restoreIdentity(record);
+  }
+
+  /** The user's complete state as plain data (see `BaseEntity.toRecord`). */
+  public toRecord(): UserRecord {
+    return {
+      ...this.identityRecord(),
+      username: this.username,
+      profile: { ...this.profile },
+      savedRecipeIds: this.savedRecipeIds,
+      preferences: this.prefs.toProps(),
+    };
   }
 
   /** The public profile fields for `toJSON()` (preferences are left out on purpose). */

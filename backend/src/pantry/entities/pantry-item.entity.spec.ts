@@ -1,3 +1,4 @@
+import { asJson, storeAndRestore } from '../../common/testing/store-and-restore';
 import { IngredientCategory } from '../../common/domain/ingredient-category';
 import { Quantity, Unit } from '../../common/domain/quantity';
 import { DomainValidationError } from '../../common/errors/domain-validation.error';
@@ -75,5 +76,18 @@ describe('PantryItem', () => {
     item.addQuantity(new Quantity(1, Unit.Liter), '2026-09-25');
 
     expect(item.expiresOn).toBe('2026-09-25');
+  });
+
+  describe('storage record', () => {
+    it('restores an equal item with the same id and timestamps', () => {
+      const item = new PantryItem('alice', 'Eggs', twelve, '2026-09-28', IngredientCategory.Dairy);
+      item.addQuantity(new Quantity(6, Unit.Piece));
+
+      const restored = storeAndRestore(item, PantryItem.fromRecord);
+
+      expect(asJson(restored)).toEqual(asJson(item));
+      expect(restored.toRecord()).toEqual(item.toRecord());
+      expect(restored.quantity.equals(new Quantity(18, Unit.Piece))).toBe(true);
+    });
   });
 });

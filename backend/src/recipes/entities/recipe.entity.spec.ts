@@ -1,3 +1,4 @@
+import { asJson, storeAndRestore } from '../../common/testing/store-and-restore';
 import { DietaryRestriction } from '../../common/domain/dietary-restriction';
 import { DomainValidationError } from '../../common/errors/domain-validation.error';
 import { Quantity, Unit } from '../../common/domain/quantity';
@@ -164,5 +165,35 @@ describe('Recipe', () => {
 
     expect(recipe.fitsBudget(3)).toBe(true);
     expect(recipe.fitsBudget(2.99)).toBe(false);
+  });
+
+  describe('storage record', () => {
+    it('restores an equal recipe, including reviews, shares, id, and timestamps', () => {
+      const recipe = new Recipe('author', details({ visibility: RecipeVisibility.Private }));
+      recipe.review('alice', 4, 'Tasty');
+      recipe.shareWith('bob');
+
+      const restored = storeAndRestore(recipe, Recipe.fromRecord);
+
+      expect(asJson(restored)).toEqual(asJson(recipe));
+      expect(restored.toRecord()).toEqual(recipe.toRecord());
+      expect(restored.updatedAt).toEqual(recipe.updatedAt);
+      expect(restored.isVisibleTo('bob')).toBe(true);
+      expect(restored.reviews[0].reviewedAt).toEqual(recipe.reviews[0].reviewedAt);
+    });
+
+    it('keeps rules working on the restored copy', () => {
+      const restored = storeAndRestore(new Recipe('author', details()), Recipe.fromRecord);
+
+      expect(restored.ingredientsFor(4)[0].quantity.equals(new Quantity(2, Unit.Cup))).toBe(true);
+      expect(() => restored.review('author', 5, '')).toThrow(DomainValidationError);
+    });
+
+    it('rejects a stored record that breaks a rule', () => {
+      const record = new Recipe('author', details()).toRecord();
+      record.details.ingredients = [];
+
+      expect(() => Recipe.fromRecord(record)).toThrow(DomainValidationError);
+    });
   });
 });

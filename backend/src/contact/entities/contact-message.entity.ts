@@ -1,4 +1,4 @@
-import { BaseEntity } from '../../common/domain/base.entity';
+import { BaseEntity, EntityRecord } from '../../common/domain/base.entity';
 import { requireEmail, requireMaxLength, requireText } from '../../common/domain/guards';
 
 /** Longest accepted sender name and message, in characters. */
@@ -11,6 +11,9 @@ export interface ContactMessageSnapshot {
   email: string;
   message: string;
 }
+
+/** A contact message's stored state (the same fields it serializes to). */
+export type ContactMessageRecord = EntityRecord & ContactMessageSnapshot;
 
 /**
  * A message a visitor sent the team from the Contact page. It is stored, not
@@ -31,6 +34,16 @@ export class ContactMessage extends BaseEntity<ContactMessageSnapshot> {
       MAX_CONTACT_MESSAGE_LENGTH,
       'Message',
     );
+  }
+
+  /** Rebuilds a stored message with its id and timestamps. */
+  public static fromRecord(record: ContactMessageRecord): ContactMessage {
+    return new ContactMessage(record.name, record.email, record.message).restoreIdentity(record);
+  }
+
+  /** The message's complete state as plain data (see `BaseEntity.toRecord`). */
+  public toRecord(): ContactMessageRecord {
+    return { ...this.identityRecord(), ...this.snapshot() };
   }
 
   /** The message-specific fields for `toJSON()`. */
