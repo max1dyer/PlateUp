@@ -1,11 +1,19 @@
 import { Injectable } from '@nestjs/common';
 import { InMemoryRepository } from '../../common/persistence/in-memory.repository';
-import { User } from '../entities/user.entity';
+import { User, UserRecord } from '../entities/user.entity';
 import { UserRepository } from './user.repository';
 
 /** `UserRepository` backed by an in-memory map (data is lost on restart). */
 @Injectable()
-export class InMemoryUserRepository extends InMemoryRepository<User> implements UserRepository {
+export class InMemoryUserRepository
+  extends InMemoryRepository<User, UserRecord>
+  implements UserRepository
+{
+  /** Restores stored records with `User.fromRecord`. */
+  constructor() {
+    super((record) => User.fromRecord(record));
+  }
+
   /**
    * Matches usernames case-insensitively by normalizing the input the same way usernames are
    * stored.

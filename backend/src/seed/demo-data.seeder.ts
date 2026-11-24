@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, OnApplicationBootstrap } from '@nestjs/common';
 import { Unit } from '../common/domain/quantity';
 import { CreateRecipeDto } from '../recipes/dto/create-recipe.dto';
 import { RecipeVisibility } from '../recipes/entities/recipe.entity';
@@ -74,10 +74,14 @@ const DEMO_RECIPES: readonly CreateRecipeDto[] = [
   },
 ];
 
+/** Username of the demo author; if it already exists, the demo data is already stored. */
+export const DEMO_AUTHOR_USERNAME = 'demo-chef';
+
 /**
- * TEMPORARY: fills the in-memory store with a sample author, reviewer, and
- * recipes on startup so the frontend has something to show. Remove (or limit
- * to development) once a real database is in place.
+ * Adds a sample author, reviewer, and recipes on startup so a new visitor has something to browse
+ * (and can log in as `demo-chef`). With a database the data survives restarts, so it only seeds
+ * when the demo author does not exist yet; in-memory storage is empty on every start, so it seeds
+ * every time.
  */
 @Injectable()
 export class DemoDataSeeder implements OnApplicationBootstrap {
@@ -90,11 +94,15 @@ export class DemoDataSeeder implements OnApplicationBootstrap {
 
   /**
    * Nest lifecycle hook, run once after every module has started: creates the demo users, their
-   * recipes, and one review.
+   * recipes, and one review, unless they were stored by an earlier start.
    */
   public async onApplicationBootstrap(): Promise<void> {
+    if (await this.alreadySeeded()) {
+      this.logger.log('Demo data already present');
+      return;
+    }
     const author = await this.usersService.register({
-      username: 'demo-chef',
+      username: DEMO_AUTHOR_USERNAME,
       displayName: 'Demo Chef',
       bio: 'Cooks simple, filling meals on a student budget.',
     });
@@ -114,5 +122,18 @@ export class DemoDataSeeder implements OnApplicationBootstrap {
     });
 
     this.logger.log(`Seeded ${recipes.length} demo recipes`);
+  }
+
+  /** True if the demo author exists (looking them up throws `NotFoundException` otherwise). */
+  private async alreadySeeded(): Promise<boolean> {
+    try {
+      await this.usersService.findByUsername(DEMO_AUTHOR_USERNAME);
+      return true;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        return false;
+      }
+      throw error;
+    }
   }
 }

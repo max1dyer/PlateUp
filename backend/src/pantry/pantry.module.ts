@@ -1,6 +1,8 @@
+import { repositoryProvider, StorageModule } from '../common/persistence/storage.module';
 import { Module } from '@nestjs/common';
 import { PantryController } from './pantry.controller';
 import { PantryService } from './pantry.service';
+import { PostgresPantryItemRepository } from './repositories/postgres-pantry-item.repository';
 import { InMemoryPantryItemRepository } from './repositories/in-memory-pantry-item.repository';
 import { PantryItemRepository } from './repositories/pantry-item.repository';
 
@@ -9,10 +11,15 @@ import { PantryItemRepository } from './repositories/pantry-item.repository';
  * can move purchased items into the pantry.
  */
 @Module({
+  imports: [StorageModule],
   controllers: [PantryController],
   providers: [
     PantryService,
-    { provide: PantryItemRepository, useClass: InMemoryPantryItemRepository },
+    repositoryProvider(
+      PantryItemRepository,
+      InMemoryPantryItemRepository,
+      PostgresPantryItemRepository,
+    ),
   ],
   exports: [PantryService],
 })

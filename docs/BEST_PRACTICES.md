@@ -95,8 +95,10 @@ BaseEntity<T>                 (id, createdAt, updatedAt, toJSON)
 
 Repository<T>                 (abstract storage contract)
 ├── RecipeRepository, PantryItemRepository, GroceryListRepository, UserRepository   (abstract DI tokens)
-└── InMemoryRepository<T>     (Map-backed implementation)
-    └── InMemoryRecipeRepository, InMemoryPantryItemRepository, ...                 (extend InMemoryRepository, implement the feature token)
+├── InMemoryRepository<T, R>  (Map of records; local development and tests)
+│   └── InMemoryRecipeRepository, InMemoryPantryItemRepository, ...                 (extend InMemoryRepository, implement the feature token)
+└── PostgresRepository<T, R>  (one JSONB row per entity; the deployed app)
+    └── PostgresRecipeRepository, PostgresPantryItemRepository, ...                 (extend PostgresRepository, implement the feature token)
 
 Error
 └── DomainValidationError
@@ -105,7 +107,7 @@ Error
 **Polymorphism:** one interface, many implementations, chosen at run time.
 
 - `BaseEntity.toJSON()` calls `this.snapshot()`, and each subclass (`Recipe`, `User`, `PantryItem`, ...) supplies its own version. Nest serializes every entity the same way, whatever its type.
-- `RecipesService` calls `this.recipes.findVisibleTo(userId)` on a `RecipeRepository`. The concrete object is an `InMemoryRecipeRepository` today and will be a database-backed repository later. In tests it may be a mock. The service code is identical in all three cases.
+- `RecipesService` calls `this.recipes.findVisibleTo(userId)` on a `RecipeRepository`. The concrete object is a `PostgresRecipeRepository` when deployed, an `InMemoryRecipeRepository` locally, and possibly a mock in tests. The service code is identical in all three cases.
 - `DomainErrorFilter` implements Nest's `ExceptionFilter` interface, so the framework calls it like any other filter.
 - **TODO:** planned Beta polymorphism includes social-media import parsers (`TikTokParser`, `InstagramParser`, `YouTubeParser` behind one `RecipeTextParser` interface) and grocery-list generation strategies ("add all ingredients" vs. "add only missing ingredients").
 
@@ -146,18 +148,19 @@ Mocks let us test one class at a time without starting a server, network, or dat
 - **Backend controller specs** (`backend/src/*/*.controller.spec.ts`) replace the real service with a mock built from `jest.fn()`. For example, `recipes.controller.spec.ts` checks that `RecipesController.findAll('alice')` calls `RecipesService.findAllVisibleTo('alice')`, without running any recipe logic.
 - **Frontend component specs** replace HTTP services with `vi.fn()` mocks that return `of(...)` or `throwError(...)`. This lets us test loading and error states deterministically (e.g. `grocery-list-page.spec.ts`).
 - **Frontend HTTP service specs** use Angular's `HttpTestingController` as a mock HTTP backend.
-- The **in-memory repositories** act as lightweight fakes. They remove the database dependency from service tests.
+- The **in-memory repositories** act as lightweight fakes. They remove the database dependency from service tests, and they return copies the way a database does, so a missing `save()` fails a test.
+- **pg-mem** is a fake PostgreSQL server: `postgres.repository.spec.ts` and `app.postgres.http.spec.ts` run the real SQL against it in CI, including stopping and restarting the app to show data survives.
 - **TODO (Beta):** mock the external Kroger, USDA, and API Ninjas clients, including the forced 16-second-timeout test required by Supplemental Spec 3.4.
 
 ### 2e. Dependency Injection in Conjunction with Unit Tests
 
 All collaborators are injected through constructors, never created with `new` inside the class:
 
-- Each service depends on an **abstract** repository class (e.g. `constructor(private readonly recipes: RecipeRepository)`). The feature module decides which implementation to inject: `{ provide: RecipeRepository, useClass: InMemoryRecipeRepository }` in `recipes.module.ts`.
+- Each service depends on an **abstract** repository class (e.g. `constructor(private readonly recipes: RecipeRepository)`). The feature module decides which implementation to inject: `repositoryProvider(RecipeRepository, InMemoryRecipeRepository, PostgresRecipeRepository)` in `recipes.module.ts` injects the PostgreSQL one when there is a database.
 - Tests use the same mechanism to substitute dependencies. Service specs call `Test.createTestingModule({ providers: [RecipesService, { provide: RecipeRepository, useClass: InMemoryRecipeRepository }] })`. Controller specs inject `{ provide: RecipesService, useValue: mockService }`.
 - On the frontend, components inject services (`constructor(private readonly groceryLists: GroceryListsService)`), and specs override them with `TestBed` providers.
 
-Because of this, swapping the in-memory store for a real database changes one line per module and no service or test code.
+Because of this, adding PostgreSQL storage changed one line per module and no service code.
 
 ### 2f. Linting System
 
@@ -169,7 +172,7 @@ Because of this, swapping the in-memory store for a real database changes one li
 
 ### 2g. Third-Party Components
 
-PlateUp is built on open-source frameworks and libraries, including NestJS, Angular, RxJS, Express, Jest, Vitest, ESLint, and Prettier. External services are planned for the Beta release: Supabase, Kroger API, USDA FoodData Central, and API Ninjas. Each component's license and our attribution are listed in [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
+PlateUp is built on open-source frameworks and libraries, including NestJS, Angular, RxJS, Express, node-postgres (`pg`), Jest, pg-mem, Vitest, ESLint, and Prettier. Data is stored in PostgreSQL on Supabase's free plan. External services are planned for the Beta release: Supabase, Kroger API, USDA FoodData Central, and API Ninjas. Each component's license and our attribution are listed in [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
 
 ### 2h. Design Patterns
 
@@ -180,6 +183,7 @@ The patterns we use are catalogued in [`DESIGN.md`](DESIGN.md#design-patterns), 
 | Dependency Injection                        | Every service/controller constructor, module `providers`                        | Swap storage and mock collaborators without changing consumers.                           |
 | Template Method                             | `BaseEntity.toJSON()` → abstract `snapshot()`                                   | One serialization algorithm. Subclasses supply only their own fields.                     |
 | Memento                                     | `BaseEntity.toRecord()` / each entity's static `fromRecord()`                   | Store and reload an entity's full private state without making its fields public.         |
+| Strategy                                    | `repositoryProvider()` picks PostgreSQL or in-memory storage at startup         | Same services locally (no setup) and deployed (PostgreSQL); switching is configuration.   |
 | Mock Objects                                | Controller and component specs                                                  | Test one class in isolation.                                                              |
 | Singleton                                   | Nest providers (default singleton scope), Angular `providedIn: 'root'` services | One shared repository/service instance per application.                                   |
 | Chain of Responsibility                     | Angular HTTP interceptors (`userIdInterceptor`), Nest exception filters         | Cross-cutting request handling, with each handler choosing to act or pass the request on. |

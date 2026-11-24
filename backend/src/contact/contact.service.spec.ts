@@ -22,7 +22,7 @@ describe('ContactService', () => {
   it('send stores the message', async () => {
     const sent = await service.send({ name: 'Alice', email: 'a@b.co', message: 'Hello' });
 
-    expect(await messages.findById(sent.id)).toBe(sent);
+    expect((await messages.findById(sent.id))?.toJSON()).toEqual(sent.toJSON());
   });
 
   it('send refuses an invalid message and stores nothing', async () => {

@@ -10,7 +10,7 @@ PlateUp has three tiers ([`sprint4.md` Part 4](sprint4.md)):
 
 - an **Angular** single-page app in the browser
 - a **NestJS** application server exposing a REST API
-- a database (planned: Supabase/PostgreSQL; currently in-memory), plus external services (Supabase Auth, Kroger, USDA FoodData Central, API Ninjas)
+- a **PostgreSQL** database (a free Supabase project when deployed; in-memory maps when `DATABASE_URL` is not set), plus external services (Supabase Auth, Kroger, USDA FoodData Central, API Ninjas)
 
 The backend is organized into **feature modules** (`users`, `recipes`, `pantry`, `grocery-lists`) that share building blocks in `common/`. Every request passes through the same four layers:
 
@@ -20,6 +20,8 @@ flowchart LR
   C -->|DTO + userId| S[Service]
   S -->|abstract API| R[(Abstract Repository)]
   R -. implemented by .-> IM[InMemory Repository]
+  R -. implemented by .-> PG[Postgres Repository]
+  PG -->|toRecord / fromRecord| DB[(PostgreSQL entity_records)]
   S -->|calls methods on| E[Entity / Value Object]
   E -->|throws| DVE[DomainValidationError]
   DVE -->|caught by| F[DomainErrorFilter → HTTP 400]
@@ -44,7 +46,7 @@ The frontend mirrors this split: each feature folder (`recipes`, `pantry`, `groc
 | **O**pen/Closed           | A database is added by writing a new `Repository` subclass, without modifying services. New entities reuse `BaseEntity.toJSON()` by implementing `snapshot()`, and become storable by implementing `toRecord()`/`fromRecord()`. Planned import parsers are new classes, not edits. |
 | **L**iskov Substitution   | Any `RecipeRepository` implementation (in-memory, database, or test fake) can replace another without the service noticing. Every `OwnedEntity` can be ownership-checked the same way.                                                                                             |
 | **I**nterface Segregation | Each feature repository adds only the queries its service needs (`findVisibleTo`, `findByOwner`, `findByUsername`) on top of a minimal four-method base.                                                                                                                           |
-| **D**ependency Inversion  | Services depend on abstract repository classes, and modules bind the concrete class (`{ provide: RecipeRepository, useClass: InMemoryRecipeRepository }`).                                                                                                                         |
+| **D**ependency Inversion  | Services depend on abstract repository classes, and modules bind the concrete class (`repositoryProvider(RecipeRepository, InMemoryRecipeRepository, PostgresRecipeRepository)`).                                                                                                  |
 
 ---
 
@@ -59,6 +61,7 @@ Every pattern listed here is annotated in the source with a `@pattern` TSDoc tag
 | **Dependency Injection**    | Every service and controller constructor. Module `providers` bind abstract repository tokens to implementations.                                                                                                                                                         | Decouples consumers from concrete classes. This lets us swap in-memory storage for a database, and lets tests substitute fakes and mocks.                                                                                               |
 | **Template Method**         | `BaseEntity.toJSON()` (template method) calls the abstract `snapshot()` (primitive operation), which each entity implements.                                                                                                                                             | Every entity serializes with identical id and timestamp handling while keeping its fields private.                                                                                                                                      |
 | **Memento**                 | `toRecord()` (abstract on `BaseEntity`) captures an entity's complete private state as plain data. Each entity's static `fromRecord()` restores it through the constructor, so stored data is validated again, then `restoreIdentity()` puts back the id and timestamps. | Repositories can store and reload entities without the entities making their fields public. The record is separate from `toJSON()` because the API view adds computed fields and hides private state (recipe shares, user preferences). |
+| **Strategy**                | `repositoryProvider()` (`common/persistence/storage.module.ts`) picks each feature's storage at startup: `Postgres…Repository` when `DATABASE_URL` is set, `InMemory…Repository` otherwise.                                                                              | The same services run on a laptop with no setup and on the deployed PostgreSQL database. Switching storage is configuration, not code.                                                                                                  |
 | **Mock Objects**            | Controller specs (`jest.fn()` services), frontend component specs (`vi.fn()` services), `HttpTestingController`.                                                                                                                                                         | Tests one class in isolation, without HTTP, storage, or other features.                                                                                                                                                                 |
 | **Adapter**                 | `DomainErrorFilter` adapts `DomainValidationError` (domain) to an HTTP 400 response (Nest/Express).                                                                                                                                                                      | Keeps the domain layer framework-free.                                                                                                                                                                                                  |
 | **Singleton**               | Nest providers (default singleton scope); Angular services with `providedIn: 'root'`.                                                                                                                                                                                    | One shared repository instance per app, so all services see the same data.                                                                                                                                                              |
@@ -82,21 +85,22 @@ Other techniques (not on the course list): **Repository**, **Value Object** (`Qu
 
 These are the major classes for CRC cards and the class diagram. Paths are relative to `backend/src/`.
 
-| Class                                                                                                      | Kind                  | Path                                       |
-| ---------------------------------------------------------------------------------------------------------- | --------------------- | ------------------------------------------ |
-| `BaseEntity<T>`                                                                                            | abstract entity       | `common/domain/base.entity.ts`             |
-| `OwnedEntity<T>`                                                                                           | abstract entity       | `common/domain/owned.entity.ts`            |
-| `Quantity`                                                                                                 | value object          | `common/domain/quantity.ts`                |
-| `DomainValidationError`                                                                                    | error                 | `common/errors/domain-validation.error.ts` |
-| `DomainErrorFilter`                                                                                        | exception filter      | `common/filters/domain-error.filter.ts`    |
-| `Repository<T>` / `InMemoryRepository<T>`                                                                  | persistence           | `common/persistence/`                      |
-| `User`, `UserPreferences`, `UsersService`, `UsersController`, `UserRepository`                             | users feature         | `users/`                                   |
-| `Recipe`, `RecipeIngredient`, `RecipeReview`, `RecipesService`, `RecipesController`, `RecipeRepository`    | recipes feature       | `recipes/`                                 |
-| `PantryItem`, `PantryService`, `PantryController`, `PantryItemRepository`                                  | pantry feature        | `pantry/`                                  |
-| `GroceryList`, `GroceryListItem`, `GroceryListsService`, `GroceryListsController`, `GroceryListRepository` | grocery-lists feature | `grocery-lists/`                           |
-| `ContactMessage`, `ContactService`, `ContactController`, `ContactMessageRepository`                        | contact feature       | `contact/`                                 |
-| `PlannedMeal`, `PlannerService`, `PlannerController`, `PlannedMealRepository`                              | planner feature       | `planner/`                                 |
-| `DemoDataSeeder`, `SeedModule` (TEMPORARY: sample data loaded at startup)                                  | seed data             | `seed/`                                    |
+| Class                                                                                                                    | Kind                  | Path                                       |
+| ------------------------------------------------------------------------------------------------------------------------ | --------------------- | ------------------------------------------ |
+| `BaseEntity<T>`                                                                                                          | abstract entity       | `common/domain/base.entity.ts`             |
+| `OwnedEntity<T>`                                                                                                         | abstract entity       | `common/domain/owned.entity.ts`            |
+| `Quantity`                                                                                                               | value object          | `common/domain/quantity.ts`                |
+| `DomainValidationError`                                                                                                  | error                 | `common/errors/domain-validation.error.ts` |
+| `DomainErrorFilter`                                                                                                      | exception filter      | `common/filters/domain-error.filter.ts`    |
+| `Repository<T>`, `InMemoryRepository<T, R>`, `PostgresRepository<T, R>`, `Database`, `PostgresDatabase`, `StorageModule` | persistence           | `common/persistence/`                      |
+| `InMemory…Repository` / `Postgres…Repository` (one pair per feature)                                                     | feature storage       | `<feature>/repositories/`                  |
+| `User`, `UserPreferences`, `UsersService`, `UsersController`, `UserRepository`                                           | users feature         | `users/`                                   |
+| `Recipe`, `RecipeIngredient`, `RecipeReview`, `RecipesService`, `RecipesController`, `RecipeRepository`                  | recipes feature       | `recipes/`                                 |
+| `PantryItem`, `PantryService`, `PantryController`, `PantryItemRepository`                                                | pantry feature        | `pantry/`                                  |
+| `GroceryList`, `GroceryListItem`, `GroceryListsService`, `GroceryListsController`, `GroceryListRepository`               | grocery-lists feature | `grocery-lists/`                           |
+| `ContactMessage`, `ContactService`, `ContactController`, `ContactMessageRepository`                                      | contact feature       | `contact/`                                 |
+| `PlannedMeal`, `PlannerService`, `PlannerController`, `PlannedMealRepository`                                            | planner feature       | `planner/`                                 |
+| `DemoDataSeeder`, `SeedModule` (demo data, added once on first startup)                                                  | seed data             | `seed/`                                    |
 
 DTOs (`CreateRecipeDto`, `LogInDto`, `AddRecipeToListDto`, ...) are plain request shapes in each feature's `dto/` folder and are not part of the diagram. `requireCalendarDate()` and `addDays()` (`common/domain/calendar-date.ts`) validate and do arithmetic on `YYYY-MM-DD` calendar days, such as a pantry item's expiration date. `guessCategory()` (`common/domain/ingredient-category.ts`) is a pure function that files generated grocery items, and grocery or pantry items added without a section ("Auto" in the section picker), under a store section. `dietaryConflicts()` and the `DietaryRestriction` enum (`common/domain/dietary-restriction.ts`) are pure keyword rules that estimate which dietary restrictions a recipe's ingredients break; `Recipe` exposes the result as `dietaryConflicts` and `suits()`. `deriveDailyTargets()` (`users/entities/user-preferences.ts`) fills in the one daily goal the others determine (total calories from three gram goals, or the last macro's grams from the calorie goal); the frontend's `planMacros()` (`preferences/macro-plan.ts`) applies the same rule to preview it on the Preferences page and to flag macros that overshoot the calorie goal. `expiryStatus()` and `expiryAlert()` (`pantry/pantry-expiry.ts`) decide which pantry items have expired or expire within 7 days (UC15); the Pantry and Home pages show the alert.
 

@@ -3,7 +3,7 @@ import { RecipesModule } from '../recipes/recipes.module';
 import { UsersModule } from '../users/users.module';
 import { DemoDataSeeder } from './demo-data.seeder';
 
-/** TEMPORARY: loads sample data into the in-memory store; see `DemoDataSeeder`. */
+/** Loads the demo author and recipes on first start; see `DemoDataSeeder`. */
 @Module({
   imports: [UsersModule, RecipesModule],
   providers: [DemoDataSeeder],

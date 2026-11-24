@@ -57,8 +57,8 @@ describe('RecipeSharesService', () => {
     const shares = await service.share(peter.id, recipe.id, { recipientUsername: 'BOB' });
 
     expect(shares).toEqual([{ id: bob.id, username: 'bob', displayName: 'Bob' }]);
-    await expect(recipes.findOne(recipe.id, bob.id)).resolves.toBe(recipe);
-    expect(await service.findReceived(bob.id)).toEqual([recipe]);
+    expect((await recipes.findOne(recipe.id, bob.id)).id).toBe(recipe.id);
+    expect((await service.findReceived(bob.id)).map((shared) => shared.id)).toEqual([recipe.id]);
     const [notification] = await notifications.findAll(bob.id);
     expect(notification.type).toBe(NotificationType.RecipeShare);
     expect(notification.payload).toEqual({
