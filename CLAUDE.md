@@ -17,6 +17,7 @@ Where things live:
 - `docs/DESIGN.md` – architecture, design-pattern registry, SOLID notes; the source for the Interim design paragraph, CRC cards, and diagrams.
 - `docs/BEST_PRACTICES.md` – evidence of each graded best practice. When you add something that counts as evidence (a new pattern, mock, linter rule, CI step, third-party library), update the matching section.
 - `docs/THIRD_PARTY_NOTICES.md` – attribution for third-party components. Add any new runtime dependency or external API here.
+- `docs/DEPLOYMENT.md` + `render.yaml` – free hosting (Render web service + Supabase PostgreSQL). A new required environment variable goes in both.
 
 Because the class diagram and CRC cards must match the code, **when you add, rename, or remove a domain class, service, or repository, update `docs/DESIGN.md` in the same change.**
 

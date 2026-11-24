@@ -2,6 +2,9 @@
   "name": "plate-up",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "22.x"
+  },
   "workspaces": [
     "backend",
     "frontend"

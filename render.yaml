@@ -1,0 +1,30 @@
+# Render Blueprint: deploys PlateUp as one free web service (API + Angular app at one URL).
+# Spec: https://render.com/docs/blueprint-spec
+services:
+  - type: web
+    name: plateup
+    runtime: node
+    plan: free
+    # Same area as the Supabase project ("East US (North Virginia)") so database calls are fast.
+    region: virginia
+    branch: main
+    # Deploy a new commit on main only after GitHub Actions CI passes on it.
+    autoDeployTrigger: checksPass
+    # --include=dev: the Nest and Angular build tools are devDependencies, and NODE_ENV=production
+    # (below) would otherwise skip them. Node 22 comes from "engines" in package.json.
+    buildCommand: npm ci --include=dev && npm run build
+    # Runs backend/dist/main.js, which serves /api and the built frontend on Render's $PORT.
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Secrets: Render asks for these once, when the Blueprint is first created. Never commit them.
+      # Supabase > Connect > Session pooler connection string, with the password filled in.
+      - key: DATABASE_URL
+        sync: false
+      # Supabase > Project Settings > API. Used by Supabase sign-in.
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
