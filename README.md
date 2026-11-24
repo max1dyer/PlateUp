@@ -101,3 +101,7 @@ npx nest generate service recipes
 New encapsulated components for UI pieces can be made inside a feature folder with: `npx ng generate component recipes/recipe-card`
 
 - Makes a new `src/app/recipes/recipe-card/` folder holding the component's `.ts`, `.html`, `.css`, and `.spec.ts`.
+
+---
+
+**Hosting:** the public app runs on a free Render web service with a free Supabase PostgreSQL database, and redeploys automatically when CI passes on `main`. Setup, costs, and troubleshooting: [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md); service settings: [`render.yaml`](render.yaml).

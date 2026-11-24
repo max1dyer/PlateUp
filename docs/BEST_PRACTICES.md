@@ -117,6 +117,8 @@ Error
 
 Every push and pull request to `main` or `develop` triggers the GitHub Actions workflow [`.github/workflows/ci.yml`](../.github/workflows/ci.yml). It installs dependencies with `npm ci`, then checks formatting, runs the linter, runs **all backend and frontend unit tests**, and builds both workspaces. A failure at any step blocks the merge.
 
+**Continuous deployment:** Render deploys each commit on `main` automatically, but only after this CI workflow passes on it (`autoDeployTrigger: checksPass` in [`render.yaml`](../render.yaml)), so a failing build or test never reaches testers. Setup and operation are in [`DEPLOYMENT.md`](DEPLOYMENT.md).
+
 - **Functionality** is tested at three levels in the backend: entity specs (business rules such as scaling and visibility), service specs (use-case flows against the in-memory repository), and controller specs (HTTP → service delegation).
 - **Interface tests over real HTTP**: `backend/src/app.http.spec.ts` starts the whole Nest app on a random port and drives it with `fetch`, covering the pantry and recipe CRUD paths end to end (create, list, edit, delete, 400/401/403/404 responses) and the full user flow (register → log in → save a recipe → generate a scaled grocery list).
 - **Interface operation** is tested in the frontend: component specs render components with Angular's `TestBed` and assert on the DOM (e.g. grouping, counts, and error states on the grocery-list page; adding, combining, editing, and removing pantry items; building a recipe from the upload form; scaling ingredients when servings change). HTTP service specs check each request against `HttpTestingController`.
