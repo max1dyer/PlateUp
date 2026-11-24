@@ -25,6 +25,8 @@ flowchart LR
   DVE -->|caught by| F[DomainErrorFilter → HTTP 400]
 ```
 
+**Deployment:** in production one Node process serves both tiers at one URL. `configureApp()` (`backend/src/app.setup.ts`, shared by `main.ts` and the interface tests) puts every API route under `/api`, serves the Angular build as static files, and answers any other `GET` with `index.html` so the Angular router handles deep links. In development the Angular dev server on port 4200 forwards `/api` to the backend on port 3000 (`frontend/proxy.conf.json`), so the paths are the same in both setups.
+
 The frontend mirrors this split: each feature folder (`recipes`, `pantry`, `grocery-list`, `users`, `preferences`, `home`) has page components, small child components, and one `HttpClient` service. Cross-cutting pieces live in `app/core/`: `SessionService` (who is signed in), `AuthService` (sign in/out, restore a remembered session), `userIdInterceptor` (adds the user header to every `/api` call), `signedInGuard` (sends visitors to `/login`), and `ToastService` (confirmation messages).
 
 | Layer          | Responsibility                                                                   | Must not                                     |

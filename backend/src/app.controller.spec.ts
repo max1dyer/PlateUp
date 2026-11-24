@@ -18,4 +18,10 @@ describe('AppController', () => {
       expect(appController.ping()).toBe('PlateUp API is active.');
     });
   });
+
+  describe('health', () => {
+    it('reports ok', () => {
+      expect(appController.health()).toEqual({ status: 'ok' });
+    });
+  });
 });

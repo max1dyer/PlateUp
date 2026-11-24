@@ -7,9 +7,12 @@ Npm workspaces monorepo.
 - run from root directory:
   1. [frontend](http://localhost:4200): `npm run start --workspace=frontend`
   2. [backend](http://localhost:3000): `npm run dev --workspace=backend`
-  - The frontend calls the backend through `/api/...`, which the Angular dev server proxies to port 3000 (`frontend/proxy.conf.json`), so run both.
+  - The frontend calls the backend through `/api/...`, which the Angular dev server forwards to port 3000 (`frontend/proxy.conf.json`), so run both. Every backend route starts with `/api` (e.g. `http://localhost:3000/api/health`).
   - Data is in memory and resets on restart. On startup the backend adds three demo recipes by `demo-chef`.
   - Open <http://localhost:4200>, then **Create account** with any username, or **Log in** as `demo-chef`. Login takes only a username until Supabase authentication is added.
+- run the production build (one server for the API and the app, as it runs when deployed):
+  1. `npm run build`
+  2. `npm start`, then open <http://localhost:3000>. The port comes from the `PORT` environment variable (default 3000).
 - test:
   - local formatting command: `npm run format`
   - Each of us will work on different branches and github actions CI will run these commands when creating a pull request.

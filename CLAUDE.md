@@ -33,6 +33,7 @@ npm run format:check                 # Prettier check (CI)
 npm run lint                         # ESLint over all .ts (CI)
 npm run test                         # both workspaces (CI)
 npm run build                        # both workspaces (CI)
+npm start                            # serve the built API + app together on http://localhost:3000
 ```
 
 Single tests:
@@ -50,7 +51,7 @@ CI (`.github/workflows/ci.yml`) runs `npm ci`, `format:check`, `lint`, `test`, `
 
 ## Backend architecture (`backend/src`)
 
-NestJS. Each feature folder (`users`, `recipes`, `pantry`, `grocery-lists`) has the same layers, and requests always flow **Controller → Service → abstract Repository → Entity**:
+NestJS. Every route is under the `/api` prefix, set in `configureApp()` (`app.setup.ts`), which also serves the Angular build in production. Each feature folder (`users`, `recipes`, `pantry`, `grocery-lists`) has the same layers, and requests always flow **Controller → Service → abstract Repository → Entity**:
 
 - **Controllers** only map HTTP to service calls. The acting user comes from the `@CurrentUserId()` param decorator (`common/decorators`), which for now reads an `x-user-id` header. When Supabase auth lands, only this decorator changes.
 - **Services** orchestrate. They load aggregates from the repository, call entity methods, save, and translate "not found / not yours" into `NotFoundException` / `ForbiddenException`. Another user's private resource is reported as **404, not 403**, so its existence is not leaked.

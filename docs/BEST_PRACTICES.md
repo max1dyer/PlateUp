@@ -119,6 +119,7 @@ Every push and pull request to `main` or `develop` triggers the GitHub Actions w
 
 - **Functionality** is tested at three levels in the backend: entity specs (business rules such as scaling and visibility), service specs (use-case flows against the in-memory repository), and controller specs (HTTP → service delegation).
 - **Interface tests over real HTTP**: `backend/src/app.http.spec.ts` starts the whole Nest app on a random port and drives it with `fetch`, covering the pantry and recipe CRUD paths end to end (create, list, edit, delete, 400/401/403/404 responses) and the full user flow (register → log in → save a recipe → generate a scaled grocery list).
+- **Deployment layout**: `backend/src/app.setup.spec.ts` starts the app the way it runs in production (API under `/api`, a built frontend served from the same server) and checks that API routes, static files, deep links such as `/recipes/abc`, and unknown API routes (JSON 404, not the app page) each get the right response.
 - **Interface operation** is tested in the frontend: component specs render components with Angular's `TestBed` and assert on the DOM (e.g. grouping, counts, and error states on the grocery-list page; adding, combining, editing, and removing pantry items; building a recipe from the upload form; scaling ingredients when servings change). HTTP service specs check each request against `HttpTestingController`.
 
 Where to find tests: every `*.spec.ts` file sits next to the file it tests, e.g. `backend/src/recipes/recipes.service.spec.ts` and `frontend/src/app/app.spec.ts`.
@@ -132,6 +133,7 @@ The project is built with standard, repeatable tools rather than shell scripts:
 - **npm workspaces** (root `package.json`) handle dependency installation and pinning (`package-lock.json`, `npm ci`) and orchestrate tasks across both workspaces (`npm run build|test|lint`).
 - **Nest CLI** (`nest build`) compiles the backend TypeScript to `backend/dist/` using `backend/tsconfig.json`.
 - **Angular CLI** with `@angular/build` (esbuild/Vite) compiles, bundles, and optimizes the frontend into `frontend/dist/` (`angular.json`).
+- **One release artifact**: `npm run build` produces both builds, and `npm start` runs `backend/dist/main.js`, which serves the API and the built frontend together, so a host needs only those two commands.
 
 ### 2c. Unit Test Tools
 
