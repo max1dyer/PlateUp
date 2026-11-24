@@ -9,7 +9,7 @@ flowchart LR
     Nest["NestJS: /api/... + built Angular app"]
   end
   Nest -->|"DATABASE_URL (PostgreSQL)"| DB[("Supabase PostgreSQL")]
-  Browser -->|"sign-in (after #22)"| Auth["Supabase Auth"]
+  Browser -->|"sign-in"| Auth["Supabase Auth"]
   GitHub["GitHub main branch"] -->|"CI passes → auto-deploy"| Render
 ```
 

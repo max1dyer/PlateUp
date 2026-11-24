@@ -23,7 +23,7 @@ services:
       # Supabase > Connect > Session pooler connection string, with the password filled in.
       - key: DATABASE_URL
         sync: false
-      # Supabase > Project Settings > API. Used by Supabase sign-in (#22 / PR #65).
+      # Supabase > Project Settings > API. Used by Supabase sign-in.
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_ANON_KEY
