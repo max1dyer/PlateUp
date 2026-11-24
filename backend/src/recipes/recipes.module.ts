@@ -1,4 +1,6 @@
+import { repositoryProvider, StorageModule } from '../common/persistence/storage.module';
 import { Module } from '@nestjs/common';
+import { PostgresRecipeRepository } from './repositories/postgres-recipe.repository';
 import { InMemoryRecipeRepository } from './repositories/in-memory-recipe.repository';
 import { RecipeRepository } from './repositories/recipe.repository';
 import { RecipesController } from './recipes.controller';
@@ -9,11 +11,11 @@ import { RecipesService } from './recipes.service';
  * (users, grocery lists, the seeder) can look up recipes.
  */
 @Module({
+  imports: [StorageModule],
   controllers: [RecipesController],
   providers: [
     RecipesService,
-    // Swap useClass for a database-backed implementation later.
-    { provide: RecipeRepository, useClass: InMemoryRecipeRepository },
+    repositoryProvider(RecipeRepository, InMemoryRecipeRepository, PostgresRecipeRepository),
   ],
   exports: [RecipesService],
 })

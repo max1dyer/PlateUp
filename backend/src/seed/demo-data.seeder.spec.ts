@@ -27,4 +27,23 @@ describe('DemoDataSeeder', () => {
     expect(recipe.numRatings).toBe(1);
     expect(recipe.tags.length).toBeGreaterThan(0);
   });
+
+  it('does not add the demo data twice when it is already stored', async () => {
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        DemoDataSeeder,
+        UsersService,
+        RecipesService,
+        { provide: UserRepository, useClass: InMemoryUserRepository },
+        { provide: RecipeRepository, useClass: InMemoryRecipeRepository },
+      ],
+    }).compile();
+    const seeder = moduleRef.get(DemoDataSeeder);
+
+    await seeder.onApplicationBootstrap();
+    await seeder.onApplicationBootstrap();
+
+    const recipes = await moduleRef.get(RecipesService).findAllVisibleTo('anyone');
+    expect(recipes).toHaveLength(3);
+  });
 });

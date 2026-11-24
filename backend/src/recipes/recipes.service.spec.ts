@@ -25,7 +25,7 @@ describe('RecipesService', () => {
     const recipe = await service.create('alice', buildCreateRecipeDto());
 
     expect(recipe.authorId).toBe('alice');
-    await expect(service.findOne(recipe.id, 'alice')).resolves.toBe(recipe);
+    expect((await service.findOne(recipe.id, 'alice')).toJSON()).toEqual(recipe.toJSON());
   });
 
   it('create defaults to public visibility', async () => {
@@ -124,8 +124,8 @@ describe('RecipesService', () => {
       const recipe = await privateRecipe();
 
       await service.shareWith(recipe.id, 'alice', 'bob');
-      await expect(service.findOne(recipe.id, 'bob')).resolves.toBe(recipe);
-      expect(await service.findSharedWith('bob')).toEqual([recipe]);
+      expect((await service.findOne(recipe.id, 'bob')).id).toBe(recipe.id);
+      expect((await service.findSharedWith('bob')).map((shared) => shared.id)).toEqual([recipe.id]);
       expect(await service.findAllVisibleTo('carol')).toHaveLength(0);
 
       await service.revokeShare(recipe.id, 'alice', 'bob');

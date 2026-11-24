@@ -8,7 +8,11 @@ Npm workspaces monorepo.
   1. [frontend](http://localhost:4200): `npm run start --workspace=frontend`
   2. [backend](http://localhost:3000): `npm run dev --workspace=backend`
   - The frontend calls the backend through `/api/...`, which the Angular dev server proxies to port 3000 (`frontend/proxy.conf.json`), so run both.
-  - Data is in memory and resets on restart. On startup the backend adds three demo recipes by `demo-chef`.
+  - Without a database, data is in memory and resets on restart. On first startup the backend adds three demo recipes by `demo-chef`.
+- use a PostgreSQL database (optional; the deployed app uses a free Supabase project):
+  1. In Supabase, open **Connect** and copy the **Session pooler** connection string (it works on networks without IPv6). Replace `[YOUR-PASSWORD]` with the database password and leave off any `?sslmode=` parameter.
+  2. Start the backend with it: `DATABASE_URL="postgresql://..." npm run dev --workspace=backend`. Any PostgreSQL works, including a local one (`postgresql://localhost:5432/plateup`).
+  3. On startup the backend creates its one table (`entity_records`) if it is missing and adds the demo data only if `demo-chef` does not exist yet, so data now survives restarts.
   - Open <http://localhost:4200>, then **Create account** with any username, or **Log in** as `demo-chef`. Login takes only a username until Supabase authentication is added.
 - test:
   - local formatting command: `npm run format`
@@ -35,7 +39,7 @@ NestJS backend and Angular frontend: TypeScript classes, decorators, dependency 
   - `*.spec.ts`: Jest unit testing for the file next to it.
   - `entities/`: domain classes that own their data and rules (e.g. `Recipe`, `GroceryList`).
   - `dto/`: request body classes (e.g. `CreateRecipeDto`).
-  - `repositories/`: an abstract repository (the DI token services depend on) plus its in-memory implementation.
+  - `repositories/`: an abstract repository (the DI token services depend on) plus its in-memory and PostgreSQL implementations.
 
 Current feature modules: `users`, `recipes`, `pantry`, `grocery-lists`, `contact`. Shared building blocks live in `common/`, and `seed/` loads demo data on startup.
 
@@ -49,7 +53,7 @@ backend/src/
     <feature>.service.ts      use cases
     entities/                 domain classes and their rules
     dto/                      request body shapes
-    repositories/             abstract repository + in-memory implementation
+    repositories/             abstract repository + in-memory and PostgreSQL implementations
     testing/                  test data builders (optional)
 ```
 
@@ -59,7 +63,7 @@ Design:
 - Every entity extends `BaseEntity` (id, timestamps, `toJSON()`); user-owned ones extend `OwnedEntity` (`ownerId`, `isOwnedBy()`).
 - `Quantity` is an immutable value object shared by recipes, the pantry, and grocery lists (`scale()` handles serving sizes).
 - Entities throw `DomainValidationError` for invalid input, which `DomainErrorFilter` returns as HTTP 400.
-- Storage is **in-memory** for now (data resets on restart). To add a database, write a new class that extends the feature's abstract repository and change `useClass` in that feature's module. No service code changes.
+- Storage: with `DATABASE_URL` set, every repository stores entities in PostgreSQL (`PostgresRepository`, one JSONB row per entity in `entity_records`); without it they use in-memory maps. `repositoryProvider(...)` in each feature module picks one at startup, and services never know which. Both store each entity's `toRecord()` and return fresh copies from `fromRecord()`, so a change only counts once it is passed to `save()`.
 - Authentication is not implemented yet. Requests identify the user with an `x-user-id` header, read by the `@CurrentUserId()` decorator. Only that decorator needs to change when auth is added.
 
 Adding new features:

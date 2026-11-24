@@ -81,9 +81,9 @@ describe('PantryService', () => {
       quantity: { amount: 1, unit: Unit.Liter },
     });
 
-    await service.update('alice', oatMilk.id, { name: 'OAT MILK' });
+    const updated = await service.update('alice', oatMilk.id, { name: 'OAT MILK' });
 
-    expect(oatMilk.name).toBe('OAT MILK');
+    expect(updated.name).toBe('OAT MILK');
   });
 
   it('update leaves the item unchanged when the new quantity is invalid', async () => {

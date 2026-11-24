@@ -118,7 +118,7 @@ describe('UsersService', () => {
   it('logIn finds the user by username regardless of case', async () => {
     const user = await service.register({ username: 'peter', displayName: 'Peter' });
 
-    await expect(service.logIn({ username: ' PETER ' })).resolves.toBe(user);
+    expect((await service.logIn({ username: ' PETER ' })).id).toBe(user.id);
   });
 
   it('logIn 404s for an unknown username', async () => {

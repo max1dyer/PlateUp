@@ -63,6 +63,10 @@ describe('GroceryListsService', () => {
     planner = moduleRef.get(PlannerService);
   });
 
+  /** The list's items as stored now (each read returns a fresh copy, as from a database). */
+  const itemsOf = async (listId: string, ownerId = 'alice') =>
+    (await service.findOne(ownerId, listId)).items;
+
   it('create and findAll are scoped to the owner', async () => {
     await service.create('alice', { name: 'Weekly' });
 
@@ -97,14 +101,14 @@ describe('GroceryListsService', () => {
     const list = await service.create('alice', { name: 'Weekly' });
     await service.addItem('alice', list.id, { name: 'Milk' });
     await service.addItem('alice', list.id, { name: 'Bread' });
-    const [milk, bread] = list.items;
+    const [milk, bread] = await itemsOf(list.id);
 
     await service.updateItem('alice', list.id, milk.id, { purchased: true });
     await service.removePurchasedItems('alice', list.id);
-    expect(list.items).toEqual([bread]);
+    expect((await itemsOf(list.id)).map((item) => item.id)).toEqual([bread.id]);
 
     await service.removeItem('alice', list.id, bread.id);
-    expect(list.items).toHaveLength(0);
+    expect(await itemsOf(list.id)).toHaveLength(0);
   });
 
   it('updateItem edits the quantity and name of an item', async () => {
@@ -113,7 +117,7 @@ describe('GroceryListsService', () => {
       name: 'Milk',
       quantity: { amount: 1, unit: Unit.Liter },
     });
-    const [milk] = list.items;
+    const [milk] = await itemsOf(list.id);
 
     const updated = await service.updateItem('alice', list.id, milk.id, {
       name: 'Oat milk',
@@ -131,15 +135,17 @@ describe('GroceryListsService', () => {
       name: 'Eggs',
       quantity: { amount: 12, unit: Unit.Piece },
     });
-    const [eggs] = list.items;
+    const [{ id: eggsId }] = await itemsOf(list.id);
 
-    await service.updateItem('alice', list.id, eggs.id, { purchased: true });
+    await service.updateItem('alice', list.id, eggsId, { purchased: true });
+    const [eggs] = await itemsOf(list.id);
     expect(eggs.name).toBe('Eggs');
     expect(eggs.quantity?.equals(new Quantity(12, Unit.Piece))).toBe(true);
 
-    await service.updateItem('alice', list.id, eggs.id, { quantity: null });
-    expect(eggs.quantity).toBeNull();
-    expect(eggs.purchased).toBe(true);
+    await service.updateItem('alice', list.id, eggsId, { quantity: null });
+    const [cleared] = await itemsOf(list.id);
+    expect(cleared.quantity).toBeNull();
+    expect(cleared.purchased).toBe(true);
   });
 
   it('addItem and updateItem store the category', async () => {
@@ -150,7 +156,7 @@ describe('GroceryListsService', () => {
       category: IngredientCategory.OilSauce,
     });
     await service.addItem('alice', list.id, { name: 'Lemongrass' });
-    const [fishSauce, lemongrass] = list.items;
+    const [fishSauce, lemongrass] = await itemsOf(list.id);
 
     expect(fishSauce.category).toBe(IngredientCategory.OilSauce);
     expect(lemongrass.category).toBe(guessCategory('Lemongrass'));
@@ -158,14 +164,14 @@ describe('GroceryListsService', () => {
     await service.updateItem('alice', list.id, lemongrass.id, {
       category: IngredientCategory.Produce,
     });
-    expect(lemongrass.category).toBe(IngredientCategory.Produce);
+    expect((await itemsOf(list.id))[1].category).toBe(IngredientCategory.Produce);
   });
 
   it('addItem guesses the section from the name when none is given', async () => {
     const list = await service.create('alice', { name: 'Weekly' });
     await service.addItem('alice', list.id, { name: 'Eggs' });
     await service.addItem('alice', list.id, { name: 'Gadget' });
-    const [eggs, gadget] = list.items;
+    const [eggs, gadget] = await itemsOf(list.id);
 
     expect(eggs.category).toBe(IngredientCategory.Dairy);
     expect(gadget.category).toBe(IngredientCategory.Other);
@@ -302,8 +308,9 @@ describe('GroceryListsService', () => {
       const list = await service.create('alice', { name: 'Weekly' });
       await service.addItem('alice', list.id, { name: 'Milk', quantity: liter(1) });
       await pantry.add('alice', { name: 'milk', quantity: liter(0.5) });
+      const [milkItem] = await itemsOf(list.id);
 
-      const updated = await service.moveItemToPantry('alice', list.id, list.items[0].id);
+      const updated = await service.moveItemToPantry('alice', list.id, milkItem.id);
 
       expect(updated.items).toHaveLength(0);
       const [milk] = await pantry.findAll('alice');
@@ -317,8 +324,9 @@ describe('GroceryListsService', () => {
         quantity: liter(1),
         category: IngredientCategory.Drinks,
       });
+      const [item] = await itemsOf(list.id);
 
-      await service.moveItemToPantry('alice', list.id, list.items[0].id);
+      await service.moveItemToPantry('alice', list.id, item.id);
 
       const [oatMilk] = await pantry.findAll('alice');
       expect(oatMilk.category).toBe(IngredientCategory.Drinks);
@@ -329,7 +337,7 @@ describe('GroceryListsService', () => {
       await service.addItem('alice', list.id, { name: 'Chips' });
       await service.addItem('alice', list.id, { name: 'Milk', quantity: liter(1) });
       await pantry.add('alice', { name: 'Milk', quantity: { amount: 1, unit: Unit.Carton } });
-      const [chips, milk] = list.items;
+      const [chips, milk] = await itemsOf(list.id);
 
       await expect(service.moveItemToPantry('alice', list.id, chips.id)).rejects.toThrow(
         'Give Chips an amount',
@@ -337,7 +345,7 @@ describe('GroceryListsService', () => {
       await expect(service.moveItemToPantry('alice', list.id, milk.id)).rejects.toThrow(
         DomainValidationError,
       );
-      expect(list.items).toHaveLength(2);
+      expect(await itemsOf(list.id)).toHaveLength(2);
     });
 
     it('moveItemToPantry 404s for an unknown item or another user’s list', async () => {
@@ -347,7 +355,8 @@ describe('GroceryListsService', () => {
       await expect(service.moveItemToPantry('alice', list.id, 'nope')).rejects.toThrow(
         NotFoundException,
       );
-      await expect(service.moveItemToPantry('bob', list.id, list.items[0].id)).rejects.toThrow(
+      const [milk] = await itemsOf(list.id);
+      await expect(service.moveItemToPantry('bob', list.id, milk.id)).rejects.toThrow(
         NotFoundException,
       );
       expect(await pantry.findAll('bob')).toHaveLength(0);
@@ -358,7 +367,7 @@ describe('GroceryListsService', () => {
       await service.addItem('alice', list.id, { name: 'Milk', quantity: liter(1) });
       await service.addItem('alice', list.id, { name: 'Chips' });
       await service.addItem('alice', list.id, { name: 'Bread', quantity: liter(1) });
-      const [milk, chips, bread] = list.items;
+      const [milk, chips, bread] = await itemsOf(list.id);
       await service.updateItem('alice', list.id, milk.id, { purchased: true });
       await service.updateItem('alice', list.id, chips.id, { purchased: true });
 
@@ -368,7 +377,7 @@ describe('GroceryListsService', () => {
       expect(result.skipped).toEqual([
         { name: 'Chips', reason: expect.stringContaining('amount') },
       ]);
-      expect(result.list.items).toEqual([chips, bread]);
+      expect(result.list.items.map((item) => item.id)).toEqual([chips.id, bread.id]);
       expect((await pantry.findAll('alice')).map((item) => item.name)).toEqual(['Milk']);
     });
   });

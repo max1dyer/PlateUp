@@ -1,8 +1,10 @@
+import { repositoryProvider, StorageModule } from '../common/persistence/storage.module';
 import { Module } from '@nestjs/common';
 import { RecipesModule } from '../recipes/recipes.module';
 import { UsersModule } from '../users/users.module';
 import { PlannerController } from './planner.controller';
 import { PlannerService } from './planner.service';
+import { PostgresPlannedMealRepository } from './repositories/postgres-planned-meal.repository';
 import { InMemoryPlannedMealRepository } from './repositories/in-memory-planned-meal.repository';
 import { PlannedMealRepository } from './repositories/planned-meal.repository';
 
@@ -12,12 +14,15 @@ import { PlannedMealRepository } from './repositories/planned-meal.repository';
  * exports `PlannerService` so other features can read a week's meals.
  */
 @Module({
-  imports: [RecipesModule, UsersModule],
+  imports: [StorageModule, RecipesModule, UsersModule],
   controllers: [PlannerController],
   providers: [
     PlannerService,
-    // Swap useClass for a database-backed implementation later.
-    { provide: PlannedMealRepository, useClass: InMemoryPlannedMealRepository },
+    repositoryProvider(
+      PlannedMealRepository,
+      InMemoryPlannedMealRepository,
+      PostgresPlannedMealRepository,
+    ),
   ],
   exports: [PlannerService],
 })

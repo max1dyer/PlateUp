@@ -1,3 +1,4 @@
+import { repositoryProvider, StorageModule } from '../common/persistence/storage.module';
 import { Module } from '@nestjs/common';
 import { PantryModule } from '../pantry/pantry.module';
 import { PlannerModule } from '../planner/planner.module';
@@ -5,6 +6,7 @@ import { RecipesModule } from '../recipes/recipes.module';
 import { GroceryListsController } from './grocery-lists.controller';
 import { GroceryListsService } from './grocery-lists.service';
 import { GroceryListRepository } from './repositories/grocery-list.repository';
+import { PostgresGroceryListRepository } from './repositories/postgres-grocery-list.repository';
 import { InMemoryGroceryListRepository } from './repositories/in-memory-grocery-list.repository';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { UsersModule } from '../users/users.module';
@@ -15,11 +17,22 @@ import { UsersModule } from '../users/users.module';
  * shop for a planned week).
  */
 @Module({
-  imports: [RecipesModule, PantryModule, PlannerModule, NotificationsModule, UsersModule],
+  imports: [
+    StorageModule,
+    RecipesModule,
+    PantryModule,
+    PlannerModule,
+    NotificationsModule,
+    UsersModule,
+  ],
   controllers: [GroceryListsController],
   providers: [
     GroceryListsService,
-    { provide: GroceryListRepository, useClass: InMemoryGroceryListRepository },
+    repositoryProvider(
+      GroceryListRepository,
+      InMemoryGroceryListRepository,
+      PostgresGroceryListRepository,
+    ),
   ],
   exports: [GroceryListsService],
 })
